@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
+//Precio Promocion
+
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,24 +10,24 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-} from 'react-native';
-import { parseReal, normalizeReal } from '../utils/number.js';
-import { PROMOTIONS, calcularPromoTotal } from '../utils/promoCalculator.js';
+} from "react-native";
+import { parseReal, normalizeReal } from "../utils/number.js";
+import { PROMOTIONS, calcularPromoTotal } from "../utils/promoCalculator.js";
 
 if (
-  Platform.OS === 'android' &&
+  Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
 ) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const UNIT_TYPES = ['u', 'kg', 'l'];
+const UNIT_TYPES = ["u", "kg", "l"];
 
 export default function PrecioPromocion({ value = {}, onChange }) {
-  const [localPrice, setLocalPrice] = useState(String(value.unitPrice ?? ''));
-  const [localQty, setLocalQty] = useState(String(value.qty ?? '1'));
-  const [localPromo, setLocalPromo] = useState(value.promo ?? 'none');
-  const [localUnit, setLocalUnit] = useState(value.unitType ?? 'u');
+  const [localPrice, setLocalPrice] = useState(String(value.unitPrice ?? ""));
+  const [localQty, setLocalQty] = useState(String(value.qty ?? "1"));
+  const [localPromo, setLocalPromo] = useState(value.promo ?? "none");
+  const [localUnit, setLocalUnit] = useState(value.unitType ?? "u");
   const [expanded, setExpanded] = useState(false);
 
   const lastSent = useRef(null);
@@ -33,10 +35,10 @@ export default function PrecioPromocion({ value = {}, onChange }) {
   const getTotals = () => {
     const p = parseReal(localPrice);
     const q = parseReal(localQty);
-    if (isNaN(p) || isNaN(q)) return { total: 0, summary: '', warning: null };
+    if (isNaN(p) || isNaN(q)) return { total: 0, summary: "", warning: null };
 
     const { total, warning, label } = calcularPromoTotal(localPromo, p, q);
-    const promoLabel = localPromo !== 'none' ? ` (${label})` : '';
+    const promoLabel = localPromo !== "none" ? ` (${label})` : "";
     const summary = `${q} × ${p.toFixed(2)} €${promoLabel} = ${total.toFixed(
       2
     )} €`;
@@ -80,7 +82,7 @@ export default function PrecioPromocion({ value = {}, onChange }) {
         <Text style={styles.label}>Unidad</Text>
         <View style={styles.selectorRow}>
           {UNIT_TYPES.map((u) => {
-            const emoji = u === 'kg' ? '⚖️' : u === 'l' ? '🧃' : '🧩';
+            const emoji = u === "kg" ? "⚖️" : u === "l" ? "🧃" : "🧩";
             return (
               <Pressable
                 key={u}
@@ -88,12 +90,14 @@ export default function PrecioPromocion({ value = {}, onChange }) {
                   styles.selectorBtn,
                   localUnit === u && styles.selectorBtnActive,
                 ]}
-                onPress={() => setLocalUnit(u)}>
+                onPress={() => setLocalUnit(u)}
+              >
                 <Text
                   style={[
                     styles.selectorText,
                     localUnit === u && styles.selectorTextActive,
-                  ]}>
+                  ]}
+                >
                   {emoji} {u}
                 </Text>
               </Pressable>
@@ -109,7 +113,7 @@ export default function PrecioPromocion({ value = {}, onChange }) {
       <View style={styles.row}>
         <View style={styles.halfBox}>
           <Text style={styles.label}>
-            Cantidad ({localUnit === 'u' ? 'u' : localUnit})
+            Cantidad ({localUnit === "u" ? "u" : localUnit})
           </Text>
           <TextInput
             style={[styles.input, styles.bigInput]}
@@ -145,10 +149,10 @@ export default function PrecioPromocion({ value = {}, onChange }) {
       {/* 🎁 Ofertas (colapsable) */}
       <Pressable onPress={toggleExpanded} style={styles.offerHeader}>
         <Text style={styles.sectionTitle}>🎁 Ofertas</Text>
-        <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+        <Text style={styles.chevron}>{expanded ? "▲" : "▼"}</Text>
       </Pressable>
 
-      {!expanded && localPromo !== 'none' && (
+      {!expanded && localPromo !== "none" && (
         <Text style={styles.activePromoText}>
           Oferta seleccionada: {PROMOTIONS[localPromo]?.label}
         </Text>
@@ -170,12 +174,14 @@ export default function PrecioPromocion({ value = {}, onChange }) {
                     styles.selectorBtn,
                     isActive && styles.selectorBtnActive,
                   ]}
-                  onPress={() => setLocalPromo(key)}>
+                  onPress={() => setLocalPromo(key)}
+                >
                   <Text
                     style={[
                       styles.selectorText,
                       isActive && styles.selectorTextActive,
-                    ]}>
+                    ]}
+                  >
                     {promo.label}
                   </Text>
                 </Pressable>
@@ -197,33 +203,33 @@ export default function PrecioPromocion({ value = {}, onChange }) {
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   halfBox: { flex: 1 },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
     marginTop: 8,
     marginBottom: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     padding: 10,
-    backgroundColor: 'white',
+    backgroundColor: "white",
     marginBottom: 6,
   },
   bigInput: {
     fontSize: 18,
-    textAlign: 'left',
+    textAlign: "left",
   },
   selectorRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 6,
     marginBottom: 6,
   },
@@ -231,70 +237,70 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 10,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: "#E2E8F0",
   },
-  selectorBtnActive: { backgroundColor: '#2563EB' },
-  selectorText: { color: '#475569', fontWeight: '600' },
-  selectorTextActive: { color: 'white' },
+  selectorBtnActive: { backgroundColor: "#2563EB" },
+  selectorText: { color: "#475569", fontWeight: "600" },
+  selectorTextActive: { color: "white" },
   unitHint: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   offerHeader: {
     marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1e293b',
+    fontWeight: "700",
+    color: "#1e293b",
   },
   chevron: {
     fontSize: 14,
-    color: '#64748b',
+    color: "#64748b",
   },
   sectionHint: {
     fontSize: 13,
-    color: '#64748b',
+    color: "#64748b",
     marginBottom: 8,
   },
   activePromoText: {
     fontSize: 13,
-    color: '#475569',
+    color: "#475569",
     marginBottom: 6,
     marginTop: 2,
   },
   totalBox1: {
     marginTop: 10,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 8,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
   totalBox: {
     marginTop: 10,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: "#E3F2FD",
     borderRadius: 8,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#BBDEFB',
-    shadowColor: '#000',
+    borderColor: "#BBDEFB",
+    shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 3,
     elevation: 1,
   },
-  totalLabel: { fontSize: 16, fontWeight: '700', color: '#111' },
-  totalDetail: { marginTop: 4, fontSize: 13, color: '#555' },
+  totalLabel: { fontSize: 16, fontWeight: "700", color: "#111" },
+  totalDetail: { marginTop: 4, fontSize: 13, color: "#555" },
   totalWarning: {
     marginTop: 6,
     fontSize: 13,
-    color: '#b91c1c',
-    fontWeight: '500',
+    color: "#b91c1c",
+    fontWeight: "500",
   },
 });
