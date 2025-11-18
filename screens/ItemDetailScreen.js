@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+// ItemDetailScreen.js
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,17 +12,21 @@ import { Ionicons } from "@expo/vector-icons";
 import PrecioPromocion from "../components/PrecioPromocion";
 import { defaultItem } from "../utils/defaultItem";
 import { safeAlert } from "../utils/safeAlert";
-import DebugBanner from "../components/DebugBanner"; // 👈 importación arriba
 
 export default function ItemDetailScreen({ route, navigation }) {
-  const { item = {}, onSave, onDelete } = route.params || {};
-  const fullItem = { ...defaultItem, ...item };
+  const { item, onSave, onDelete } = route.params;
 
-  const [name, setName] = useState(fullItem.name);
-  const [priceInfo, setPriceInfo] = useState(fullItem.priceInfo);
-  const priceRef = useRef(fullItem.priceInfo);
+  // 🧊 Congelar ID original
+  const originalId = item.id;
 
-  // ☰ Menú hamburguesa
+  // ⭐ Un estado único
+  const [itemData, setItemData] = useState({
+    ...defaultItem,
+    ...item,
+    id: originalId, // ID garantizado
+  });
+
+  // ☰ Menú
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -35,49 +40,29 @@ export default function ItemDetailScreen({ route, navigation }) {
     });
   }, [navigation]);
 
+  // 💾 Guardar
   const handleSave = async () => {
-    //console.log(fullItem);
-    //console.log(name);
-    //console.log(priceInfo);
-    const updatedItem = { ...fullItem, name, priceInfo };
-    //console.log(updatedItem);
-    await onSave(updatedItem);
-    navigation.goBack();
-  };
-
-  const handleDelete = async () => {
-    try {
-      await onDelete(fullItem.id); // Espera a que la operación termine
-      navigation.goBack(); // Luego vuelve atrás
-    } catch (error) {
-      console.error("Error eliminando el item:", error);
-    }
-  };
-
-  // 💾 Guardar producto
-  const handleSave1 = async () => {
-    if (!name.trim()) {
+    if (!itemData.name.trim()) {
       safeAlert("Nombre vacío", "Introduce un nombre para el producto.");
       return;
     }
 
     const updatedItem = {
-      ...fullItem,
-      name,
-      priceInfo: priceRef.current, // ✅ última versión del hijo
+      ...itemData,
+      id: originalId, // por si algún estado lo modificara
     };
 
     try {
       await onSave(updatedItem);
       requestAnimationFrame(() => navigation.goBack());
     } catch (err) {
-      console.error("Error al guardar item:", err);
-      safeAlert("Error", "No se pudo guardar el producto.");
+      console.error(err);
+      safeAlert("Error", "No se pudo guardar.");
     }
   };
 
-  // 🗑️ Eliminar producto
-  const handleDelete1 = () => {
+  // 🗑️ Eliminar
+  const handleDelete = () => {
     safeAlert("Eliminar producto", "¿Seguro que deseas eliminarlo?", [
       { text: "Cancelar", style: "cancel" },
       {
@@ -85,11 +70,11 @@ export default function ItemDetailScreen({ route, navigation }) {
         style: "destructive",
         onPress: async () => {
           try {
-            await Promise.resolve(onDelete(fullItem.id));
+            await Promise.resolve(onDelete(originalId));
             requestAnimationFrame(() => navigation.goBack());
           } catch (err) {
-            console.error("Error al eliminar:", err);
-            safeAlert("Error", "No se pudo eliminar el producto.");
+            console.error(err);
+            safeAlert("Error", "No se pudo eliminar.");
           }
         },
       },
@@ -101,17 +86,17 @@ export default function ItemDetailScreen({ route, navigation }) {
       <Text style={styles.label}>Nombre</Text>
       <TextInput
         style={styles.input}
-        value={name}
-        onChangeText={setName}
-        placeholder="Nombre del producto"
+        value={itemData.name}
+        onChangeText={(text) =>
+          setItemData((prev) => ({ ...prev, name: text }))
+        }
       />
 
       <PrecioPromocion
-        value={priceInfo}
-        onChange={(newValue) => {
-          setPriceInfo(newValue);
-          priceRef.current = newValue;
-        }}
+        value={itemData.priceInfo}
+        onChange={(info) =>
+          setItemData((prev) => ({ ...prev, priceInfo: info }))
+        }
       />
 
       <View style={styles.actions}>

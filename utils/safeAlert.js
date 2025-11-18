@@ -2,25 +2,55 @@
 import { Alert, Platform } from "react-native";
 
 /**
- * safeAlert(title, message)
- * Muestra un alert compatible con Expo Web o dispositivos.
+ * safeAlert(title, message, buttons?)
+ * Compatible con:
+ *  - safeAlert("Error", "Texto")  ← funciona igual que antes
+ *  - safeAlert("Eliminar", "¿Seguro?", [ ... ]) ← ahora soportado
  */
-export function safeAlert(title, message) {
+export function safeAlert(title, message, buttons) {
+  // --- WEB ---
   if (Platform.OS === "web") {
-    // En modo Web → mostramos en consola y ventana nativa
-    // console.log(`⚠️ ${title}: ${message}`);
-    if (typeof window !== "undefined" && window.alert) {
-      window.alert(`${title}\n\n${message}`);
+    if (!buttons) {
+      // Comportamiento antiguo → no rompemos nada
+      if (typeof window !== "undefined" && window.alert) {
+        window.alert(`${title}\n\n${message}`);
+      }
+      return;
     }
-  } else {
-    // En móvil → Alert clásico
+
+    // Botones personalizados en web usando confirm()
+    if (buttons.length === 1) {
+      // Un solo botón → window.alert
+      window.alert(`${title}\n\n${message}`);
+      const b = buttons[0];
+      if (b.onPress) b.onPress();
+      return;
+    }
+
+    if (buttons.length >= 2) {
+      // Simulación de Cancelar / Aceptar
+      const confirmResult = window.confirm(`${title}\n\n${message}`);
+      if (confirmResult) {
+        const positive = buttons[1];
+        if (positive?.onPress) positive.onPress();
+      }
+      return;
+    }
+  }
+
+  // --- MOBILE ---
+  if (!buttons) {
+    // Comportamiento antiguo → no modificamos nada
     Alert.alert(title, message);
+  } else {
+    // Nueva función con botones personalizados
+    Alert.alert(title, message, buttons);
   }
 }
 
 /**
  * safeConfirm(title, message, onConfirm)
- * Versión confirmable (para eliminar, etc.)
+ * Confirm tradicional con 2 botones
  */
 export function safeConfirm(title, message, onConfirm) {
   if (Platform.OS === "web") {

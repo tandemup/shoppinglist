@@ -1,23 +1,29 @@
 // screens/ScannedHistoryScreen.js
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Image, Pressable, StyleSheet } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  View,
+  Text,
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+} from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Linking from "expo-linking";
+import {
+  getScannedProducts,
+  deleteScannedProduct,
+} from "../utils/storageHelpers";
+import { Linking } from "react-native";
 
 export default function ScannedHistoryScreen() {
   const [products, setProducts] = useState([]);
 
+  const loadProducts = async () => {
+    const data = await getScannedProducts();
+    setProducts(data.reverse());
+  };
+
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const stored = await AsyncStorage.getItem("scannedProducts");
-        const parsed = stored ? JSON.parse(stored) : [];
-        setProducts(parsed.reverse());
-      } catch (err) {
-        console.error("Error cargando historial:", err);
-      }
-    };
     loadProducts();
   }, []);
 
@@ -27,16 +33,33 @@ export default function ScannedHistoryScreen() {
         {item.image ? (
           <Image source={{ uri: item.image }} style={styles.image} />
         ) : (
-          <MaterialCommunityIcons name="barcode" size={40} color="#ccc" />
+          <MaterialCommunityIcons name="barcode" size={40} color="#bbb" />
         )}
+
         <View style={{ marginLeft: 10, flex: 1 }}>
           <Text style={styles.name}>{item.name || "Producto desconocido"}</Text>
           <Text style={styles.brand}>{item.brand}</Text>
-          <Text style={styles.date}>{new Date(item.date).toLocaleString()}</Text>
+          <Text style={styles.date}>
+            {new Date(item.date).toLocaleString()}
+          </Text>
         </View>
       </View>
-      <Pressable style={styles.button} onPress={() => Linking.openURL(item.url)}>
+
+      <Pressable
+        style={styles.button}
+        onPress={() => Linking.openURL(item.url)}
+      >
         <Text style={styles.buttonText}>Ver producto</Text>
+      </Pressable>
+
+      <Pressable
+        style={styles.deleteButton}
+        onPress={async () => {
+          await deleteScannedProduct(item.id);
+          loadProducts();
+        }}
+      >
+        <MaterialCommunityIcons name="delete" size={22} color="white" />
       </Pressable>
     </View>
   );
@@ -44,13 +67,11 @@ export default function ScannedHistoryScreen() {
   return (
     <View style={styles.container}>
       {products.length === 0 ? (
-        <Text style={{ color: "#ccc", textAlign: "center", marginTop: 40 }}>
-          Aún no hay productos guardados.
-        </Text>
+        <Text style={styles.empty}>Aún no hay productos guardados.</Text>
       ) : (
         <FlatList
           data={products}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(item) => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ padding: 12 }}
         />
@@ -61,28 +82,35 @@ export default function ScannedHistoryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#111" },
-  header: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginVertical: 16,
-  },
+  empty: { color: "#777", textAlign: "center", marginTop: 40 },
+
   card: {
-    backgroundColor: "#222",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 10,
+    backgroundColor: "#1e1e1e",
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+    position: "relative",
   },
+
+  deleteButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#c00",
+    padding: 6,
+    borderRadius: 6,
+  },
+
   image: { width: 60, height: 60, borderRadius: 8 },
   name: { color: "white", fontWeight: "bold", fontSize: 16 },
-  brand: { color: "#ccc" },
-  date: { color: "#999", fontSize: 12, marginTop: 4 },
+  brand: { color: "#aaa" },
+  date: { color: "#777", marginTop: 4 },
+
   button: {
     marginTop: 10,
     backgroundColor: "#2563eb",
     borderRadius: 8,
-    paddingVertical: 6,
+    paddingVertical: 8,
     alignItems: "center",
   },
   buttonText: { color: "white", fontWeight: "bold" },

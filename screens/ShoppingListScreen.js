@@ -1,11 +1,8 @@
 // screens/ShoppingListScreen.js
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  useCallback,
-  useRef,
-} from "react";
+import "react-native-get-random-values";
+import { v4 as uuidv4 } from "uuid";
+
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -16,14 +13,22 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { safeAlert } from "../utils/safeAlert";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { getAllLists, updateList } from "../utils/listStorage";
+
+import {
+  getAllLists,
+  updateList,
+  addItemToList,
+  updateItemInList,
+  deleteItemFromList,
+} from "../utils/listStorage";
+
 import ItemRow from "../components/ItemRow";
-import { defaultItem } from "../utils/defaultItem";
 import SearchCombinedBar from "../components/SearchCombinedBar";
 import StoreSelector from "../components/StoreSelector";
+import { safeAlert } from "../utils/safeAlert";
+import { defaultItem } from "../utils/defaultItem";
 
 export default function ShoppingListScreen({ route, navigation }) {
   const { listId } = route.params || {};
@@ -31,30 +36,22 @@ export default function ShoppingListScreen({ route, navigation }) {
   const [list, setList] = useState(null);
   const [nuevoItem, setNuevoItem] = useState("");
 
-  // 👉 Donde guardamos la tienda seleccionada sin Zustand
   const storeRef = useRef(null);
 
-  const handleStoreSelected = async (store) => {
-    storeRef.current = store;
-
-    const updatedList = {
-      ...list,
-      store,
-    };
-
-    setList(updatedList);
-    await updateList(listId, updatedList);
-  };
-
+  // -------------------------
+  // CARGAR LISTA
+  // -------------------------
   const loadList = useCallback(async () => {
     try {
-      const allLists = await getAllLists();
-      const found = allLists.find((l) => String(l.id) === String(listId));
+      const lists = await getAllLists();
+      const found = lists.find((l) => l.id === listId);
+
       if (!found) {
         safeAlert("Error", "No se encontró la lista.");
         navigation.goBack();
         return;
       }
+
       setList(found);
     } catch (err) {
       console.error("Error cargando lista:", err);
@@ -67,11 +64,12 @@ export default function ShoppingListScreen({ route, navigation }) {
     return unsubscribe;
   }, [navigation, loadList]);
 
+  // -------------------------
+  // HEADER
+  // -------------------------
   useEffect(() => {
-    if (list?.name) {
-      navigation.setOptions({ title: list.name });
-    }
-  }, [navigation, list?.name]);
+    if (list?.name) navigation.setOptions({ title: list.name });
+  }, [list?.name, navigation]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -86,86 +84,110 @@ export default function ShoppingListScreen({ route, navigation }) {
     });
   }, [navigation]);
 
+  // -------------------------
+  // AÑADIR ITEM NUEVO
+  // -------------------------
   const addItem = async () => {
     if (!nuevoItem.trim() || !list) return;
 
-    const today = new Date();
-    const formattedDate = today.toISOString().split("T")[0];
+    const formattedDate = new Date().toISOString().substring(0, 10);
 
     const newItem = {
       ...defaultItem,
-      id: Date.now().toString(),
+      id: uuidv4(),
       name: nuevoItem.trim(),
       date: formattedDate,
       checked: true,
     };
 
-    const updatedList = {
-      ...list,
-      items: [newItem, ...(list.items || [])],
-    };
+    // Guardar en almacenamiento
+    await addItemToList(listId, newItem);
 
-    setList(updatedList);
+    // Actualizar UI
+    setList((prev) => ({
+      ...prev,
+      items: [newItem, ...prev.items],
+    }));
+
     setNuevoItem("");
-    await updateList(listId, updatedList);
   };
 
+  // -------------------------
+  // CHECK/UNCHECK ITEM
+  // -------------------------
   const toggleChecked = useCallback(
     async (id) => {
       if (!list) return;
 
-      const updatedList = {
-        ...list,
-        items: list.items.map((i) =>
-          i.id === id ? { ...i, checked: !i.checked } : i
-        ),
+      const item = list.items.find((i) => i.id === id);
+      if (!item) return;
+
+      const updatedItem = {
+        ...item,
+        checked: !item.checked,
       };
 
-      setList(updatedList);
-      await updateList(listId, updatedList);
+      // Guardar
+      await updateItemInList(listId, updatedItem);
+
+      // Actualizar UI
+      setList((prev) => ({
+        ...prev,
+        items: prev.items.map((i) => (i.id === id ? updatedItem : i)),
+      }));
     },
-    [list]
+    [list, listId]
   );
 
+  // -------------------------
+  // ABRIR DETALLE
+  // -------------------------
   const openItemDetail = (item) => {
     navigation.navigate("ItemDetailScreen", {
       item,
+
+      // Guardar cambios
       onSave: async (updatedItem) => {
-        setList((prevList) => {
-          const updatedItems = prevList.items.map((i) =>
-            i.id === updatedItem.id ? { ...i, ...updatedItem } : i
-          );
-          const updatedList = { ...prevList, items: updatedItems };
-          updateList(listId, updatedList);
-          return updatedList;
-        });
+        await updateItemInList(listId, updatedItem);
+
+        setList((prev) => ({
+          ...prev,
+          items: prev.items.map((i) =>
+            i.id === updatedItem.id ? updatedItem : i
+          ),
+        }));
       },
+
+      // Eliminar item
       onDelete: async (id) => {
-        setList((prevList) => {
-          const updatedList = {
-            ...prevList,
-            items: prevList.items.filter((i) => i.id !== id),
-          };
-          updateList(listId, updatedList);
-          return updatedList;
-        });
+        await deleteItemFromList(listId, id);
+
+        setList((prev) => ({
+          ...prev,
+          items: prev.items.filter((i) => i.id !== id),
+        }));
       },
     });
   };
 
-  const total = useMemo(() => {
-    if (!list || !list.items?.length) return "0.00";
+  // -------------------------
+  // TOTAL
+  // -------------------------
+  const total = (() => {
+    if (!list?.items?.length) return "0.00";
+
     const sum = list.items
       .filter((i) => i.checked)
       .reduce((acc, i) => {
         const p = i.priceInfo || {};
         const subtotal =
           p.total ?? parseFloat(p.unitPrice || 0) * parseFloat(p.qty || 1);
+
         return acc + (isNaN(subtotal) ? 0 : subtotal);
       }, 0);
 
     return sum.toFixed(2);
-  }, [list]);
+  })();
 
   const renderItem = ({ item }) => (
     <ItemRow item={item} onToggle={toggleChecked} onEdit={openItemDetail} />
@@ -181,40 +203,44 @@ export default function ShoppingListScreen({ route, navigation }) {
     );
   }
 
+  // -------------------------
+  // UI
+  // -------------------------
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1, marginTop: 1 }}
       >
-        {/* 🏬 SELECTOR DE TIENDA */}
+        {/* Selector de tienda */}
         <StoreSelector navigation={navigation} />
 
-        {/* 💰 Total */}
+        {/* Total */}
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Total:</Text>
           <Text style={styles.totalValue}>{total} €</Text>
         </View>
 
-        {/* 🔍 Búsqueda */}
+        {/* Historial */}
         <SearchCombinedBar
           currentList={list}
-          onSelectHistoryItem={(historyItem) => {
+          onSelectHistoryItem={async (historyItem) => {
             const item = {
               ...historyItem.item,
-              id: Date.now().toString(),
-              checked: true,
+              id: historyItem.item.id,
+              checked: false,
             };
-            const updatedList = {
-              ...list,
-              items: [item, ...list.items],
-            };
-            setList(updatedList);
-            updateList(listId, updatedList);
+
+            await addItemToList(listId, item);
+
+            setList((prev) => ({
+              ...prev,
+              items: [item, ...prev.items],
+            }));
           }}
         />
 
-        {/* ➕ Añadir */}
+        {/* Añadir */}
         <View style={styles.addRow}>
           <TextInput
             style={styles.newInput}
@@ -231,7 +257,7 @@ export default function ShoppingListScreen({ route, navigation }) {
 
         {/* Lista */}
         <FlatList
-          data={list.items || []}
+          data={list.items}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 30 }}
@@ -243,42 +269,6 @@ export default function ShoppingListScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 16 },
-  header: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    textAlign: "center",
-    marginVertical: 6,
-  },
-  storeName: {
-    fontSize: 16,
-    color: "#555",
-    textAlign: "center",
-    marginBottom: 6,
-    fontStyle: "italic",
-  },
-
-  card: {
-    backgroundColor: "#E3F2FD", // 💙 Azul muy claro (Material Blue 50)
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-
-    borderColor: "#BBDEFB",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 1,
-  },
 
   totalContainer: {
     flexDirection: "row",
@@ -290,14 +280,10 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     marginHorizontal: 5,
     borderColor: "#BBDEFB",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 1,
   },
   totalLabel: { fontSize: 20, fontWeight: "600" },
   totalValue: { fontSize: 30, fontWeight: "800" },
+
   addRow: { flexDirection: "row", alignItems: "center", marginHorizontal: 5 },
   newInput: {
     flex: 1,

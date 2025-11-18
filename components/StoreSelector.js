@@ -26,7 +26,8 @@ export default function StoreSelector({ navigation }) {
     <TouchableOpacity style={styles.box} onPress={handleSelectStore}>
       <Ionicons name="storefront" size={20} color="#007bff" />
 
-      <View style={{ marginLeft: 12, flex: 1 }}>
+      {/* ESTE ERA inline:  marginLeft: 12, flex: 1 */}
+      <View style={styles.middleColumn}>
         <Text style={styles.label}>Tienda seleccionada</Text>
 
         {store ? (
@@ -39,11 +40,12 @@ export default function StoreSelector({ navigation }) {
         )}
       </View>
 
+      {/* ESTE ERA inline: marginLeft: "auto" */}
       <Ionicons
         name="chevron-forward"
         size={20}
         color="#777"
-        style={{ marginLeft: "auto" }}
+        style={styles.chevron}
       />
     </TouchableOpacity>
   );
@@ -53,7 +55,7 @@ const styles = StyleSheet.create({
   box: {
     flexDirection: "row",
     alignItems: "flex-start",
-    padding: 16, // <-- Igual para todos los controles
+    padding: 16,
     backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
@@ -62,6 +64,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginHorizontal: 5,
   },
+
+  // ⬅ NUEVO: reemplaza <View style={{ marginLeft:12, flex:1 }}>
+  middleColumn: {
+    marginLeft: 12,
+    flex: 1,
+  },
+
+  // ⬅ NUEVO: reemplaza style={{ marginLeft:"auto" }}
+  chevron: {
+    marginLeft: "auto",
+  },
+
   label: {
     fontSize: 12,
     color: "#777",
