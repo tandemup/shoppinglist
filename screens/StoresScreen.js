@@ -1,6 +1,5 @@
 // screens/StoresScreen.js
 import React, { useState } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,
   Text,
@@ -9,6 +8,8 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { Ionicons } from "@expo/vector-icons";
 import {
   haversineDistance,
@@ -55,73 +56,68 @@ export default function StoresScreen({ route, navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Tiendas</Text>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <Text style={styles.title}>Tiendas</Text>
 
-        <TouchableOpacity
-          style={styles.locationButton}
-          onPress={handleGetLocation}
-        >
-          <Text style={styles.locationButtonText}>📍 Usar mi ubicación</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.locationButton}
+        onPress={handleGetLocation}
+      >
+        <Text style={styles.locationButtonText}>📍 Usar mi ubicación</Text>
+      </TouchableOpacity>
 
-        <View style={styles.searchContainer}>
-          <Ionicons
-            name="search"
-            size={18}
-            color="#777"
-            style={{ marginRight: 6 }}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar tienda..."
-            placeholderTextColor="#999"
-            value={search}
-            onChangeText={setSearch}
-          />
-        </View>
-
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {filteredStores.length === 0 ? (
-            <Text style={styles.noResults}>No se encontraron tiendas.</Text>
-          ) : (
-            filteredStores.map((store) => {
-              const distance = distances[store.id];
-              return (
-                <TouchableOpacity
-                  key={store.id}
-                  style={styles.card}
-                  onPress={() => handleSelectStore(store)}
-                >
-                  <View style={styles.checkbox}>
-                    <Ionicons name="storefront" size={16} color="#fff" />
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.name}>{store.name}</Text>
-                    <Text style={styles.address}>📍 {store.address}</Text>
-                    {typeof distance === "number" ? (
-                      <Text style={styles.desc}>
-                        A {distance.toFixed(2)} km
-                      </Text>
-                    ) : (
-                      <Text style={styles.desc}>Distancia no disponible</Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })
-          )}
-        </ScrollView>
+      <View style={styles.searchContainer}>
+        <Ionicons
+          name="search"
+          size={18}
+          color="#777"
+          style={{ marginRight: 6 }}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar tienda..."
+          placeholderTextColor="#999"
+          value={search}
+          onChangeText={setSearch}
+        />
       </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {filteredStores.length === 0 ? (
+          <Text style={styles.noResults}>No se encontraron tiendas.</Text>
+        ) : (
+          filteredStores.map((store) => {
+            const distance = distances[store.id];
+            return (
+              <TouchableOpacity
+                key={store.id}
+                style={styles.card}
+                onPress={() => handleSelectStore(store)}
+              >
+                <View style={styles.checkbox}>
+                  <Ionicons name="storefront" size={16} color="#fff" />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.name}>{store.name}</Text>
+                  <Text style={styles.address}>📍 {store.address}</Text>
+                  {typeof distance === "number" ? (
+                    <Text style={styles.desc}>A {distance.toFixed(2)} km</Text>
+                  ) : (
+                    <Text style={styles.desc}>Distancia no disponible</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 // 🎨 Estilos (sin cambios)
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#f7f9fc" },
   container: { flex: 1, padding: 16 },
   title: {
     fontSize: 22,

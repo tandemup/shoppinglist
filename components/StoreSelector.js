@@ -60,9 +60,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#ddd",
-    marginTop: 10,
-    marginBottom: 10,
-    marginHorizontal: 5,
+    marginVertical: 12,
+    marginHorizontal: 0,
   },
 
   // ⬅ NUEVO: reemplaza <View style={{ marginLeft:12, flex:1 }}>

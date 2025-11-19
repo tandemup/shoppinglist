@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { searchItemsAcrossLists } from "../utils/searchHelpers";
 
 export default function SearchItemsScreen({ navigation }) {
@@ -24,44 +26,46 @@ export default function SearchItemsScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🔎 Buscar productos anteriores</Text>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <View style={styles.container}>
+        <Text style={styles.title}>🔎 Buscar productos anteriores</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Escribe un nombre (ej. café, leche...)"
-        value={query}
-        onChangeText={handleSearch}
-      />
+        <TextInput
+          style={styles.input}
+          placeholder="Escribe un nombre (ej. café, leche...)"
+          value={query}
+          onChangeText={handleSearch}
+        />
 
-      {results.length === 0 && query.length >= 2 && (
-        <Text style={styles.empty}>Sin coincidencias</Text>
-      )}
-
-      <FlatList
-        data={results}
-        keyExtractor={(item, index) => `${item.listId}-${index}`}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.resultRow}
-            onPress={() =>
-              navigation.navigate("ItemDetailScreen", {
-                item: item.item,
-                onSave: () => {},
-                onDelete: () => {},
-              })
-            }
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.itemName}>{item.item.name}</Text>
-              <Text style={styles.listInfo}>
-                🧾 {item.listName} | 💰 {item.item.priceInfo?.total ?? "—"} €
-              </Text>
-            </View>
-          </TouchableOpacity>
+        {results.length === 0 && query.length >= 2 && (
+          <Text style={styles.empty}>Sin coincidencias</Text>
         )}
-      />
-    </View>
+
+        <FlatList
+          data={results}
+          keyExtractor={(item, index) => `${item.listId}-${index}`}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.resultRow}
+              onPress={() =>
+                navigation.navigate("ItemDetailScreen", {
+                  item: item.item,
+                  onSave: () => {},
+                  onDelete: () => {},
+                })
+              }
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.itemName}>{item.item.name}</Text>
+                <Text style={styles.listInfo}>
+                  🧾 {item.listName} | 💰 {item.item.priceInfo?.total ?? "—"} €
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 

@@ -1,9 +1,12 @@
 import React from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StoreProvider } from "./context/StoreContext";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { ConfigProvider } from "./context/ConfigContext";
+
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 // 🖼️ Screens
@@ -33,7 +36,7 @@ function ShoppingStack() {
         options={{
           title: "Shopping Lists",
           headerTitleAlign: "center",
-          headerStyle: { backgroundColor: "#fff" },
+          headerStyle: { backgroundColor: "#fff", height: 2 },
           headerTitleStyle: { fontSize: 20, fontWeight: "700" },
         }}
       />
@@ -154,14 +157,16 @@ function MainTabs() {
 export default function App() {
   return (
     <StoreProvider>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {/* Pantalla inicial */}
-          <Stack.Screen name="Splash" component={SplashScreen} />
-          {/* Navegación principal */}
-          <Stack.Screen name="MainTabs" component={MainTabs} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <ConfigProvider>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {/* Pantalla inicial */}
+            <Stack.Screen name="Splash" component={SplashScreen} />
+            {/* Navegación principal */}
+            <Stack.Screen name="MainTabs" component={MainTabs} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ConfigProvider>
     </StoreProvider>
   );
 }

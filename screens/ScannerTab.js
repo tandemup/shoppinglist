@@ -1,4 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+// screens/ScannerTab.js
+//import React, { useState, useRef } from "react";
+//import { View, Text, Pressable, Animated, Image } from "react-native";
+//import BarcodeScanner from "../components/BarcodeScanner";
+//import { fetchProductInfo, SEARCH_ENGINES, buildSearchUrl } from "./ProductLookup";
+//import { useConfig } from "../context/ConfigContext";
+
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,383 +14,318 @@ import {
   Image,
   Animated,
   Linking,
-  ScrollView,
-} from 'react-native';
-import { useCameraPermissions } from 'expo-camera';
-import { useFocusEffect } from '@react-navigation/native';
-import * as ScreenOrientation from 'expo-screen-orientation';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Clipboard from 'expo-clipboard';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+} from "react-native";
 
-import BarcodeScanner from '../components/BarcodeScanner';
+import BarcodeScanner from "../components/BarcodeScanner";
 import {
   SEARCH_ENGINES,
   fetchProductInfo,
   buildSearchUrl,
-} from './ProductLookup';
+} from "./ProductLookup";
+import { useConfig } from "../context/ConfigContext";
+
+//import { useCameraPermissions } from "expo-camera";
+//import { useFocusEffect } from "@react-navigation/native";
+//import * as ScreenOrientation from "expo-screen-orientation";
+//import AsyncStorage from "@react-native-async-storage/async-storage";
+//import * as Clipboard from "expo-clipboard";
+//import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function ScannerTab({ navigation }) {
-  const [permission, requestPermission] = useCameraPermissions();
+  const { config } = useConfig();
+
   const [scanned, setScanned] = useState(false);
   const [product, setProduct] = useState(null);
   const [lastCode, setLastCode] = useState(null);
-  const [message, setMessage] = useState('');
-  const [selectedSearch, setSelectedSearch] = useState(SEARCH_ENGINES[0]);
-  const [checkAnim] = useState(new Animated.Value(0));
-  const [showLocalHistory, setShowLocalHistory] = useState(false);
-  const [recentProducts, setRecentProducts] = useState([]);
-  const [isFocused, setIsFocused] = useState(true); // 👈 control de cámara
+  const [message, setMessage] = useState("");
 
-  useFocusEffect(
-    useCallback(() => {
-      setIsFocused(true);
-      return () => setIsFocused(false);
-    }, [])
-  );
+  const abortController = useRef(null);
 
-  useEffect(() => {
-    requestPermission();
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-    return () => ScreenOrientation.unlockAsync();
-  }, []);
+  const checkAnim = useRef(new Animated.Value(0)).current;
 
-  const saveProduct = async (code, productData) => {
-    try {
-      const stored = await AsyncStorage.getItem('scannedProducts');
-      const products = stored ? JSON.parse(stored) : [];
-      if (products.some((p) => p.code === code)) return;
-      const newProduct = {
-        code,
-        name: productData?.name || '',
-        brand: productData?.brand || '',
-        url: productData?.url || buildSearchUrl('openfoodfacts', code),
-        date: new Date().toISOString(),
-      };
-      await AsyncStorage.setItem(
-        'scannedProducts',
-        JSON.stringify([newProduct, ...products])
-      );
-    } catch (err) {
-      console.error('Error guardando producto:', err);
-    }
-  };
-
-  const loadRecentProducts = async () => {
-    try {
-      const stored = await AsyncStorage.getItem('scannedProducts');
-      const products = stored ? JSON.parse(stored) : [];
-      setRecentProducts(products);
-    } catch (err) {
-      console.error('Error cargando historial:', err);
-    }
-  };
-
-  const clearHistory = async () => {
-    await AsyncStorage.removeItem('scannedProducts');
-    setRecentProducts([]);
-    setMessage('🗑️ Historial borrado');
-    setTimeout(() => setMessage(''), 2000);
-  };
-
+  // ⭐ Lógica cuando el escáner detecta código
   const handleBarcodeScanned = async ({ data }) => {
     if (scanned) return;
+
     setScanned(true);
-    setLastCode(data);
     setProduct(null);
+    setLastCode(data);
 
-    // 📚 Detección automática del tipo
-    let autoSearch = SEARCH_ENGINES.find((e) => e.id === 'googleshopping');
-    if (data.startsWith('978') || data.startsWith('979')) {
-      autoSearch =
-        SEARCH_ENGINES.find((e) => e.id === 'googlebooks') || autoSearch;
-      setMessage('📚 ISBN detectado');
-    } else {
-      setMessage('📋 Código de producto detectado');
-    }
-    setSelectedSearch(autoSearch);
-
-    await Clipboard.setStringAsync(data);
-
+    // Animación ✔️
     Animated.sequence([
       Animated.timing(checkAnim, {
         toValue: 1,
         duration: 250,
         useNativeDriver: true,
       }),
-      Animated.delay(1000),
+      Animated.delay(900),
       Animated.timing(checkAnim, {
         toValue: 0,
-        duration: 400,
+        duration: 300,
         useNativeDriver: true,
       }),
     ]).start();
 
-    try {
-      const info = await fetchProductInfo(data);
-      if (info) {
-        setProduct(info);
-        await saveProduct(data, info);
-      } else setMessage('Código no reconocido');
-    } catch (error) {
-      console.error('❌ Error durante el escaneo:', error);
-      setMessage('Error al procesar código');
-    } finally {
-      setTimeout(() => setMessage(''), 4000);
+    // Cancelador de búsqueda
+    abortController.current = new AbortController();
+
+    const info = await fetchProductInfo(
+      data,
+      abortController.current.signal,
+      config
+    );
+
+    if (info) {
+      setProduct(info);
+    } else {
+      setMessage("Búsqueda cancelada o no encontrada");
+      setTimeout(() => setMessage(""), 2000);
     }
   };
 
-  const handleReenableScanner = () => {
-    setScanned(false);
-    setProduct(null);
-    setLastCode(null);
-    setMessage('Listo para nuevo escaneo');
-    setTimeout(() => setMessage(''), 2000);
-  };
-
-  if (!permission)
-    return (
-      <View style={styles.center}>
-        <Text>Solicitando permiso...</Text>
-      </View>
-    );
-
-  if (!permission.granted)
-    return (
-      <View style={styles.center}>
-        <Text>No se puede acceder a la cámara.</Text>
-        <Pressable style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>Conceder permiso</Text>
-        </Pressable>
-      </View>
-    );
-
   return (
-    <View style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: "black" }}>
       <BarcodeScanner
         onScanned={handleBarcodeScanned}
-        onCancel={() => navigation.navigate('Carro')}
-        onReenable={handleReenableScanner}
-        hideScanArea={!!lastCode}
-        active={isFocused}
-        statusMessage={
-          message.includes('ISBN')
-            ? '📚 ISBN detectado'
-            : message.includes('producto')
-            ? '🛍️ Código de producto'
-            : ''
-        }
-        statusColor={
-          message.includes('ISBN')
-            ? '#16a34a' // verde
-            : message.includes('producto')
-            ? '#2563eb' // azul
-            : '#000000'
-        }
+        onReenable={() => {
+          setScanned(false);
+          setProduct(null);
+          setLastCode(null);
+        }}
+        onCancel={() => {
+          abortController.current?.abort();
+          navigation.goBack();
+        }}
       />
 
-      <Animated.View style={[styles.checkOverlay, { opacity: checkAnim }]}>
-        <MaterialCommunityIcons
-          name="check-circle"
-          size={120}
-          color="#22c55e"
-        />
+      {/* Animación del check */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: "35%",
+          left: 0,
+          right: 0,
+          alignItems: "center",
+          opacity: checkAnim,
+        }}
+      >
+        <Text style={{ color: "#22c55e", fontSize: 60 }}>✔</Text>
       </Animated.View>
 
-      {!showLocalHistory && lastCode && (
-        <View style={styles.infoBox}>
-          <Text style={styles.barcodeText}>📦 {lastCode}</Text>
+      {/* Panel con información */}
+      {lastCode && (
+        <View
+          style={{
+            position: "absolute",
+            top: 50,
+            left: 20,
+            right: 20,
+            padding: 16,
+            backgroundColor: "#0008",
+            borderRadius: 14,
+          }}
+        >
+          <Text style={{ color: "#22c55e", fontSize: 18 }}>
+            Código: {lastCode}
+          </Text>
 
-          <View style={styles.searchSelector}>
-            {SEARCH_ENGINES.map((engine) => (
+          {/* Listado de motores */}
+          <View
+            style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}
+          >
+            {SEARCH_ENGINES.map((e) => (
               <Pressable
-                key={engine.id}
-                style={[
-                  styles.searchButton,
-                  selectedSearch.id === engine.id && styles.searchButtonActive,
-                ]}
-                onPress={() => setSelectedSearch(engine)}>
-                <Text style={styles.searchButtonText}>{engine.name}</Text>
+                key={e.id}
+                onPress={() => {
+                  abortController.current?.abort();
+                  setMessage("Buscando con: " + e.name);
+                  setTimeout(() => setMessage(""), 2000);
+                  setProduct(null);
+                  setProduct({
+                    name: "Abrir en " + e.name,
+                    brand: "",
+                    image: null,
+                    url: e.baseUrl + lastCode,
+                  });
+                }}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  backgroundColor: "#333",
+                  borderRadius: 8,
+                  margin: 4,
+                }}
+              >
+                <Text style={{ color: "white" }}>{e.name}</Text>
               </Pressable>
             ))}
           </View>
 
-          {product ? (
+          {/* Resultado */}
+          {product && (
             <>
-              <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productBrand}>{product.brand}</Text>
+              <Text style={{ color: "white", fontSize: 20, marginTop: 10 }}>
+                {product.name}
+              </Text>
+              <Text style={{ color: "#bbb" }}>{product.brand}</Text>
+
               {product.image && (
                 <Image
                   source={{ uri: product.image }}
-                  style={styles.productImage}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 8,
+                    marginTop: 8,
+                  }}
                 />
               )}
+
               <Pressable
-                style={styles.smallButton}
-                onPress={() =>
-                  Linking.openURL(`${selectedSearch.baseUrl}${lastCode}`)
-                }>
-                <Text style={styles.buttonText}>🌐 Abrir enlace</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.smallButton, { backgroundColor: '#16a34a' }]}
-                onPress={async () => {
-                  await loadRecentProducts();
-                  setShowLocalHistory(true);
-                }}>
-                <Text style={styles.buttonText}>📋 Ver historial local</Text>
+                onPress={() => {
+                  abortController.current?.abort();
+                  Linking.openURL(product.url);
+                }}
+                style={{
+                  backgroundColor: "#2563eb",
+                  marginTop: 10,
+                  padding: 8,
+                  borderRadius: 8,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                  }}
+                >
+                  🌐 Abrir enlace
+                </Text>
               </Pressable>
             </>
-          ) : (
-            <Text style={{ color: '#ccc', marginTop: 8 }}>
-              Buscando producto...
-            </Text>
           )}
         </View>
       )}
 
-      {message ? <Text style={styles.message}>{message}</Text> : null}
-
-      {showLocalHistory && (
-        <View style={styles.historyOverlay}>
-          <Text style={styles.historyTitle}>📜 Códigos detectados</Text>
-          <ScrollView style={{ maxHeight: 350 }}>
-            {recentProducts.map((item, idx) => (
-              <View key={idx} style={styles.historyRow}>
-                <Text style={styles.historyItem}>
-                  {item.code} - {item.name || 'Sin nombre'}
-                </Text>
-                {item.date && (
-                  <Text style={styles.historyDate}>
-                    {new Date(item.date).toLocaleString('es-ES', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                )}
-              </View>
-            ))}
-          </ScrollView>
-          <Pressable
-            style={[styles.smallButton, { marginTop: 10 }]}
-            onPress={() => setShowLocalHistory(false)}>
-            <Text style={styles.buttonText}>Cerrar</Text>
-          </Pressable>
-          <Pressable
-            style={[
-              styles.smallButton,
-              { marginTop: 10, backgroundColor: '#dc2626' },
-            ]}
-            onPress={clearHistory}>
-            <Text style={styles.buttonText}>🗑️ Borrar historial</Text>
-          </Pressable>
-        </View>
-      )}
+      {/* Mensaje inferior */}
+      {message ? (
+        <Text
+          style={{
+            position: "absolute",
+            bottom: 80,
+            color: "white",
+            backgroundColor: "#0007",
+            padding: 6,
+            borderRadius: 8,
+            alignSelf: "center",
+          }}
+        >
+          {message}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'black' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: "black" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   checkOverlay: {
-    position: 'absolute',
-    top: '35%',
+    position: "absolute",
+    top: "35%",
     left: 0,
     right: 0,
-    alignItems: 'center',
+    alignItems: "center",
   },
   infoBox: {
-    position: 'absolute',
+    position: "absolute",
     top: 40,
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: "rgba(0,0,0,0.7)",
     borderRadius: 12,
     padding: 12,
-    alignItems: 'center',
+    alignItems: "center",
     zIndex: 10,
   },
   barcodeText: {
-    color: '#22c55e',
+    color: "#22c55e",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 6,
   },
   productName: {
-    color: 'white',
+    color: "white",
     fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   productBrand: {
-    color: '#ddd',
+    color: "#ddd",
     fontSize: 15,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 8,
   },
   productImage: { width: 80, height: 80, borderRadius: 8, marginBottom: 8 },
   smallButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: "#2563eb",
     borderRadius: 8,
     marginTop: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  buttonText: { color: '#fff', fontWeight: 'bold' },
+  buttonText: { color: "#fff", fontWeight: "bold" },
   searchSelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     marginVertical: 6,
   },
   searchButton: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     margin: 4,
   },
-  searchButtonActive: { backgroundColor: '#22c55e' },
-  searchButtonText: { color: 'white', fontSize: 13, fontWeight: '600' },
+  searchButtonActive: { backgroundColor: "#22c55e" },
+  searchButtonText: { color: "white", fontSize: 13, fontWeight: "600" },
   message: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 110,
-    alignSelf: 'center',
-    color: '#fff',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignSelf: "center",
+    color: "#fff",
+    backgroundColor: "rgba(0,0,0,0.6)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
     fontSize: 14,
   },
   historyOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 10000,
     padding: 16,
   },
   historyTitle: {
-    color: '#22c55e',
+    color: "#22c55e",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
-  historyRow: { marginBottom: 6, alignItems: 'center' },
-  historyItem: { color: 'white', fontSize: 14, marginVertical: 2 },
+  historyRow: { marginBottom: 6, alignItems: "center" },
+  historyItem: { color: "white", fontSize: 14, marginVertical: 2 },
   historyDate: {
-    color: '#999',
+    color: "#999",
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 2,
   },
 });

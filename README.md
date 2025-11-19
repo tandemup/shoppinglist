@@ -13,3 +13,7 @@ git remote add origin
 ```
 
 npx expo start --web
+
+import { SafeAreaView } from "react-native-safe-area-context";
+
+<SafeAreaView style={styles.container} edges={["top"]}>

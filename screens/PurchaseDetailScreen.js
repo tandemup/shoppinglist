@@ -7,6 +7,8 @@ import {
   FlatList,
   TouchableOpacity,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
 import { createList } from "../utils/listStorage";
@@ -105,39 +107,41 @@ export default function PurchaseDetailScreen({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* CABECERA */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={26} color="#333" />
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <View style={styles.container}>
+        {/* CABECERA */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={26} color="#333" />
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle}>Compra en {purchase.store}</Text>
+
+          <View style={{ width: 26 }} />
+        </View>
+
+        <Text style={styles.date}>{purchase.date}</Text>
+
+        {/* TOTAL */}
+        <View style={styles.totalBox}>
+          <Text style={styles.totalLabel}>Total gastado</Text>
+          <Text style={styles.totalValue}>{total} €</Text>
+        </View>
+
+        {/* LISTA DE PRODUCTOS */}
+        <FlatList
+          data={purchase.items}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 40 }}
+        />
+
+        {/* BOTÓN RECREAR LISTA */}
+        <TouchableOpacity style={styles.recreateBtn} onPress={recreateList}>
+          <Text style={styles.recreateText}>Recrear esta lista 🧾</Text>
         </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>Compra en {purchase.store}</Text>
-
-        <View style={{ width: 26 }} />
       </View>
-
-      <Text style={styles.date}>{purchase.date}</Text>
-
-      {/* TOTAL */}
-      <View style={styles.totalBox}>
-        <Text style={styles.totalLabel}>Total gastado</Text>
-        <Text style={styles.totalValue}>{total} €</Text>
-      </View>
-
-      {/* LISTA DE PRODUCTOS */}
-      <FlatList
-        data={purchase.items}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      />
-
-      {/* BOTÓN RECREAR LISTA */}
-      <TouchableOpacity style={styles.recreateBtn} onPress={recreateList}>
-        <Text style={styles.recreateText}>Recrear esta lista 🧾</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 

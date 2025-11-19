@@ -8,6 +8,8 @@ import {
   Pressable,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   getScannedProducts,
@@ -65,18 +67,20 @@ export default function ScannedHistoryScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      {products.length === 0 ? (
-        <Text style={styles.empty}>Aún no hay productos guardados.</Text>
-      ) : (
-        <FlatList
-          data={products}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{ padding: 12 }}
-        />
-      )}
-    </View>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <View style={styles.container}>
+        {products.length === 0 ? (
+          <Text style={styles.empty}>Aún no hay productos guardados.</Text>
+        ) : (
+          <FlatList
+            data={products}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={{ padding: 12 }}
+          />
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 

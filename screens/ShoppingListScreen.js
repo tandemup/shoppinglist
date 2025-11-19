@@ -13,7 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
 import { Ionicons } from "@expo/vector-icons";
 
 import {
@@ -23,6 +23,7 @@ import {
   updateItemInList,
   deleteItemFromList,
 } from "../utils/listStorage";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import ItemRow from "../components/ItemRow";
 import SearchCombinedBar from "../components/SearchCombinedBar";
@@ -205,12 +206,14 @@ export default function ShoppingListScreen({ route, navigation }) {
 
   // -------------------------
   // UI
+
+  // < style={[styles.container, { paddingTop: 8 }]}>
   // -------------------------
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1, marginTop: 1 }}
+        style={{ flex: 1 }}
       >
         {/* Selector de tienda */}
         <StoreSelector navigation={navigation} />
@@ -260,7 +263,7 @@ export default function ShoppingListScreen({ route, navigation }) {
           data={list.items}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{ paddingBottom: 80 }}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -268,7 +271,7 @@ export default function ShoppingListScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 16 },
+  container: { flex: 2, backgroundColor: "#cf0", marginTop: 0 },
 
   totalContainer: {
     flexDirection: "row",
@@ -277,8 +280,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#E3F2FD",
     padding: 12,
     borderRadius: 10,
-    marginVertical: 10,
-    marginHorizontal: 5,
+    marginTop: 12,
+    marginBottom: 16,
+    marginHorizontal: 0,
     borderColor: "#BBDEFB",
   },
   totalLabel: { fontSize: 20, fontWeight: "600" },
