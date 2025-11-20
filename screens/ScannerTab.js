@@ -1,35 +1,21 @@
 // screens/ScannerTab.js
-//import React, { useState, useRef } from "react";
-//import { View, Text, Pressable, Animated, Image } from "react-native";
-//import BarcodeScanner from "../components/BarcodeScanner";
-//import { fetchProductInfo, SEARCH_ENGINES, buildSearchUrl } from "./ProductLookup";
-//import { useConfig } from "../context/ConfigContext";
-
 import React, { useState, useRef } from "react";
 import {
   View,
   Text,
   Pressable,
-  StyleSheet,
-  Image,
   Animated,
+  Image,
   Linking,
+  Platform,
+  StyleSheet,
 } from "react-native";
 
 import BarcodeScanner from "../components/BarcodeScanner";
-import {
-  SEARCH_ENGINES,
-  fetchProductInfo,
-  buildSearchUrl,
-} from "./ProductLookup";
+import { fetchProductInfo } from "./ProductLookup";
+import SEARCH_ENGINES from "../data/search_engines.json";
+import { addScannedProduct } from "../utils/storageHelpers";
 import { useConfig } from "../context/ConfigContext";
-
-//import { useCameraPermissions } from "expo-camera";
-//import { useFocusEffect } from "@react-navigation/native";
-//import * as ScreenOrientation from "expo-screen-orientation";
-//import AsyncStorage from "@react-native-async-storage/async-storage";
-//import * as Clipboard from "expo-clipboard";
-//import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function ScannerTab({ navigation }) {
   const { config } = useConfig();
@@ -38,12 +24,12 @@ export default function ScannerTab({ navigation }) {
   const [product, setProduct] = useState(null);
   const [lastCode, setLastCode] = useState(null);
   const [message, setMessage] = useState("");
+  const [selectedSearch, setSelectedSearch] = useState(SEARCH_ENGINES[0]);
 
   const abortController = useRef(null);
-
   const checkAnim = useRef(new Animated.Value(0)).current;
 
-  // ⭐ Lógica cuando el escáner detecta código
+  // ⭐ Cuando el código es leído
   const handleBarcodeScanned = async ({ data }) => {
     if (scanned) return;
 
@@ -51,7 +37,7 @@ export default function ScannerTab({ navigation }) {
     setProduct(null);
     setLastCode(data);
 
-    // Animación ✔️
+    // ✔ Animación del check
     Animated.sequence([
       Animated.timing(checkAnim, {
         toValue: 1,
@@ -66,7 +52,6 @@ export default function ScannerTab({ navigation }) {
       }),
     ]).start();
 
-    // Cancelador de búsqueda
     abortController.current = new AbortController();
 
     const info = await fetchProductInfo(
@@ -77,6 +62,14 @@ export default function ScannerTab({ navigation }) {
 
     if (info) {
       setProduct(info);
+
+      await addScannedProduct({
+        code: data,
+        name: info.name,
+        brand: info.brand,
+        image: info.image,
+        url: info.url,
+      });
     } else {
       setMessage("Búsqueda cancelada o no encontrada");
       setTimeout(() => setMessage(""), 2000);
@@ -88,9 +81,12 @@ export default function ScannerTab({ navigation }) {
       <BarcodeScanner
         onScanned={handleBarcodeScanned}
         onReenable={() => {
+          abortController.current?.abort();
           setScanned(false);
           setProduct(null);
           setLastCode(null);
+          setMessage("📸 Listo para nuevo escaneo");
+          setTimeout(() => setMessage(""), 2000);
         }}
         onCancel={() => {
           abortController.current?.abort();
@@ -98,7 +94,17 @@ export default function ScannerTab({ navigation }) {
         }}
       />
 
-      {/* Animación del check */}
+      {/* Indicador de reescaneo */}
+      {!scanned && (
+        <Text style={styles.hintText}>Apunta al código para escanear</Text>
+      )}
+      {scanned && (
+        <Text style={styles.hintText}>
+          Pulsa el botón central para nuevo escaneo
+        </Text>
+      )}
+
+      {/* Animación ✔ */}
       <Animated.View
         style={{
           position: "absolute",
@@ -112,220 +118,181 @@ export default function ScannerTab({ navigation }) {
         <Text style={{ color: "#22c55e", fontSize: 60 }}>✔</Text>
       </Animated.View>
 
-      {/* Panel con información */}
+      {/* Info Box */}
       {lastCode && (
-        <View
-          style={{
-            position: "absolute",
-            top: 50,
-            left: 20,
-            right: 20,
-            padding: 16,
-            backgroundColor: "#0008",
-            borderRadius: 14,
-          }}
-        >
-          <Text style={{ color: "#22c55e", fontSize: 18 }}>
-            Código: {lastCode}
-          </Text>
+        <View style={styles.infoBox}>
+          <Text style={styles.codeTitle}>Código escaneado: {lastCode}</Text>
 
-          {/* Listado de motores */}
-          <View
-            style={{ flexDirection: "row", flexWrap: "wrap", marginTop: 10 }}
-          >
-            {SEARCH_ENGINES.map((e) => (
-              <Pressable
-                key={e.id}
-                onPress={() => {
-                  abortController.current?.abort();
-                  setMessage("Buscando con: " + e.name);
-                  setTimeout(() => setMessage(""), 2000);
-                  setProduct(null);
-                  setProduct({
-                    name: "Abrir en " + e.name,
-                    brand: "",
-                    image: null,
-                    url: e.baseUrl + lastCode,
-                  });
-                }}
-                style={{
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                  backgroundColor: "#333",
-                  borderRadius: 8,
-                  margin: 4,
-                }}
-              >
-                <Text style={{ color: "white" }}>{e.name}</Text>
-              </Pressable>
-            ))}
+          {/* 🔎 Selector de motores de búsqueda */}
+          <View style={styles.searchSelector}>
+            {SEARCH_ENGINES.map((engine) => {
+              const active = selectedSearch.id === engine.id;
+
+              return (
+                <Pressable
+                  key={engine.id}
+                  style={[
+                    styles.searchButton,
+                    active && styles.searchButtonActive,
+                  ]}
+                  onPress={() => {
+                    abortController.current?.abort();
+                    setSelectedSearch(engine);
+                    setMessage("Buscando con: " + engine.name);
+                    setTimeout(() => setMessage(""), 1500);
+                    setProduct({
+                      name: "Abrir en " + engine.name,
+                      brand: "",
+                      image: null,
+                      url: engine.baseUrl + lastCode,
+                    });
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.searchButtonText,
+                      active && styles.searchButtonTextActive,
+                    ]}
+                  >
+                    {engine.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           {/* Resultado */}
           {product && (
             <>
-              <Text style={{ color: "white", fontSize: 20, marginTop: 10 }}>
-                {product.name}
-              </Text>
-              <Text style={{ color: "#bbb" }}>{product.brand}</Text>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productBrand}>{product.brand}</Text>
 
               {product.image && (
                 <Image
                   source={{ uri: product.image }}
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 8,
-                    marginTop: 8,
-                  }}
+                  style={styles.productImage}
                 />
               )}
 
               <Pressable
-                onPress={() => {
-                  abortController.current?.abort();
-                  Linking.openURL(product.url);
-                }}
-                style={{
-                  backgroundColor: "#2563eb",
-                  marginTop: 10,
-                  padding: 8,
-                  borderRadius: 8,
-                }}
+                onPress={() => Linking.openURL(product.url)}
+                style={styles.openLinkBtn}
               >
-                <Text
-                  style={{
-                    color: "white",
-                    textAlign: "center",
-                    fontWeight: "bold",
-                  }}
-                >
-                  🌐 Abrir enlace
-                </Text>
+                <Text style={styles.openLinkText}>🌐 Abrir enlace</Text>
               </Pressable>
             </>
           )}
         </View>
       )}
 
-      {/* Mensaje inferior */}
-      {message ? (
-        <Text
-          style={{
-            position: "absolute",
-            bottom: 80,
-            color: "white",
-            backgroundColor: "#0007",
-            padding: 6,
-            borderRadius: 8,
-            alignSelf: "center",
-          }}
-        >
-          {message}
-        </Text>
-      ) : null}
+      {/* Mensaje flotante */}
+      {message ? <Text style={styles.floatMsg}>{message}</Text> : null}
     </View>
   );
 }
 
+//
+// 🎨 ESTILOS
+//
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "black" },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  checkOverlay: {
+  hintText: {
     position: "absolute",
-    top: "35%",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
-  infoBox: {
-    position: "absolute",
-    top: 40,
-    left: 20,
-    right: 20,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    borderRadius: 12,
-    padding: 12,
-    alignItems: "center",
-    zIndex: 10,
-  },
-  barcodeText: {
-    color: "#22c55e",
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  productName: {
+    bottom: 70,
+    alignSelf: "center",
     color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  productBrand: {
-    color: "#ddd",
-    fontSize: 15,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  productImage: { width: 80, height: 80, borderRadius: 8, marginBottom: 8 },
-  smallButton: {
-    backgroundColor: "#2563eb",
-    borderRadius: 8,
-    marginTop: 8,
+    backgroundColor: "#0006",
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 10,
+    fontSize: 14,
   },
-  buttonText: { color: "#fff", fontWeight: "bold" },
+
+  infoBox: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    right: 20,
+    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 14,
+  },
+
+  codeTitle: {
+    color: "#22c55e",
+    fontSize: 16,
+  },
+
+  // 🔎 Menú de motores
   searchSelector: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "center",
-    marginVertical: 6,
+    gap: 6,
+    marginTop: 10,
   },
+
   searchButton: {
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 8,
+    backgroundColor: "#1f2937", // gris oscuro
+    paddingVertical: 6,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    margin: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#374151",
   },
-  searchButtonActive: { backgroundColor: "#22c55e" },
-  searchButtonText: { color: "white", fontSize: 13, fontWeight: "600" },
-  message: {
-    position: "absolute",
-    bottom: 110,
-    alignSelf: "center",
-    color: "#fff",
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+
+  searchButtonActive: {
+    backgroundColor: "#2563eb", // azul seleccionado
+    borderColor: "#1e40af",
+    borderWidth: 1.4,
+  },
+
+  searchButtonText: {
+    color: "#e5e7eb",
     fontSize: 14,
+    fontWeight: "600",
   },
-  historyOverlay: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0,0,0,0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10000,
-    padding: 16,
+
+  searchButtonTextActive: {
+    color: "white",
+    fontWeight: "700",
   },
-  historyTitle: {
-    color: "#22c55e",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
+
+  productName: {
+    color: "white",
+    fontSize: 20,
+    marginTop: 10,
   },
-  historyRow: { marginBottom: 6, alignItems: "center" },
-  historyItem: { color: "white", fontSize: 14, marginVertical: 2 },
-  historyDate: {
-    color: "#999",
-    fontSize: 12,
+
+  productBrand: {
+    color: "#bbb",
+  },
+
+  productImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+
+  openLinkBtn: {
+    backgroundColor: "#2563eb",
+    marginTop: 10,
+    padding: 8,
+    borderRadius: 8,
+  },
+
+  openLinkText: {
+    color: "white",
     textAlign: "center",
-    marginTop: 2,
+    fontWeight: "bold",
+  },
+
+  floatMsg: {
+    position: "absolute",
+    bottom: 80,
+    color: "white",
+    backgroundColor: "#0007",
+    padding: 6,
+    borderRadius: 8,
+    alignSelf: "center",
   },
 });

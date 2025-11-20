@@ -10,59 +10,6 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { safeAlert } from "../utils/safeAlert";
 
-const clearStorage0 = async () => {
-  const confirmDelete =
-    Platform.OS === "web"
-      ? window.confirm(
-          "¿Seguro que deseas borrar todos los datos locales (listas, historial, escaneos)?"
-        )
-      : await new Promise((resolve) => {
-          safeAlert(
-            "Borrar almacenamiento",
-            "¿Seguro que deseas borrar todos los datos locales (listas, historial, escaneos)?",
-            [
-              {
-                text: "Cancelar",
-                style: "cancel",
-                onPress: () => resolve(false),
-              },
-              {
-                text: "Borrar todo",
-                style: "destructive",
-                onPress: () => resolve(true),
-              },
-            ]
-          );
-        });
-
-  if (!confirmDelete) return;
-
-  try {
-    const keysToRemove = [
-      "shoppingLists", // ✅ Listas modernas
-      "shoppinglist.v2.items", // 🕰️ Listas antiguas
-      "purchaseHistory", // 🧾 Historial de compras
-      "scannedProducts", // 📷 Escaneos
-    ];
-
-    await AsyncStorage.multiRemove(keysToRemove);
-
-    // Mostrar confirmación final multiplataforma
-    if (Platform.OS === "web") {
-      safeAlert("✅ Todo el almacenamiento local ha sido borrado.");
-    } else {
-      safeAlert("Listo", "Todo el almacenamiento local ha sido borrado.");
-    }
-  } catch (error) {
-    console.error("Error borrando AsyncStorage:", error);
-    if (Platform.OS === "web") {
-      safeAlert("❌ Error al borrar almacenamiento.");
-    } else {
-      safeAlert("Error", "No se pudo borrar el almacenamiento.");
-    }
-  }
-};
-
 const clearStorage = async () => {
   await AsyncStorage.removeItem("shopping_lists");
   await AsyncStorage.removeItem("lists");

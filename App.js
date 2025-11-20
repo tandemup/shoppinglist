@@ -1,11 +1,10 @@
 import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StoreProvider } from "./context/StoreContext";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ConfigProvider } from "./context/ConfigContext";
+import { StoreProvider } from "./context/StoreContext";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -36,7 +35,7 @@ function ShoppingStack() {
         options={{
           title: "Shopping Lists",
           headerTitleAlign: "center",
-          headerStyle: { backgroundColor: "#fff", height: 2 },
+          headerStyle: { backgroundColor: "#fff" },
           headerTitleStyle: { fontSize: 20, fontWeight: "700" },
         }}
       />

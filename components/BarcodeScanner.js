@@ -59,7 +59,10 @@ export default function BarcodeScanner({
         barcodeScannerSettings={{
           barcodeTypes: config.scanner.barcodeTypes,
         }}
-        onBarcodeScanned={scanningEnabled && active ? onScanned : undefined}
+        onBarcodeScanned={(event) => {
+          setScanningEnabled(false);
+          onScanned(event);
+        }}
       />
 
       {/* Controles inferiores */}

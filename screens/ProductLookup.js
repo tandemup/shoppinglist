@@ -1,33 +1,5 @@
 // screens/ProductLookup.js
-export const SEARCH_ENGINES = [
-  {
-    id: "openfoodfacts",
-    name: "Open Food Facts",
-    baseUrl: "https://world.openfoodfacts.org/product/",
-  },
-  { id: "google", name: "Google", baseUrl: "https://www.google.com/search?q=" },
-  {
-    id: "googleshopping",
-    name: "Google Shopping",
-    baseUrl: "https://www.google.com/search?tbm=shop&q=",
-  },
-  { id: "amazon", name: "Amazon", baseUrl: "https://www.amazon.es/s?k=" },
-  {
-    id: "carrefour",
-    name: "Carrefour",
-    baseUrl: "https://www.carrefour.es/?q=",
-  },
-  {
-    id: "googlebooks",
-    name: "Google Books",
-    baseUrl: "https://www.google.com/search?tbm=bks&q=isbn:",
-  },
-  {
-    id: "openlibrary",
-    name: "Open Library",
-    baseUrl: "https://openlibrary.org/isbn/",
-  },
-];
+import SEARCH_ENGINES from "../data/search_engines.json";
 
 export const buildSearchUrl = (engineId, barcode) => {
   const engine = SEARCH_ENGINES.find((e) => e.id === engineId);

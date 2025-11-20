@@ -210,20 +210,16 @@ export default function ShoppingListScreen({ route, navigation }) {
   // < style={[styles.container, { paddingTop: 8 }]}>
   // -------------------------
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+    <SafeAreaView
+      style={{ flex: 1, paddingTop: Platform.OS === "ios" ? 0 : undefined }}
+      edges={Platform.OS === "ios" ? [] : ["top"]}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         {/* Selector de tienda */}
         <StoreSelector navigation={navigation} />
-
-        {/* Total */}
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total:</Text>
-          <Text style={styles.totalValue}>{total} €</Text>
-        </View>
-
         {/* Historial */}
         <SearchCombinedBar
           currentList={list}
@@ -242,6 +238,12 @@ export default function ShoppingListScreen({ route, navigation }) {
             }));
           }}
         />
+
+        {/* Total */}
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalLabel}>Total:</Text>
+          <Text style={styles.totalValue}>{total} €</Text>
+        </View>
 
         {/* Añadir */}
         <View style={styles.addRow}>
@@ -293,6 +295,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: "#ccc",
+    backgroundColor: "#fff",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,

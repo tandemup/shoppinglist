@@ -1,3 +1,4 @@
+// screens/ShoppingListsScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -6,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -20,7 +22,8 @@ export default function ShoppingListsScreen({ navigation }) {
     const data = await getAllLists();
     setLists(data.reverse());
   };
-  // ☰ Menú hamburguesa
+
+  // Botón de menú superior
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -34,6 +37,7 @@ export default function ShoppingListsScreen({ navigation }) {
     });
   }, [navigation]);
 
+  // Recargar al volver a la pantalla
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", loadLists);
     return unsubscribe;
@@ -47,60 +51,74 @@ export default function ShoppingListsScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.row}>
-        <TextInput
-          style={styles.input}
-          placeholder="Nueva lista..."
-          placeholderTextColor="#999"
-          value={newName}
-          onChangeText={setNewName}
-        />
-        <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
-          <Text style={{ color: "white", fontWeight: "bold" }}>Añadir</Text>
-        </TouchableOpacity>
-      </View>
-      {/* Mostrar todas las listas */}
-      {lists.length === 0 ? (
-        <Text style={{ color: "#888", textAlign: "center", marginTop: 40 }}>
-          No hay listas creadas todavía.
-        </Text>
-      ) : (
-        <FlatList
-          data={lists}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() =>
-                navigation.navigate("ShoppingList", { listId: item.id })
-              }
-            >
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.date}>
-                {item.createdAt
-                  ? `${new Date(item.createdAt).toLocaleDateString("es-ES", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}`
-                  : ""}
-                {item.storeName ? ` • ${item.storeName}` : ""}
-              </Text>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        paddingTop: Platform.OS === "web" ? 0 : undefined,
+        backgroundColor: "#fff",
+      }}
+      edges={Platform.OS === "web" ? [] : ["top"]}
+    >
+      <View style={{ flex: 1 }}>
+        {/* Input + botón Añadir */}
+        <View style={styles.row}>
+          <TextInput
+            style={styles.input}
+            placeholder="Nueva lista..."
+            placeholderTextColor="#999"
+            value={newName}
+            onChangeText={setNewName}
+          />
+          <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
+            <Text style={{ color: "white", fontWeight: "bold" }}>Añadir</Text>
+          </TouchableOpacity>
+        </View>
 
-              <Text style={styles.count}>{item.items.length} productos</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+        {/* Listas */}
+        {lists.length === 0 ? (
+          <Text style={styles.emptyMsg}>No hay listas creadas todavía.</Text>
+        ) : (
+          <FlatList
+            data={lists}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() =>
+                  navigation.navigate("ShoppingList", { listId: item.id })
+                }
+              >
+                <Text style={styles.name}>{item.name}</Text>
+
+                <Text style={styles.date}>
+                  {item.createdAt
+                    ? `${new Date(item.createdAt).toLocaleDateString("es-ES", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}`
+                    : ""}
+                  {item.storeName ? ` • ${item.storeName}` : ""}
+                </Text>
+
+                <Text style={styles.count}>{item.items.length} productos</Text>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
-  row: { flexDirection: "row", marginBottom: 12 },
+  row: {
+    flexDirection: "row",
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "web" ? 16 : 0,
+  },
   input: {
     flex: 1,
     borderWidth: 1,
@@ -115,14 +133,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: "center",
   },
+  emptyMsg: {
+    color: "#888",
+    textAlign: "center",
+    marginTop: 40,
+  },
   card: {
-    backgroundColor: "#E3F2FD", // 💙 Azul muy claro (Material Blue 50)
+    backgroundColor: "#E3F2FD",
     padding: 14,
     borderRadius: 12,
+    marginHorizontal: 16,
     marginBottom: 10,
     borderWidth: 1,
-
     borderColor: "#BBDEFB",
+
+    // Sombra Mobile + Web compatible
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
