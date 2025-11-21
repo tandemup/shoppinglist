@@ -4,6 +4,54 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const KEY = "scanned_history";
 
+export async function addScannedProduct(product) {
+  const list = await getScannedProducts();
+
+  // ❗ Buscar si ya existe un item con este mismo código de barras
+  const existingIndex = list.findIndex((item) => item.code === product.code);
+
+  if (existingIndex !== -1) {
+    // Ya existe → actualizar el registro existente
+    list[existingIndex] = {
+      ...list[existingIndex],
+      ...product,
+      updatedAt: Date.now(),
+    };
+  } else {
+    // No existe → crear nuevo con UUID
+    list.unshift({
+      id: uuidv4(),
+      ...product,
+      date: Date.now(),
+    });
+  }
+
+  await AsyncStorage.setItem(KEY, JSON.stringify(list));
+}
+
+export async function deleteScannedProduct(id) {
+  const list = await getScannedProducts();
+  const newList = list.filter((item) => item.id !== id);
+  await AsyncStorage.setItem(KEY, JSON.stringify(newList));
+}
+
+export async function getScannedProducts() {
+  const data = await AsyncStorage.getItem(KEY);
+  return data ? JSON.parse(data) : [];
+}
+
+export async function updateScannedProduct(id, updates) {
+  const list = await getScannedProducts();
+  const index = list.findIndex((item) => item.id === id);
+
+  if (index !== -1) {
+    list[index] = { ...list[index], ...updates };
+    await AsyncStorage.setItem(KEY, JSON.stringify(list));
+  }
+
+  return list[index];
+}
+
 /**
  * Guarda una nueva lista de la compra en el historial
  * @param {Object} purchase - { date, store, items }
@@ -31,51 +79,3 @@ export const getPurchases = async () => {
     return [];
   }
 };
-
-export async function getScannedProducts() {
-  const data = await AsyncStorage.getItem(KEY);
-  return data ? JSON.parse(data) : [];
-}
-
-export async function updateScannedProduct(id, updates) {
-  const list = await getScannedProducts();
-  const index = list.findIndex((item) => item.id === id);
-
-  if (index !== -1) {
-    list[index] = { ...list[index], ...updates };
-    await AsyncStorage.setItem(KEY, JSON.stringify(list));
-  }
-
-  return list[index];
-}
-
-export async function deleteScannedProduct(id) {
-  const list = await getScannedProducts();
-  const newList = list.filter((item) => item.id !== id);
-  await AsyncStorage.setItem(KEY, JSON.stringify(newList));
-}
-
-export async function addScannedProduct(product) {
-  const list = await getScannedProducts();
-
-  // ❗ Buscar si ya existe un item con este mismo código de barras
-  const existingIndex = list.findIndex((item) => item.code === product.code);
-
-  if (existingIndex !== -1) {
-    // Ya existe → actualizar el registro existente
-    list[existingIndex] = {
-      ...list[existingIndex],
-      ...product,
-      updatedAt: Date.now(),
-    };
-  } else {
-    // No existe → crear nuevo con UUID
-    list.unshift({
-      id: uuidv4(),
-      ...product,
-      date: Date.now(),
-    });
-  }
-
-  await AsyncStorage.setItem(KEY, JSON.stringify(list));
-}

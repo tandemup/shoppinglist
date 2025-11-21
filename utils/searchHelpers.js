@@ -1,5 +1,5 @@
 // utils/searchHelpers.js
-import { getAllLists } from "./listStorage";
+import { getAllLists } from "./storage/listStorage";
 
 /**
  * Busca productos similares en todas las listas (menos la actual)

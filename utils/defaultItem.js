@@ -9,8 +9,6 @@ export const defaultItem = {
   name: "",
   checked: false,
   date: null,
-
-  // PriceInfo debe existir siempre como objeto completo
   priceInfo: {
     unitType: "u",
     unitPrice: 0,

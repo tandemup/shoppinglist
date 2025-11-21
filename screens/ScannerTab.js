@@ -12,7 +12,11 @@ import {
 import BarcodeScanner from "../components/BarcodeScanner";
 import { fetchProductInfo } from "./ProductLookup";
 import SEARCH_ENGINES from "../data/search_engines.json";
-import { addScannedProduct } from "../utils/storageHelpers";
+import {
+  getScannedHistory,
+  deleteScannedEntry,
+} from "../utils/storage/scannerHistory";
+
 import { useConfig } from "../context/ConfigContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 

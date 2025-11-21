@@ -2,7 +2,11 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { loadSelectedStore, saveSelectedStore } from "../utils/storeService";
+import {
+  loadSelectedStore,
+  saveSelectedStore,
+  clearSelectedStore,
+} from "../utils/storage/storeService";
 
 export default function StoreSelector({ navigation }) {
   const [store, setStore] = useState(null);

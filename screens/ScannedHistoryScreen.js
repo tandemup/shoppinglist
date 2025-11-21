@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
-import { getScannedProducts } from "../utils/storageHelpers";
+import {
+  getScannedHistory,
+  deleteScannedEntry,
+} from "../utils/storage/scannerHistory";
 
 export default function ScannedHistoryScreen({ navigation }) {
   const [items, setItems] = useState([]);

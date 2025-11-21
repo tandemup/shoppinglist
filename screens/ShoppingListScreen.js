@@ -1,7 +1,6 @@
 // screens/ShoppingListScreen.js
 //import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
-
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
@@ -15,14 +14,8 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
+import { getList, updateList, loadLists } from "../utils/storage/listStorage";
 
-import {
-  getAllLists,
-  updateList,
-  addItemToList,
-  updateItemInList,
-  deleteItemFromList,
-} from "../utils/listStorage";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import ItemRow from "../components/ItemRow";

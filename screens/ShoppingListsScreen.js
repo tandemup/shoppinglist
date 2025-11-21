@@ -10,8 +10,13 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  loadLists,
+  saveLists,
+  deleteList,
+  updateList,
+} from "../utils/storage/listStorage";
 
-import { getAllLists, createList } from "../utils/listStorage";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function ShoppingListsScreen({ navigation }) {
