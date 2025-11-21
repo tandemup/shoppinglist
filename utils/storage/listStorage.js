@@ -4,7 +4,7 @@ import { storageClient } from "./storageClient";
 const LISTS_KEY = "@expo-shop/lists";
 
 /**
- * Carga todas las listas almacenadas
+ * Cargar todas las listas almacenadas
  */
 export async function loadLists() {
   const lists = await storageClient.get(LISTS_KEY);
@@ -12,7 +12,7 @@ export async function loadLists() {
 }
 
 /**
- * Guarda todas las listas (sobrescritura completa)
+ * Guardar todas las listas (sobrescribe completamente)
  */
 export async function saveLists(lists) {
   if (!Array.isArray(lists)) {
@@ -23,7 +23,7 @@ export async function saveLists(lists) {
 }
 
 /**
- * Devuelve una lista por id
+ * Obtener una lista por id
  */
 export async function getList(id) {
   const lists = await loadLists();
@@ -31,15 +31,17 @@ export async function getList(id) {
 }
 
 /**
- * Actualiza una lista usando una función
+ * Actualizar una lista aplicando un callback
  */
 export async function updateList(id, updater) {
   return await storageClient.update(LISTS_KEY, (current) => {
     const lists = Array.isArray(current) ? [...current] : [];
     const index = lists.findIndex((l) => l.id === id);
 
+    // Si no existe, devolvemos la lista intacta
     if (index === -1) return lists;
 
+    // Actualizar la lista usando la función provista
     const updated = updater(lists[index]);
     lists[index] = updated;
 
@@ -48,11 +50,21 @@ export async function updateList(id, updater) {
 }
 
 /**
- * Elimina una lista por id
+ * Eliminar una lista por id
  */
 export async function deleteList(id) {
   return await storageClient.update(LISTS_KEY, (current) => {
     const lists = Array.isArray(current) ? [...current] : [];
     return lists.filter((l) => l.id !== id);
+  });
+}
+
+/**
+ * Crear una nueva lista
+ */
+export async function addList(newList) {
+  return await storageClient.update(LISTS_KEY, (current) => {
+    const lists = Array.isArray(current) ? [...current] : [];
+    return [...lists, newList];
   });
 }

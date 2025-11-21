@@ -13,8 +13,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   loadLists,
   saveLists,
+  addList,
   deleteList,
-  updateList,
 } from "../utils/storage/listStorage";
 
 import { Ionicons } from "@expo/vector-icons";
