@@ -3,93 +3,116 @@ import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
-import { getPurchases, deletePurchase } from "../utils/storageHelpers";
+
+import { getPurchases, deletePurchase } from "../utils/storage/purchaseHistory";
 
 export default function PurchaseHistoryScreen({ navigation }) {
-  const [history, setHistory] = useState([]);
+  const [purchases, setPurchases] = useState([]);
 
-  const loadHistory = async () => {
-    const purchases = await getPurchases();
-    const ordered = purchases.sort(
-      (a, b) => new Date(b.date) - new Date(a.date)
-    );
-    setHistory(ordered);
+  const load = async () => {
+    const data = await getPurchases();
+    setPurchases(data);
   };
 
   useEffect(() => {
-    loadHistory();
-    const unsub = navigation.addListener("focus", loadHistory);
+    const unsub = navigation.addListener("focus", load);
     return unsub;
   }, [navigation]);
 
-  const openPurchase = (purchase) => {
-    navigation.navigate("PurchaseDetailScreen", { purchase });
-  };
-
-  const confirmDelete = (id) => {
-    safeAlert("Eliminar compra", "¿Deseas borrar este registro?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          await deletePurchase(id);
-          loadHistory();
-        },
-      },
-    ]);
+  const handleDelete = async (id) => {
+    await deletePurchase(id);
+    load();
   };
 
   const renderItem = ({ item }) => (
-    <Pressable style={styles.card} onPress={() => openPurchase(item)}>
-      <MaterialCommunityIcons
-        name="receipt"
-        size={30}
-        color="#333"
-        style={{ marginRight: 10 }}
-      />
-
+    <View style={styles.card}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.date}>{item.date}</Text>
-        <Text style={styles.store}>🛍️ {item.store}</Text>
-        <Text style={styles.count}>{item.items.length} productos</Text>
+        <Text style={styles.titleText}>{item.title}</Text>
+        <Text style={styles.dateText}>
+          {new Date(item.date).toLocaleString()}
+        </Text>
       </View>
 
-      <Pressable onPress={() => confirmDelete(item.id)}>
-        <MaterialCommunityIcons name="delete" size={26} color="#c00" />
+      <Pressable
+        style={styles.deleteBtn}
+        onPress={() =>
+          safeAlert("Confirmar eliminación", "¿Quieres eliminar esta compra?", [
+            { text: "Cancelar" },
+            {
+              text: "Eliminar",
+              style: "destructive",
+              onPress: () => handleDelete(item.id),
+            },
+          ])
+        }
+      >
+        <MaterialCommunityIcons name="delete" size={22} color="#fff" />
       </Pressable>
-    </Pressable>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      {history.length === 0 ? (
-        <Text style={styles.empty}>No hay compras guardadas aún.</Text>
+      <Text style={styles.header}>Historial de compras</Text>
+
+      {purchases.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={{ color: "#666" }}>No hay compras registradas.</Text>
+        </View>
       ) : (
         <FlatList
-          data={history}
+          data={purchases}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 40 }}
         />
       )}
     </View>
   );
 }
 
+//
+// 🎨 ESTILOS
+//
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 16 },
-  empty: { color: "#888", marginTop: 20, textAlign: "center" },
-
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#FAFAFA",
+  },
+  header: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   card: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#BBDEFB",
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    backgroundColor: "#f2f4f6",
-    borderRadius: 12,
-    marginBottom: 10,
   },
-
-  date: { color: "#444", fontSize: 14 },
-  store: { fontSize: 16, fontWeight: "bold" },
-  count: { fontSize: 13, color: "#666" },
+  titleText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  dateText: {
+    color: "#666",
+    marginTop: 4,
+    fontSize: 12,
+  },
+  deleteBtn: {
+    backgroundColor: "#e11d48",
+    padding: 8,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
 });

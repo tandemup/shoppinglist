@@ -1,8 +1,6 @@
 // screens/ShoppingListScreen.js
-//import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
-
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,286 +11,211 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-import { getList, updateList, loadLists } from "../utils/storage/listStorage";
 
-import { SafeAreaView } from "react-native-safe-area-context";
+import { getList, updateList } from "../utils/storage/listStorage";
 
-import ItemRow from "../components/ItemRow";
-import SearchCombinedBar from "../components/SearchCombinedBar";
-import StoreSelector from "../components/StoreSelector";
-import { safeAlert } from "../utils/safeAlert";
-import { defaultItem } from "../utils/defaultItem";
-
-export default function ShoppingListScreen({ route, navigation }) {
-  const { listId } = route.params || {};
+export default function ShoppingListScreen({ route }) {
+  const { listId } = route.params;
 
   const [list, setList] = useState(null);
-  const [nuevoItem, setNuevoItem] = useState("");
+  const [newItemName, setNewItemName] = useState("");
 
-  const storeRef = useRef(null);
-
-  // -------------------------
-  // CARGAR LISTA
-  // -------------------------
-  const loadList = useCallback(async () => {
-    try {
-      const lists = await getAllLists();
-      const found = lists.find((l) => l.id === listId);
-
-      if (!found) {
-        safeAlert("Error", "No se encontró la lista.");
-        navigation.goBack();
-        return;
-      }
-
-      setList(found);
-    } catch (err) {
-      console.error("Error cargando lista:", err);
-    }
-  }, [listId, navigation]);
+  //
+  // 🔄 Cargar la lista
+  //
+  const loadListData = useCallback(async () => {
+    const data = await getList(listId);
+    setList(data);
+  }, [listId]);
 
   useEffect(() => {
-    loadList();
-    const unsubscribe = navigation.addListener("focus", loadList);
-    return unsubscribe;
-  }, [navigation, loadList]);
+    loadListData();
+  }, [loadListData]);
 
-  // -------------------------
-  // HEADER
-  // -------------------------
-  useEffect(() => {
-    if (list?.name) navigation.setOptions({ title: list.name });
-  }, [list?.name, navigation]);
+  //
+  // ➕ Añadir nuevo producto a la lista
+  //
+  const handleAddItem = async () => {
+    if (!newItemName.trim()) return;
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Menu")}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="menu" size={24} color="black" />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
+    await updateList(listId, (original) => {
+      const updatedItems = [
+        ...(original.items || []),
+        {
+          id: uuidv4(),
+          name: newItemName.trim(),
+          completed: false,
+        },
+      ];
 
-  // -------------------------
-  // AÑADIR ITEM NUEVO
-  // -------------------------
-  const addItem = async () => {
-    if (!nuevoItem.trim() || !list) return;
-
-    const formattedDate = new Date().toISOString().substring(0, 10);
-
-    const newItem = {
-      ...defaultItem,
-      id: uuidv4(),
-      name: nuevoItem.trim(),
-      date: formattedDate,
-      checked: true,
-    };
-
-    // Guardar en almacenamiento
-    await addItemToList(listId, newItem);
-
-    // Actualizar UI
-    setList((prev) => ({
-      ...prev,
-      items: [newItem, ...prev.items],
-    }));
-
-    setNuevoItem("");
-  };
-
-  // -------------------------
-  // CHECK/UNCHECK ITEM
-  // -------------------------
-  const toggleChecked = useCallback(
-    async (id) => {
-      if (!list) return;
-
-      const item = list.items.find((i) => i.id === id);
-      if (!item) return;
-
-      const updatedItem = {
-        ...item,
-        checked: !item.checked,
+      return {
+        ...original,
+        items: updatedItems,
       };
-
-      // Guardar
-      await updateItemInList(listId, updatedItem);
-
-      // Actualizar UI
-      setList((prev) => ({
-        ...prev,
-        items: prev.items.map((i) => (i.id === id ? updatedItem : i)),
-      }));
-    },
-    [list, listId]
-  );
-
-  // -------------------------
-  // ABRIR DETALLE
-  // -------------------------
-  const openItemDetail = (item) => {
-    navigation.navigate("ItemDetailScreen", {
-      item,
-
-      // Guardar cambios
-      onSave: async (updatedItem) => {
-        await updateItemInList(listId, updatedItem);
-
-        setList((prev) => ({
-          ...prev,
-          items: prev.items.map((i) =>
-            i.id === updatedItem.id ? updatedItem : i
-          ),
-        }));
-      },
-
-      // Eliminar item
-      onDelete: async (id) => {
-        await deleteItemFromList(listId, id);
-
-        setList((prev) => ({
-          ...prev,
-          items: prev.items.filter((i) => i.id !== id),
-        }));
-      },
     });
+
+    setNewItemName("");
+    loadListData();
   };
 
-  // -------------------------
-  // TOTAL
-  // -------------------------
-  const total = (() => {
-    if (!list?.items?.length) return "0.00";
+  //
+  // ☑ Marcar producto como completado
+  //
+  const toggleItem = async (itemId) => {
+    await updateList(listId, (original) => {
+      const updatedItems = original.items.map((item) =>
+        item.id === itemId ? { ...item, completed: !item.completed } : item
+      );
 
-    const sum = list.items
-      .filter((i) => i.checked)
-      .reduce((acc, i) => {
-        const p = i.priceInfo || {};
-        const subtotal =
-          p.total ?? parseFloat(p.unitPrice || 0) * parseFloat(p.qty || 1);
+      return {
+        ...original,
+        items: updatedItems,
+      };
+    });
 
-        return acc + (isNaN(subtotal) ? 0 : subtotal);
-      }, 0);
+    loadListData();
+  };
 
-    return sum.toFixed(2);
-  })();
+  //
+  // 🗑 Eliminar producto de la lista
+  //
+  const deleteItem = async (itemId) => {
+    await updateList(listId, (original) => {
+      const updatedItems = original.items.filter((item) => item.id !== itemId);
+
+      return {
+        ...original,
+        items: updatedItems,
+      };
+    });
+
+    loadListData();
+  };
 
   const renderItem = ({ item }) => (
-    <ItemRow item={item} onToggle={toggleChecked} onEdit={openItemDetail} />
+    <View style={styles.itemRow}>
+      <TouchableOpacity
+        style={styles.itemLeft}
+        onPress={() => toggleItem(item.id)}
+      >
+        <Ionicons
+          name={item.completed ? "checkbox" : "square-outline"}
+          size={24}
+          color={item.completed ? "#4CAF50" : "#555"}
+        />
+
+        <Text style={[styles.itemName, item.completed && styles.completedText]}>
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => deleteItem(item.id)}>
+        <Ionicons name="trash" size={22} color="#d9534f" />
+      </TouchableOpacity>
+    </View>
   );
 
   if (!list) {
     return (
-      <View style={styles.container}>
-        <Text style={{ color: "#888", textAlign: "center", marginTop: 30 }}>
-          Cargando lista...
-        </Text>
+      <View style={styles.loadingContainer}>
+        <Text style={{ fontSize: 18 }}>Cargando...</Text>
       </View>
     );
   }
 
-  // -------------------------
-  // UI
-
-  // < style={[styles.container, { paddingTop: 8 }]}>
-  // -------------------------
   return (
-    <SafeAreaView
-      style={{ flex: 1, paddingTop: Platform.OS === "ios" ? 0 : undefined }}
-      edges={Platform.OS === "ios" ? [] : ["top"]}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        {/* Selector de tienda */}
-        <StoreSelector navigation={navigation} />
-        {/* Historial */}
-        <SearchCombinedBar
-          currentList={list}
-          onSelectHistoryItem={async (historyItem) => {
-            const item = {
-              ...historyItem.item,
-              id: historyItem.item.id,
-              checked: false,
-            };
+      <Text style={styles.title}>{list.name}</Text>
 
-            await addItemToList(listId, item);
+      <FlatList
+        data={list.items}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      />
 
-            setList((prev) => ({
-              ...prev,
-              items: [item, ...prev.items],
-            }));
-          }}
+      {/* ➕ Añadir producto */}
+      <View style={styles.addRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="Añadir producto..."
+          value={newItemName}
+          onChangeText={setNewItemName}
         />
-
-        {/* Total */}
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total:</Text>
-          <Text style={styles.totalValue}>{total} €</Text>
-        </View>
-
-        {/* Añadir */}
-        <View style={styles.addRow}>
-          <TextInput
-            style={styles.newInput}
-            placeholder="Añadir producto..."
-            placeholderTextColor="#999"
-            value={nuevoItem}
-            onChangeText={setNuevoItem}
-            onSubmitEditing={addItem}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={addItem}>
-            <Text style={styles.addButtonText}>＋</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Lista */}
-        <FlatList
-          data={list.items}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 80 }}
-        />
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
+//
+// 🎨 ESTILOS
+//
 const styles = StyleSheet.create({
-  container: { flex: 2, backgroundColor: "#cf0", marginTop: 0 },
+  container: {
+    flex: 1,
+    backgroundColor: "#FAFAFA",
+    padding: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
 
-  totalContainer: {
+  // 🔸 Items
+  itemRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#E3F2FD",
-    padding: 12,
+    padding: 14,
+    marginBottom: 10,
+    backgroundColor: "#FFF",
     borderRadius: 10,
-    marginTop: 12,
-    marginBottom: 16,
-    marginHorizontal: 0,
-    borderColor: "#BBDEFB",
-  },
-  totalLabel: { fontSize: 20, fontWeight: "600" },
-  totalValue: { fontSize: 30, fontWeight: "800" },
-
-  addRow: { flexDirection: "row", alignItems: "center", marginHorizontal: 5 },
-  newInput: {
-    flex: 1,
+    borderColor: "#E0E0E0",
     borderWidth: 1,
-    borderColor: "#ccc",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  itemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  itemName: {
+    marginLeft: 10,
+    fontSize: 16,
+  },
+  completedText: {
+    textDecorationLine: "line-through",
+    color: "#777",
+  },
+
+  // ➕ Add product row
+  addRow: {
+    flexDirection: "row",
+    marginTop: 10,
+  },
+  input: {
+    flex: 1,
     backgroundColor: "#fff",
-    borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
   addButton: {
     marginLeft: 8,
@@ -303,7 +226,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: "#fff",
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
   },
 });

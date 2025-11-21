@@ -8,6 +8,12 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
+import {
+  loadSelectedStore,
+  saveSelectedStore,
+  clearSelectedStore,
+} from "../utils/storage/storeService";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";

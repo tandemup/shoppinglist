@@ -4,53 +4,80 @@ import { storageClient } from "./storageClient";
 const HISTORY_KEY = "@expo-shop/history";
 
 /**
- * Lee el historial completo
+ * Leer historial
  */
 export async function getScannedHistory() {
-  return (await storageClient.get(HISTORY_KEY)) ?? [];
+  const data = await storageClient.get(HISTORY_KEY);
+  return Array.isArray(data) ? data : [];
 }
 
 /**
- * Limpia todo el historial
+ * Limpiar historial
  */
 export async function clearScannedHistory() {
   return await storageClient.set(HISTORY_KEY, []);
 }
 
 /**
- * Agrega un nuevo código o incrementa su contador si ya existe
+ * Añadir o incrementar contador
  */
 export async function addScannedProduct(code) {
   return await storageClient.update(HISTORY_KEY, (current) => {
     const history = Array.isArray(current) ? [...current] : [];
 
-    const idx = history.findIndex((e) => e.code === code);
+    const index = history.findIndex((i) => i.code === code);
 
-    if (idx !== -1) {
-      // Ya existe → incrementar contador
-      return history.map((item, i) =>
-        i === idx ? { ...item, count: (item.count ?? 1) + 1 } : item
+    if (index !== -1) {
+      // ya existe → incrementar count
+      const old = history[index];
+      return history.map((e, i) =>
+        i === index
+          ? { ...old, count: (old.count ?? 1) + 1, ts: Date.now() }
+          : e
       );
     }
 
-    // No existe → agregar entrada nueva
+    // entrada nueva
     return [
       ...history,
       {
         code,
         count: 1,
-        ts: Date.now(), // timestamp opcional, útil para métricas
+        ts: Date.now(),
       },
     ];
   });
 }
 
 /**
- * Elimina un código del historial
+ * Eliminar entrada
  */
 export async function deleteScannedEntry(code) {
   return await storageClient.update(HISTORY_KEY, (current) => {
     if (!Array.isArray(current)) return [];
     return current.filter((item) => item.code !== code);
+  });
+}
+
+/**
+ * ⭐ NUEVA FUNCIÓN: actualizar metadatos del producto escaneado
+ */
+export async function updateScannedEntry(code, patch) {
+  return await storageClient.update(HISTORY_KEY, (current) => {
+    const history = Array.isArray(current) ? [...current] : [];
+
+    const index = history.findIndex((i) => i.code === code);
+    if (index === -1) return history;
+
+    const old = history[index];
+
+    const updated = {
+      ...old,
+      ...patch, // ← mezcla los nuevos campos (name, brand, url)
+      ts: Date.now(), // opcional: actualizamos timestamp
+    };
+
+    history[index] = updated;
+    return history;
   });
 }

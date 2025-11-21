@@ -1,5 +1,5 @@
 // screens/ShoppingListsScreen.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,156 +10,158 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  loadLists,
-  saveLists,
-  addList,
-  deleteList,
-} from "../utils/storage/listStorage";
 
-import { Ionicons } from "@expo/vector-icons";
+import { loadLists, addList, deleteList } from "../utils/storage/listStorage";
 
 export default function ShoppingListsScreen({ navigation }) {
   const [lists, setLists] = useState([]);
-  const [newName, setNewName] = useState("");
+  const [newListName, setNewListName] = useState("");
 
-  const loadLists = async () => {
-    const data = await getAllLists();
-    setLists(data.reverse());
-  };
+  // 📌 Cargar listas al iniciar
+  const fetchLists = useCallback(async () => {
+    const data = await loadLists();
+    setLists(data);
+  }, []);
 
-  // Botón de menú superior
   useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Menu")}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="menu" size={24} color="black" />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
-
-  // Recargar al volver a la pantalla
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", loadLists);
+    const unsubscribe = navigation.addListener("focus", fetchLists);
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, fetchLists]);
 
-  const handleAdd = async () => {
-    if (!newName.trim()) return;
-    await createList(newName.trim());
-    setNewName("");
-    loadLists();
+  // ➕ Crear una nueva lista
+  const handleAddList = async () => {
+    if (!newListName.trim()) return;
+
+    const newList = {
+      id: Date.now().toString(),
+      name: newListName.trim(),
+      createdAt: new Date().toISOString(),
+      items: [],
+    };
+
+    await addList(newList);
+    setNewListName("");
+    fetchLists();
   };
+
+  // 🗑 Eliminar una lista
+  const handleDeleteList = async (id) => {
+    await deleteList(id);
+    fetchLists();
+  };
+
+  // 🧭 Navegar a una lista específica
+  const handleOpenList = (list) => {
+    navigation.navigate("ShoppingList", { listId: list.id });
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => handleOpenList(item)}
+      onLongPress={() => handleDeleteList(item.id)}
+    >
+      <Text style={styles.name}>{item.name}</Text>
+      <Text style={styles.date}>
+        Creada el {new Date(item.createdAt).toLocaleDateString()}
+      </Text>
+      <Text style={styles.count}>{item.items?.length || 0} productos</Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        paddingTop: Platform.OS === "web" ? 0 : undefined,
-        backgroundColor: "#fff",
-      }}
-      edges={Platform.OS === "web" ? [] : ["top"]}
-    >
-      <View style={{ flex: 1 }}>
-        {/* Input + botón Añadir */}
-        <View style={styles.row}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nueva lista..."
-            placeholderTextColor="#999"
-            value={newName}
-            onChangeText={setNewName}
-          />
-          <TouchableOpacity style={styles.addBtn} onPress={handleAdd}>
-            <Text style={{ color: "white", fontWeight: "bold" }}>Añadir</Text>
-          </TouchableOpacity>
-        </View>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Mis Listas</Text>
 
-        {/* Listas */}
-        {lists.length === 0 ? (
-          <Text style={styles.emptyMsg}>No hay listas creadas todavía.</Text>
-        ) : (
-          <FlatList
-            data={lists}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={{ paddingBottom: 40 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.card}
-                onPress={() =>
-                  navigation.navigate("ShoppingList", { listId: item.id })
-                }
-              >
-                <Text style={styles.name}>{item.name}</Text>
-
-                <Text style={styles.date}>
-                  {item.createdAt
-                    ? `${new Date(item.createdAt).toLocaleDateString("es-ES", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}`
-                    : ""}
-                  {item.storeName ? ` • ${item.storeName}` : ""}
-                </Text>
-
-                <Text style={styles.count}>{item.items.length} productos</Text>
-              </TouchableOpacity>
-            )}
-          />
-        )}
+      {/* Crear nueva lista */}
+      <View style={styles.inputRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="Nueva lista..."
+          value={newListName}
+          onChangeText={setNewListName}
+        />
+        <TouchableOpacity style={styles.addButton} onPress={handleAddList}>
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Listado */}
+      <FlatList
+        data={lists}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      />
     </SafeAreaView>
   );
 }
 
+//
+// 🎨 ESTILOS
+//
 const styles = StyleSheet.create({
-  row: {
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#FAFAFA",
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  inputRow: {
     flexDirection: "row",
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "web" ? 16 : 0,
+    marginBottom: 15,
   },
   input: {
     flex: 1,
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 8,
+    borderColor: "#ddd",
   },
-  addBtn: {
-    marginLeft: 8,
-    backgroundColor: "#2563eb",
+  addButton: {
+    marginLeft: 10,
+    backgroundColor: "#007BFF",
+    width: 45,
+    height: 45,
     borderRadius: 8,
-    paddingHorizontal: 16,
+    alignItems: "center",
     justifyContent: "center",
   },
-  emptyMsg: {
-    color: "#888",
-    textAlign: "center",
-    marginTop: 40,
+  addButtonText: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "bold",
   },
   card: {
-    backgroundColor: "#E3F2FD",
-    padding: 14,
+    backgroundColor: "#fff",
+    padding: 16,
     borderRadius: 12,
-    marginHorizontal: 16,
     marginBottom: 10,
+
     borderWidth: 1,
     borderColor: "#BBDEFB",
 
-    // Sombra Mobile + Web compatible
     shadowColor: "#000",
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 3,
     elevation: 1,
   },
-  name: { fontSize: 16, fontWeight: "bold" },
-  date: { color: "#666", fontSize: 12 },
-  count: { color: "#888", marginTop: 4 },
+  name: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  date: {
+    color: "#666",
+    fontSize: 12,
+  },
+  count: {
+    color: "#888",
+    marginTop: 4,
+  },
 });
