@@ -19,6 +19,7 @@ import SearchItemsScreen from "./screens/SearchItemsScreen";
 import StoresScreen from "./screens/StoresScreen";
 import MenuScreen from "./screens/MenuScreen";
 import ScannerTab from "./screens/ScannerTab";
+import EditScannedItemScreen from "./screens/EditScannedItemScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -84,6 +85,11 @@ function ShoppingStack() {
         name="Menu"
         component={MenuScreen}
         options={{ title: "Menú", headerTitleAlign: "center" }}
+      />
+      <Stack.Screen
+        name="EditScannedItemScreen"
+        component={EditScannedItemScreen}
+        options={{ title: "Edit scanned item", headerTitleAlign: "center" }}
       />
     </Stack.Navigator>
   );

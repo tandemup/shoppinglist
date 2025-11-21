@@ -1,123 +1,43 @@
-// screens/ScannedHistoryScreen.js
-
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  FlatList,
-  Pressable,
-  TextInput,
-  StyleSheet,
-  Linking,
-  Platform,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import { getScannedProducts } from "../utils/storageHelpers";
 
-import {
-  getScannedProducts,
-  deleteScannedProduct,
-} from "../utils/storageHelpers";
-
-export default function ScannedHistoryScreen() {
-  const [products, setProducts] = useState([]);
-  const [search, setSearch] = useState("");
-
-  // cargar datos
-  const load = async () => {
-    const data = await getScannedProducts();
-    setProducts([...data].reverse()); // más recientes arriba
-  };
+export default function ScannedHistoryScreen({ navigation }) {
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
-    load();
-  }, []);
-
-  // Buscar por nombre, marca o código
-  const filtered = products.filter((item) => {
-    const t = search.toLowerCase();
-    return (
-      item.code.toLowerCase().includes(t) ||
-      item.name.toLowerCase().includes(t) ||
-      (item.brand && item.brand.toLowerCase().includes(t))
-    );
-  });
-
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.image} />
-        ) : (
-          <MaterialCommunityIcons name="barcode" size={40} color="#bbb" />
-        )}
-
-        <View style={{ marginLeft: 10, flex: 1 }}>
-          <Text style={styles.code}>Código: {item.code}</Text>
-          <Text style={styles.name}>{item.name}</Text>
-          {item.brand ? <Text style={styles.brand}>{item.brand}</Text> : null}
-
-          {/* 🔄 BADGE DE CONTADOR */}
-          {item.count > 1 && (
-            <View style={styles.counterBadge}>
-              <MaterialCommunityIcons name="repeat" size={14} color="#fff" />
-              <Text style={styles.counterText}>{item.count} veces</Text>
-            </View>
-          )}
-
-          <Text style={styles.date}>
-            {new Date(item.date).toLocaleString()}
-          </Text>
-        </View>
-      </View>
-
-      {/* Botón abrir */}
-      <Pressable
-        style={styles.openBtn}
-        onPress={() => Linking.openURL(item.url)}
-      >
-        <Text style={styles.openBtnText}>🌐 Abrir</Text>
-      </Pressable>
-
-      {/* Botón borrar */}
-      <Pressable
-        style={styles.deleteBtn}
-        onPress={async () => {
-          await deleteScannedProduct(item.id);
-          load();
-        }}
-      >
-        <MaterialCommunityIcons name="delete" size={20} color="#fff" />
-      </Pressable>
-    </View>
-  );
+    const load = async () => {
+      const data = await getScannedProducts();
+      setItems(data);
+    };
+    const unsubscribe = navigation.addListener("focus", load);
+    return unsubscribe;
+  }, [navigation]);
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: "#111" }}
-      edges={Platform.OS === "web" ? [] : ["top"]}
-    >
-      {/* Buscador */}
-      <TextInput
-        value={search}
-        onChangeText={setSearch}
-        placeholder="Buscar por código, nombre o marca..."
-        placeholderTextColor="#777"
-        style={styles.searchInput}
+    <View style={{ flex: 1, backgroundColor: "black", padding: 16 }}>
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() =>
+              navigation.navigate("EditScannedItemScreen", { item })
+            }
+            style={{
+              padding: 12,
+              backgroundColor: "#222",
+              marginBottom: 10,
+              borderRadius: 8,
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 16 }}>{item.name}</Text>
+            <Text style={{ color: "#aaa" }}>{item.brand}</Text>
+            <Text style={{ color: "#4ea" }}>{item.code}</Text>
+          </Pressable>
+        )}
       />
-
-      {filtered.length === 0 ? (
-        <Text style={styles.empty}>No hay elementos.</Text>
-      ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{ padding: 12 }}
-        />
-      )}
-    </SafeAreaView>
+    </View>
   );
 }
 

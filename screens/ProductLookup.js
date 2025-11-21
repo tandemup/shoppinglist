@@ -1,76 +1,100 @@
-// screens/ProductLookup.js
-import SEARCH_ENGINES from "../data/search_engines.json";
+export async function fetchProductInfo(code, signal, config) {
+  const isISBN =
+    code.length === 13 && (code.startsWith("978") || code.startsWith("979"));
 
-export const buildSearchUrl = (engineId, barcode) => {
-  const engine = SEARCH_ENGINES.find((e) => e.id === engineId);
-  return engine
-    ? engine.baseUrl + barcode
-    : `https://www.google.com/search?q=${barcode}`;
-};
+  if (isISBN) {
+    const google = await lookupGoogleBooks(code);
+    if (google) return google;
 
-/**
- * Búsqueda optimizada:
- * - ISBN → OpenLibrary
- * - Productos → OpenFoodFacts
- * - Fallback → Google Shopping o motor definido en config
- */
-export const fetchProductInfo = async (barcode, signal, config) => {
-  try {
-    // 📚 ISBN
-    if (barcode.startsWith("978") || barcode.startsWith("979")) {
-      const r = await fetch(`https://openlibrary.org/isbn/${barcode}.json`, {
-        signal,
-      });
+    const open = await lookupOpenLibrary(code);
+    if (open) return open;
 
-      if (r.ok) {
-        const d = await r.json();
-        return {
-          code: barcode,
-          name: d.title || "Libro desconocido",
-          brand: d.publishers?.join(", ") || "Editorial desconocida",
-          image: d.covers
-            ? `https://covers.openlibrary.org/b/id/${d.covers[0]}-M.jpg`
-            : null,
-          url: `https://openlibrary.org/isbn/${barcode}`,
-        };
-      }
-    }
-
-    // 🍎 Producto — motor primario
-    if (config.lookup.primary === "openfoodfacts") {
-      const r = await fetch(
-        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
-        { signal }
-      );
-
-      const data = await r.json();
-
-      if (data.status === 1) {
-        const p = data.product;
-
-        return {
-          code: barcode,
-          name: p.product_name || "Producto desconocido",
-          brand: p.brands || "Sin marca",
-          image: p.image_small_url,
-          url: p.url,
-        };
-      }
-    }
-
-    // 🔁 Fallback automático
     return {
-      code: barcode,
-      name: "Producto no encontrado",
+      name: "Libro encontrado",
       brand: "",
       image: null,
-      url: buildSearchUrl(config.lookup.fallback, barcode),
+      url: "https://www.google.com/search?q=isbn+" + code,
     };
-  } catch (err) {
-    // Cancelación manual
-    if (err.name === "AbortError") {
-      return null;
-    }
+  }
+
+  // Producto normal
+  return await fetchNormalProduct(code, signal, config);
+}
+
+//
+// 📚 Google Books
+//
+async function lookupGoogleBooks(isbn) {
+  try {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.items) return null;
+
+    const b = data.items[0].volumeInfo;
+
+    return {
+      name: b.title,
+      brand: b.authors ? b.authors.join(", ") : "",
+      image: b.imageLinks?.thumbnail || null,
+      url: `https://books.google.com/books?vid=ISBN${isbn}`,
+    };
+  } catch {
     return null;
   }
-};
+}
+
+//
+// 📚 OpenLibrary
+//
+async function lookupOpenLibrary(isbn) {
+  try {
+    const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`;
+    const res = await fetch(url);
+    const json = await res.json();
+
+    const key = `ISBN:${isbn}`;
+    const b = json[key];
+    if (!b) return null;
+
+    return {
+      name: b.title,
+      brand: b.publishers ? b.publishers.map((p) => p.name).join(", ") : "",
+      image: b.cover?.medium || null,
+      url: `https://openlibrary.org/isbn/${isbn}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
+//
+// 🧃 Productos normales: tu función existente
+//
+async function fetchNormalProduct(code, signal, config) {
+  try {
+    const url = `https://world.openfoodfacts.org/api/v2/product/${code}.json`;
+    const res = await fetch(url, { signal });
+    const data = await res.json();
+
+    if (data.status !== 1) {
+      return {
+        name: "Producto no encontrado",
+        brand: "",
+        image: null,
+        url: "https://www.google.com/search?q=" + code,
+      };
+    }
+
+    const p = data.product;
+
+    return {
+      name: p.product_name || "Producto",
+      brand: p.brands,
+      image: p.image_front_small_url || null,
+      url: `https://world.openfoodfacts.org/product/${code}`,
+    };
+  } catch {
+    return null;
+  }
+}

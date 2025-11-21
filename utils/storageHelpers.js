@@ -1,4 +1,5 @@
 // utils/storageHelpers.js
+import { v4 as uuidv4 } from "uuid";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const KEY = "scanned_history";
@@ -31,49 +32,50 @@ export const getPurchases = async () => {
   }
 };
 
-export const getScannedProducts = async () => {
-  const raw = await AsyncStorage.getItem(KEY);
-  return raw ? JSON.parse(raw) : [];
-};
-export const addScannedProduct = async (product) => {
-  const current = await getScannedProducts();
+export async function getScannedProducts() {
+  const data = await AsyncStorage.getItem(KEY);
+  return data ? JSON.parse(data) : [];
+}
 
-  // Buscar si ya existe
-  const existingIndex = current.findIndex((p) => p.code === product.code);
+export async function updateScannedProduct(id, updates) {
+  const list = await getScannedProducts();
+  const index = list.findIndex((item) => item.id === id);
 
-  if (existingIndex !== -1) {
-    // Ya existe → incrementar contador
-    const existing = current[existingIndex];
-    const updated = {
-      ...existing,
-      count: (existing.count || 1) + 1,
-      // OPCIONAL: actualizar fecha de último escaneo
-      date: new Date().toISOString(),
-    };
-
-    current[existingIndex] = updated;
-
-    await AsyncStorage.setItem(KEY, JSON.stringify(current));
-    return;
+  if (index !== -1) {
+    list[index] = { ...list[index], ...updates };
+    await AsyncStorage.setItem(KEY, JSON.stringify(list));
   }
 
-  // NO existe → crear nuevo registro con count: 1
-  const newEntry = {
-    id: Date.now().toString(),
-    code: product.code,
-    name: product.name || "Producto desconocido",
-    brand: product.brand || "",
-    image: product.image || null,
-    url: product.url || "",
-    date: new Date().toISOString(),
-    count: 1,
-  };
+  return list[index];
+}
 
-  await AsyncStorage.setItem(KEY, JSON.stringify([newEntry, ...current]));
-};
+export async function deleteScannedProduct(id) {
+  const list = await getScannedProducts();
+  const newList = list.filter((item) => item.id !== id);
+  await AsyncStorage.setItem(KEY, JSON.stringify(newList));
+}
 
-export const deleteScannedProduct = async (id) => {
-  const current = await getScannedProducts();
-  const updated = current.filter((p) => p.id !== id);
-  await AsyncStorage.setItem(KEY, JSON.stringify(updated));
-};
+export async function addScannedProduct(product) {
+  const list = await getScannedProducts();
+
+  // ❗ Buscar si ya existe un item con este mismo código de barras
+  const existingIndex = list.findIndex((item) => item.code === product.code);
+
+  if (existingIndex !== -1) {
+    // Ya existe → actualizar el registro existente
+    list[existingIndex] = {
+      ...list[existingIndex],
+      ...product,
+      updatedAt: Date.now(),
+    };
+  } else {
+    // No existe → crear nuevo con UUID
+    list.unshift({
+      id: uuidv4(),
+      ...product,
+      date: Date.now(),
+    });
+  }
+
+  await AsyncStorage.setItem(KEY, JSON.stringify(list));
+}

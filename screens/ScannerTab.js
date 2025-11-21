@@ -1,4 +1,3 @@
-// screens/ScannerTab.js
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -7,7 +6,6 @@ import {
   Animated,
   Image,
   Linking,
-  Platform,
   StyleSheet,
 } from "react-native";
 
@@ -16,6 +14,18 @@ import { fetchProductInfo } from "./ProductLookup";
 import SEARCH_ENGINES from "../data/search_engines.json";
 import { addScannedProduct } from "../utils/storageHelpers";
 import { useConfig } from "../context/ConfigContext";
+import Ionicons from "@expo/vector-icons/Ionicons";
+
+//
+// 📘 Detectar si un código es ISBN (EAN-13 con 978/979)
+//
+function isISBN(code) {
+  return (
+    code &&
+    code.length === 13 &&
+    (code.startsWith("978") || code.startsWith("979"))
+  );
+}
 
 export default function ScannerTab({ navigation }) {
   const { config } = useConfig();
@@ -23,44 +33,70 @@ export default function ScannerTab({ navigation }) {
   const [scanned, setScanned] = useState(false);
   const [product, setProduct] = useState(null);
   const [lastCode, setLastCode] = useState(null);
+
+  // mensaje inferior unificado
   const [message, setMessage] = useState("");
-  const [selectedSearch, setSelectedSearch] = useState(SEARCH_ENGINES[0]);
+
+  const [selectedSearch, setSelectedSearch] = useState(null);
+  const [engines, setEngines] = useState(SEARCH_ENGINES);
 
   const abortController = useRef(null);
   const checkAnim = useRef(new Animated.Value(0)).current;
 
+  // bloquear sobrescritura si el usuario toca un motor
+  const userSelectedEngineRef = useRef(false);
+
+  //
   // ⭐ Cuando el código es leído
+  //
   const handleBarcodeScanned = async ({ data }) => {
     if (scanned) return;
 
     setScanned(true);
     setProduct(null);
     setLastCode(data);
+    userSelectedEngineRef.current = false;
 
-    // ✔ Animación del check
+    // ✔ Animación de check
     Animated.sequence([
       Animated.timing(checkAnim, {
         toValue: 1,
         duration: 250,
         useNativeDriver: true,
       }),
-      Animated.delay(900),
+      Animated.delay(600),
       Animated.timing(checkAnim, {
         toValue: 0,
-        duration: 300,
+        duration: 350,
         useNativeDriver: true,
       }),
     ]).start();
 
     abortController.current = new AbortController();
 
+    //
+    // 📘 Motores según sea libro o no
+    //
+    if (isISBN(data)) {
+      const bookEngines = SEARCH_ENGINES.filter((e) => e.forBooks);
+      setEngines(bookEngines);
+      setSelectedSearch(bookEngines[0]);
+    } else {
+      const genericEngines = SEARCH_ENGINES.filter((e) => !e.forBooks);
+      setEngines(genericEngines);
+      setSelectedSearch(genericEngines[0]);
+    }
+
+    //
+    // 🔍 Búsqueda automática (solo si no pulsas motor)
+    //
     const info = await fetchProductInfo(
       data,
       abortController.current.signal,
       config
     );
 
-    if (info) {
+    if (info && !userSelectedEngineRef.current) {
       setProduct(info);
 
       await addScannedProduct({
@@ -70,23 +106,28 @@ export default function ScannerTab({ navigation }) {
         image: info.image,
         url: info.url,
       });
-    } else {
-      setMessage("Búsqueda cancelada o no encontrada");
+    } else if (!info) {
+      setMessage("❌ No encontrado");
       setTimeout(() => setMessage(""), 2000);
     }
   };
 
+  //
+  // UI principal
+  //
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
       <BarcodeScanner
         onScanned={handleBarcodeScanned}
         onReenable={() => {
+          userSelectedEngineRef.current = false;
           abortController.current?.abort();
           setScanned(false);
           setProduct(null);
           setLastCode(null);
+
           setMessage("📸 Listo para nuevo escaneo");
-          setTimeout(() => setMessage(""), 2000);
+          setTimeout(() => setMessage(""), 1500);
         }}
         onCancel={() => {
           abortController.current?.abort();
@@ -94,39 +135,77 @@ export default function ScannerTab({ navigation }) {
         }}
       />
 
-      {/* Indicador de reescaneo */}
-      {!scanned && (
-        <Text style={styles.hintText}>Apunta al código para escanear</Text>
-      )}
-      {scanned && (
-        <Text style={styles.hintText}>
-          Pulsa el botón central para nuevo escaneo
-        </Text>
-      )}
-
-      {/* Animación ✔ */}
-      <Animated.View
+      {/* 🔳 Mensaje inferior unificado */}
+      <View
         style={{
           position: "absolute",
-          top: "35%",
-          left: 0,
-          right: 0,
-          alignItems: "center",
-          opacity: checkAnim,
+          bottom: 70,
+          alignSelf: "center",
+          zIndex: 20,
         }}
       >
-        <Text style={{ color: "#22c55e", fontSize: 60 }}>✔</Text>
-      </Animated.View>
+        <Text style={styles.hintText}>
+          {message
+            ? message
+            : scanned
+            ? "Pulsa el botón central para nuevo escaneo"
+            : "Apunta al código para escanear"}
+        </Text>
+      </View>
 
-      {/* Info Box */}
+      {scanned && (
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: "35%",
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            transform: [
+              {
+                scale: checkAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.4, 1.25],
+                }),
+              },
+            ],
+          }}
+        >
+          <View
+            style={{
+              padding: 32,
+              borderRadius: 120,
+              backgroundColor: "rgba(0,0,0,0.55)",
+              borderWidth: 3,
+              borderColor: "rgba(255,255,255,0.45)",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Ionicons
+              name="checkmark"
+              size={100}
+              color="#22ff88"
+              style={{
+                textShadowColor: "rgba(34,255,136,1)",
+                textShadowOffset: { width: 0, height: 0 },
+                textShadowRadius: 40,
+              }}
+            />
+          </View>
+        </Animated.View>
+      )}
+
+      {/* 🔎 Info del producto */}
       {lastCode && (
         <View style={styles.infoBox}>
           <Text style={styles.codeTitle}>Código escaneado: {lastCode}</Text>
 
-          {/* 🔎 Selector de motores de búsqueda */}
+          {/* Motores dinámicos */}
           <View style={styles.searchSelector}>
-            {SEARCH_ENGINES.map((engine) => {
-              const active = selectedSearch.id === engine.id;
+            {engines.map((engine) => {
+              const active = selectedSearch?.id === engine.id;
 
               return (
                 <Pressable
@@ -136,10 +215,14 @@ export default function ScannerTab({ navigation }) {
                     active && styles.searchButtonActive,
                   ]}
                   onPress={() => {
+                    userSelectedEngineRef.current = true;
                     abortController.current?.abort();
+
                     setSelectedSearch(engine);
+
                     setMessage("Buscando con: " + engine.name);
-                    setTimeout(() => setMessage(""), 1500);
+                    setTimeout(() => setMessage(""), 1200);
+
                     setProduct({
                       name: "Abrir en " + engine.name,
                       brand: "",
@@ -165,7 +248,9 @@ export default function ScannerTab({ navigation }) {
           {product && (
             <>
               <Text style={styles.productName}>{product.name}</Text>
-              <Text style={styles.productBrand}>{product.brand}</Text>
+              {product.brand ? (
+                <Text style={styles.productBrand}>{product.brand}</Text>
+              ) : null}
 
               {product.image && (
                 <Image
@@ -184,9 +269,6 @@ export default function ScannerTab({ navigation }) {
           )}
         </View>
       )}
-
-      {/* Mensaje flotante */}
-      {message ? <Text style={styles.floatMsg}>{message}</Text> : null}
     </View>
   );
 }
@@ -196,15 +278,13 @@ export default function ScannerTab({ navigation }) {
 //
 const styles = StyleSheet.create({
   hintText: {
-    position: "absolute",
-    bottom: 70,
-    alignSelf: "center",
     color: "white",
-    backgroundColor: "#0006",
+    backgroundColor: "#0008",
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 10,
     fontSize: 14,
+    textAlign: "center",
   },
 
   infoBox: {
@@ -222,7 +302,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // 🔎 Menú de motores
   searchSelector: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -231,7 +310,7 @@ const styles = StyleSheet.create({
   },
 
   searchButton: {
-    backgroundColor: "#1f2937", // gris oscuro
+    backgroundColor: "#1f2937",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 10,
@@ -240,7 +319,7 @@ const styles = StyleSheet.create({
   },
 
   searchButtonActive: {
-    backgroundColor: "#2563eb", // azul seleccionado
+    backgroundColor: "#2563eb",
     borderColor: "#1e40af",
     borderWidth: 1.4,
   },
@@ -284,15 +363,5 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
-  },
-
-  floatMsg: {
-    position: "absolute",
-    bottom: 80,
-    color: "white",
-    backgroundColor: "#0007",
-    padding: 6,
-    borderRadius: 8,
-    alignSelf: "center",
   },
 });
