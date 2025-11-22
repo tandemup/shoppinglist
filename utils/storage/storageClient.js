@@ -34,7 +34,14 @@ export const storageClient = {
   async update(key, updaterFn) {
     try {
       const raw = await AsyncStorage.getItem(key);
-      const current = safeParse(raw) ?? null;
+      let current = safeParse(raw);
+
+      // ⚠️ ARREGLO CRÍTICO PARA EXPO GO (iOS/Android):
+      // No permitir null/undefined porque rompe listas y produce updates vacíos.
+      if (current === null || current === undefined) {
+        // Por defecto, las listas y la mayoría de estructuras de este proyecto son arrays
+        current = [];
+      }
 
       const updated = updaterFn(current);
 

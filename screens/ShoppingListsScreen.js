@@ -78,6 +78,7 @@ export default function ShoppingListsScreen({ navigation }) {
         <TextInput
           style={styles.input}
           placeholder="Nueva lista..."
+          placeholderTextColor="#999"
           value={newListName}
           onChangeText={setNewListName}
         />

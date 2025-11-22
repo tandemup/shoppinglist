@@ -71,7 +71,7 @@ export default function PurchaseDetailScreen({ route, navigation }) {
               "La nueva lista se ha generado correctamente."
             );
 
-            navigation.navigate("ShoppingListScreen", {
+            navigation.navigate("ShoppingList", {
               listId: newList.id,
             });
           },

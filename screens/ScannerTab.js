@@ -1,5 +1,4 @@
-// screens/ScannerTab.js
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,132 +6,186 @@ import {
   Animated,
   Image,
   Linking,
+  Platform,
   StyleSheet,
 } from "react-native";
 
 import BarcodeScanner from "../components/BarcodeScanner";
-import { addScannedProduct } from "../utils/storage/scannerHistory";
 import { fetchProductInfo } from "./ProductLookup";
 import SEARCH_ENGINES from "../data/search_engines.json";
+//import { addScannedProduct } from "../utils/storageHelpers";
+import { addScannedProductFull } from "../utils/storage/scannerHistory";
+import { useConfig } from "../context/ConfigContext";
 
-export default function ScannerTab() {
-  const [message, setMessage] = useState("");
+export default function ScannerTab({ navigation }) {
+  const { config } = useConfig();
+
+  const [scanned, setScanned] = useState(false);
   const [product, setProduct] = useState(null);
-  const [selectedEngine, setSelectedEngine] = useState(null);
+  const [lastCode, setLastCode] = useState(null);
+  const [message, setMessage] = useState("");
+  const [selectedSearch, setSelectedSearch] = useState(SEARCH_ENGINES[0]);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const abortController = useRef(null);
+  const checkAnim = useRef(new Animated.Value(0)).current;
 
-  //
-  // ⭐ Animación al encontrar un producto
-  //
-  const animateCheck = () => {
-    fadeAnim.setValue(0);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  };
+  // ⭐ Cuando el código es leído
+  const handleBarcodeScanned = async ({ data }) => {
+    if (scanned) return;
 
-  //
-  // 🔍 Evento disparado cuando el scanner detecta un código
-  //
-  const onScanned = async (code) => {
-    setMessage(`Escaneado: ${code}`);
-
-    // Guardar automáticamente en historial
-    await addScannedProduct(code);
-
-    // Buscar información del producto
-    const info = await fetchProductInfo(code);
-    setProduct(info);
-
-    animateCheck();
-  };
-
-  //
-  // 🌐 Abrir con buscador externo (Google, OpenFoodFacts, etc.)
-  //
-  const openInSearchEngine = () => {
-    if (!selectedEngine || !product) return;
-
-    const engine = SEARCH_ENGINES[selectedEngine];
-    const url = engine.url.replace("{code}", product.code);
-
-    Linking.openURL(url);
-  };
-
-  //
-  // 🧼 Reset de UI tras re-escanear
-  //
-  const resetUI = () => {
+    setScanned(true);
     setProduct(null);
-    setSelectedEngine(null);
-    setMessage("Listo para nuevo escaneo");
-    setTimeout(() => setMessage(""), 2000);
+    setLastCode(data);
+
+    // ✔ Animación del check
+    Animated.sequence([
+      Animated.timing(checkAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.delay(900),
+      Animated.timing(checkAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    abortController.current = new AbortController();
+
+    const info = await fetchProductInfo(
+      data,
+      abortController.current.signal,
+      config
+    );
+
+    if (info) {
+      setProduct(info);
+      await addScannedProductFull({
+        code: data,
+        name: info.name,
+        brand: info.brand,
+        image: info.image,
+        url: info.url,
+      });
+    } else {
+      setMessage("Búsqueda cancelada o no encontrada");
+      setTimeout(() => setMessage(""), 2000);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      {/* 📸 Componente Real del Scanner */}
+    <View style={{ flex: 1, backgroundColor: "black" }}>
       <BarcodeScanner
-        onScanned={onScanned}
-        onReenable={resetUI}
-        onCancel={() => setMessage("Escaneo cancelado")}
+        onScanned={handleBarcodeScanned}
+        onReenable={() => {
+          abortController.current?.abort();
+          setScanned(false);
+          setProduct(null);
+          setLastCode(null);
+          setMessage("📸 Listo para nuevo escaneo");
+          setTimeout(() => setMessage(""), 2000);
+        }}
+        onCancel={() => {
+          abortController.current?.abort();
+          navigation.goBack();
+        }}
       />
 
-      {/* 💬 Mensaje de estado */}
-      {message !== "" && <Text style={styles.message}>{message}</Text>}
-
-      {/* 🟩 Check animado */}
-      {product && (
-        <Animated.View style={[styles.checkContainer, { opacity: fadeAnim }]}>
-          <Image
-            source={require("../assets/check.png")}
-            style={styles.checkIcon}
-          />
-        </Animated.View>
+      {/* Indicador de reescaneo */}
+      {!scanned && (
+        <Text style={styles.hintText}>Apunta al código para escanear</Text>
+      )}
+      {scanned && (
+        <Text style={styles.hintText}>
+          Pulsa el botón central para nuevo escaneo
+        </Text>
       )}
 
-      {/* 🧾 Info del producto (si existe) */}
-      {product && (
-        <View style={styles.productCard}>
-          <Text style={styles.productTitle}>{product.name}</Text>
-          <Text style={styles.productCode}>Código: {product.code}</Text>
+      {/* Animación ✔ */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: "35%",
+          left: 0,
+          right: 0,
+          alignItems: "center",
+          opacity: checkAnim,
+        }}
+      >
+        <Text style={{ color: "#22c55e", fontSize: 60 }}>✔</Text>
+      </Animated.View>
 
-          {/* 🔍 Selección de buscador */}
-          <View style={styles.engineRow}>
-            {Object.keys(SEARCH_ENGINES).map((engineKey) => (
-              <Pressable
-                key={engineKey}
-                style={[
-                  styles.engineButton,
-                  selectedEngine === engineKey && styles.engineButtonSelected,
-                ]}
-                onPress={() => setSelectedEngine(engineKey)}
-              >
-                <Text
+      {/* Info Box */}
+      {lastCode && (
+        <View style={styles.infoBox}>
+          <Text style={styles.codeTitle}>Código escaneado: {lastCode}</Text>
+
+          {/* 🔎 Selector de motores de búsqueda */}
+          <View style={styles.searchSelector}>
+            {SEARCH_ENGINES.map((engine) => {
+              const active = selectedSearch.id === engine.id;
+
+              return (
+                <Pressable
+                  key={engine.id}
                   style={[
-                    styles.engineText,
-                    selectedEngine === engineKey && styles.engineTextSelected,
+                    styles.searchButton,
+                    active && styles.searchButtonActive,
                   ]}
+                  onPress={() => {
+                    abortController.current?.abort();
+                    setSelectedSearch(engine);
+                    setMessage("Buscando con: " + engine.name);
+                    setTimeout(() => setMessage(""), 1500);
+                    setProduct({
+                      name: "Abrir en " + engine.name,
+                      brand: "",
+                      image: null,
+                      url: engine.baseUrl + lastCode,
+                    });
+                  }}
                 >
-                  {SEARCH_ENGINES[engineKey].label}
-                </Text>
-              </Pressable>
-            ))}
+                  <Text
+                    style={[
+                      styles.searchButtonText,
+                      active && styles.searchButtonTextActive,
+                    ]}
+                  >
+                    {engine.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
-          {/* 🌐 Botón para abrir con el buscador elegido */}
-          {selectedEngine && (
-            <Pressable style={styles.openBtn} onPress={openInSearchEngine}>
-              <Text style={styles.openBtnText}>
-                Abrir en {SEARCH_ENGINES[selectedEngine].label}
-              </Text>
-            </Pressable>
+          {/* Resultado */}
+          {product && (
+            <>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productBrand}>{product.brand}</Text>
+
+              {product.image && (
+                <Image
+                  source={{ uri: product.image }}
+                  style={styles.productImage}
+                />
+              )}
+
+              <Pressable
+                onPress={() => Linking.openURL(product.url)}
+                style={styles.openLinkBtn}
+              >
+                <Text style={styles.openLinkText}>🌐 Abrir enlace</Text>
+              </Pressable>
+            </>
           )}
         </View>
       )}
+
+      {/* Mensaje flotante */}
+      {message ? <Text style={styles.floatMsg}>{message}</Text> : null}
     </View>
   );
 }
@@ -141,81 +194,104 @@ export default function ScannerTab() {
 // 🎨 ESTILOS
 //
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "black",
-    padding: 12,
+  hintText: {
+    position: "absolute",
+    bottom: 70,
+    alignSelf: "center",
+    color: "white",
+    backgroundColor: "#0006",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    fontSize: 14,
   },
 
-  message: {
-    color: "white",
-    textAlign: "center",
-    marginVertical: 8,
+  infoBox: {
+    position: "absolute",
+    top: 50,
+    left: 20,
+    right: 20,
+    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 14,
+  },
+
+  codeTitle: {
+    color: "#22c55e",
     fontSize: 16,
   },
 
-  checkContainer: {
-    position: "absolute",
-    top: 60,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-    zIndex: 10,
+  // 🔎 Menú de motores
+  searchSelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 10,
   },
-  checkIcon: {
+
+  searchButton: {
+    backgroundColor: "#1f2937", // gris oscuro
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+
+  searchButtonActive: {
+    backgroundColor: "#2563eb", // azul seleccionado
+    borderColor: "#1e40af",
+    borderWidth: 1.4,
+  },
+
+  searchButtonText: {
+    color: "#e5e7eb",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  searchButtonTextActive: {
+    color: "white",
+    fontWeight: "700",
+  },
+
+  productName: {
+    color: "white",
+    fontSize: 20,
+    marginTop: 10,
+  },
+
+  productBrand: {
+    color: "#bbb",
+  },
+
+  productImage: {
     width: 80,
     height: 80,
-    tintColor: "#4CAF50",
-  },
-
-  productCard: {
-    backgroundColor: "#fff",
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 12,
-  },
-  productTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  productCode: {
-    color: "#555",
-    marginTop: 4,
-  },
-
-  engineRow: {
-    flexDirection: "row",
-    marginTop: 12,
-    flexWrap: "wrap",
-  },
-  engineButton: {
-    backgroundColor: "#e5e7eb",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
     borderRadius: 8,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  engineButtonSelected: {
-    backgroundColor: "#2563eb",
-  },
-  engineText: {
-    color: "#111",
-  },
-  engineTextSelected: {
-    color: "white",
-    fontWeight: "bold",
+    marginTop: 8,
   },
 
-  openBtn: {
+  openLinkBtn: {
     backgroundColor: "#2563eb",
     marginTop: 10,
-    padding: 10,
+    padding: 8,
     borderRadius: 8,
   },
-  openBtnText: {
+
+  openLinkText: {
     color: "white",
-    fontWeight: "bold",
     textAlign: "center",
+    fontWeight: "bold",
+  },
+
+  floatMsg: {
+    position: "absolute",
+    bottom: 80,
+    color: "white",
+    backgroundColor: "#0007",
+    padding: 6,
+    borderRadius: 8,
+    alignSelf: "center",
   },
 });

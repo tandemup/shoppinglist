@@ -81,3 +81,20 @@ export async function updateScannedEntry(code, patch) {
     return history;
   });
 }
+
+/**
+ * Wrapper que restaura el comportamiento antiguo de addScannedProduct
+ * Guardando tanto el escaneo como los metadatos del producto.
+ */
+export async function addScannedProductFull({ code, name, brand, image, url }) {
+  // 1. Registrar o incrementar contador
+  await addScannedProduct(code);
+
+  // 2. Actualizar metadatos del producto
+  await updateScannedEntry(code, {
+    name,
+    brand,
+    image,
+    url,
+  });
+}

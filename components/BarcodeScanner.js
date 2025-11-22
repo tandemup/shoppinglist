@@ -1,6 +1,6 @@
 // components/BarcodeScanner.js
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Pressable } from "react-native";
 import { CameraView } from "expo-camera";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useConfig } from "../context/ConfigContext";
@@ -14,120 +14,127 @@ export default function BarcodeScanner({
   const { config } = useConfig();
 
   const [scanningEnabled, setScanningEnabled] = useState(true);
-  const lastScanRef = useRef(0);
-  const cameraRef = useRef(null);
+  const [torch, setTorch] = useState(false);
 
-  //
-  // 🧠 Anti-doble escaneo: 1 escaneo cada 1.2 segundos
-  //
-  const MIN_DELAY = 1200;
+  const zoomRef = useRef(config.scanner.zoom);
+  const zoomDirectionRef = useRef(1);
 
-  const handleBarCodeScanned = ({ data }) => {
-    if (!scanningEnabled) return;
+  // 📌 Zoom automático
+  useEffect(() => {
+    if (!config.scanner.zoomAuto) {
+      zoomRef.current = config.scanner.zoom;
+      return;
+    }
 
-    const now = Date.now();
-    if (now - lastScanRef.current < MIN_DELAY) return; // Evita dobles
-    lastScanRef.current = now;
+    const interval = setInterval(() => {
+      if (!scanningEnabled) return;
 
-    // 🚫 Desactivar escaneo temporalmente
-    setScanningEnabled(false);
+      let current = zoomRef.current;
+      let dir = zoomDirectionRef.current;
+      let next = current + dir * 0.01;
 
-    // Enviar código al componente padre (ScannerTab)
-    onScanned && onScanned(data);
+      if (next > 0.28) {
+        zoomDirectionRef.current = -1;
+        next = 0.28;
+      }
+      if (next < 0.1) {
+        zoomDirectionRef.current = 1;
+        next = 0.1;
+      }
 
-    // Reactivar escaneo luego de un tiempo
-    setTimeout(() => {
-      setScanningEnabled(true);
-      onReenable && onReenable();
-    }, 1500);
-  };
+      zoomRef.current = next;
+    }, 380);
 
-  //
-  // 🛑 Cancelar la cámara
-  //
-  const handleCancel = () => {
-    setScanningEnabled(false);
-    onCancel && onCancel();
-  };
+    return () => clearInterval(interval);
+  }, [scanningEnabled, config.scanner.zoomAuto, config.scanner.zoom]);
 
-  //
-  // 🎥 Render cámara o mensaje desactivado
-  //
   return (
-    <View style={styles.wrapper}>
-      {active ? (
-        <CameraView
-          ref={cameraRef}
-          style={styles.camera}
-          barcodeScannerSettings={{
-            barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128"],
-          }}
-          onBarcodeScanned={handleBarCodeScanned}
-        />
-      ) : (
-        <View style={styles.disabledView}>
-          <Text style={styles.disabledText}>Cámara desactivada</Text>
-        </View>
-      )}
+    <View style={{ flex: 1, backgroundColor: "black" }}>
+      <CameraView
+        style={{ flex: 1 }}
+        facing="back"
+        zoom={zoomRef.current}
+        autoFocus={config.scanner.autoFocus ? "on" : "off"}
+        enableTorch={torch}
+        barcodeScannerSettings={{
+          barcodeTypes: config.scanner.barcodeTypes,
+        }}
+        onBarcodeScanned={(event) => {
+          setScanningEnabled(false);
+          onScanned(event);
+        }}
+      />
 
-      {/* Botón cancelar */}
-      <View style={styles.bottomBar}>
-        <Pressable style={styles.cancelBtn} onPress={handleCancel}>
+      {/* Controles inferiores */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          width: "100%",
+          padding: 16,
+          flexDirection: "row",
+          justifyContent: "space-around",
+          backgroundColor: "rgba(0,0,0,0.4)",
+        }}
+      >
+        <Pressable onPress={() => setTorch((t) => !t)}>
           <MaterialCommunityIcons
-            name="close-circle-outline"
+            name={torch ? "flashlight" : "flashlight-off"}
             size={28}
             color="#fff"
           />
-          <Text style={styles.cancelText}>Cancelar</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+            setScanningEnabled(true);
+            onReenable?.();
+          }}
+        >
+          <MaterialCommunityIcons name="barcode" size={28} color="#fff" />
+        </Pressable>
+
+        <Pressable onPress={onCancel}>
+          <MaterialCommunityIcons name="close" size={28} color="#fff" />
         </Pressable>
       </View>
     </View>
   );
 }
 
-//
-// 🎨 ESTILOS
-//
-const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: "black",
-  },
-  camera: {
-    flex: 1,
-  },
-  disabledView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#111",
-  },
-  disabledText: {
-    color: "#aaa",
-    fontSize: 16,
-  },
+const styles = {
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   bottomBar: {
     position: "absolute",
-    bottom: 30,
+    bottom: 0,
     left: 0,
     right: 0,
-    alignItems: "center",
-  },
-
-  cancelBtn: {
-    backgroundColor: "rgba(0,0,0,0.6)",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
+    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
     flexDirection: "row",
+    justifyContent: "space-around",
     alignItems: "center",
   },
 
-  cancelText: {
-    color: "#fff",
-    marginLeft: 6,
-    fontWeight: "bold",
-    fontSize: 16,
+  iconButton: {
+    padding: 10,
+    padding: 10,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.2)",
   },
-});
+
+  primaryBtn: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#FF3B30",
+  },
+  primaryBtnText: { color: "#fff", fontWeight: "bold" },
+
+  secondaryBtn: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#2563eb",
+  },
+  secondaryBtnText: { color: "#fff", fontWeight: "bold" },
+};

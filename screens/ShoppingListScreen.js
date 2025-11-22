@@ -12,145 +12,213 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getList, updateList } from "../utils/storage/listStorage";
+import { defaultItem } from "../utils/defaultItem";
 
-export default function ShoppingListScreen({ route }) {
+import StoreSelector from "../components/StoreSelector";
+import SearchCombinedBar from "../components/SearchCombinedBar";
+
+export default function ShoppingListScreen({ route, navigation }) {
   const { listId } = route.params;
 
   const [list, setList] = useState(null);
-  const [newItemName, setNewItemName] = useState("");
+  const [nuevoItem, setNuevoItem] = useState("");
 
   //
-  // 🔄 Cargar la lista
+  // ☰ ICONO HAMBURGUESA
   //
-  const loadListData = useCallback(async () => {
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Menu")}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="menu" size={26} color="black" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  //
+  // 🔄 CARGAR LISTA
+  //
+  const loadList = useCallback(async () => {
     const data = await getList(listId);
-    setList(data);
+    if (data) {
+      setList(data);
+      navigation.setOptions({ title: data.name });
+    }
   }, [listId]);
 
   useEffect(() => {
-    loadListData();
-  }, [loadListData]);
+    loadList();
+    const unsub = navigation.addListener("focus", loadList);
+    return unsub;
+  }, [navigation, loadList]);
 
   //
-  // ➕ Añadir nuevo producto a la lista
+  // ➕ AÑADIR ITEM NUEVO
   //
-  const handleAddItem = async () => {
-    if (!newItemName.trim()) return;
+  const addItem = async () => {
+    if (!nuevoItem.trim()) return;
 
-    await updateList(listId, (original) => {
-      const updatedItems = [
-        ...(original.items || []),
-        {
-          id: uuidv4(),
-          name: newItemName.trim(),
-          completed: false,
-        },
-      ];
+    const newItem = {
+      ...defaultItem,
+      id: uuidv4(),
+      name: nuevoItem.trim(),
+      checked: true, // ← importante
+      priceInfo: { total: 0, unitPrice: 0, qty: 1 }, // ← imprescindible para web
+    };
 
-      return {
-        ...original,
-        items: updatedItems,
-      };
-    });
+    await updateList(listId, (prev) => ({
+      ...prev,
+      items: [newItem, ...(prev.items || [])],
+    }));
 
-    setNewItemName("");
-    loadListData();
+    setNuevoItem("");
+    loadList();
   };
 
   //
-  // ☑ Marcar producto como completado
+  // ☑ TOGGLE CHECKED
   //
-  const toggleItem = async (itemId) => {
-    await updateList(listId, (original) => {
-      const updatedItems = original.items.map((item) =>
-        item.id === itemId ? { ...item, completed: !item.completed } : item
-      );
+  const toggleChecked = async (id) => {
+    await updateList(listId, (prev) => ({
+      ...prev,
+      items: prev.items.map((i) =>
+        i.id === id ? { ...i, checked: !i.checked } : i
+      ),
+    }));
 
-      return {
-        ...original,
-        items: updatedItems,
-      };
-    });
-
-    loadListData();
+    loadList();
   };
 
   //
-  // 🗑 Eliminar producto de la lista
+  // ✏️ ABRIR DETALLE
   //
-  const deleteItem = async (itemId) => {
-    await updateList(listId, (original) => {
-      const updatedItems = original.items.filter((item) => item.id !== itemId);
+  const openItemDetail = (item) => {
+    navigation.navigate("ItemDetailScreen", {
+      item,
 
-      return {
-        ...original,
-        items: updatedItems,
-      };
+      onSave: async (updated) => {
+        await updateList(listId, (prev) => ({
+          ...prev,
+          items: prev.items.map((i) => (i.id === updated.id ? updated : i)),
+        }));
+      },
+
+      onDelete: async (id) => {
+        await updateList(listId, (prev) => ({
+          ...prev,
+          items: prev.items.filter((i) => i.id !== id),
+        }));
+      },
     });
-
-    loadListData();
   };
 
+  //
+  // 💶 TOTAL
+  //
+  const total = (() => {
+    if (!list?.items) return "0.00";
+
+    return list.items
+      .filter((i) => i.checked)
+      .reduce((acc, item) => {
+        const p = item.priceInfo || {};
+        const subtotal =
+          p.total ?? parseFloat(p.unitPrice || 0) * parseFloat(p.qty || 1);
+        return acc + (isNaN(subtotal) ? 0 : subtotal);
+      }, 0)
+      .toFixed(2);
+  })();
+
+  //
+  // RENDER ITEM
+  //
   const renderItem = ({ item }) => (
     <View style={styles.itemRow}>
+      {/* ✔ Checkbox + nombre */}
       <TouchableOpacity
         style={styles.itemLeft}
-        onPress={() => toggleItem(item.id)}
+        onPress={() => toggleChecked(item.id)}
       >
         <Ionicons
-          name={item.completed ? "checkbox" : "square-outline"}
-          size={24}
-          color={item.completed ? "#4CAF50" : "#555"}
+          name={item.checked ? "checkbox" : "square-outline"}
+          size={26}
+          color={item.checked ? "#4CAF50" : "#555"}
         />
-
-        <Text style={[styles.itemName, item.completed && styles.completedText]}>
-          {item.name}
-        </Text>
+        <Text style={styles.itemName}>{item.name}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => deleteItem(item.id)}>
-        <Ionicons name="trash" size={22} color="#d9534f" />
+      {/* 💶 Precio editable */}
+      <TouchableOpacity
+        style={styles.priceBox}
+        onPress={() => openItemDetail(item)}
+      >
+        <Text style={styles.priceText}>
+          {(item?.priceInfo?.total ?? 0).toFixed(2)} €
+        </Text>
       </TouchableOpacity>
     </View>
   );
 
+  //
+  // LOADING
+  //
   if (!list) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ fontSize: 18 }}>Cargando...</Text>
+        <Text>Cargando...</Text>
       </View>
     );
   }
 
+  //
+  // UI FINAL
+  //
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Text style={styles.title}>{list.name}</Text>
+    <SafeAreaView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <StoreSelector navigation={navigation} />
 
-      <FlatList
-        data={list.items}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      />
+        <SearchCombinedBar currentList={list} onSelectHistoryItem={() => {}} />
 
-      {/* ➕ Añadir producto */}
-      <View style={styles.addRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Añadir producto..."
-          value={newItemName}
-          onChangeText={setNewItemName}
+        {/* TOTAL */}
+        <View style={styles.totalContainer}>
+          <Text style={styles.totalLabel}>Total:</Text>
+          <Text style={styles.totalValue}>{total} €</Text>
+        </View>
+
+        {/* AÑADIR */}
+        <View style={styles.addRow}>
+          <TextInput
+            style={styles.newInput}
+            placeholder="Añadir producto..."
+            value={nuevoItem}
+            onChangeText={setNuevoItem}
+            onSubmitEditing={addItem}
+          />
+          <TouchableOpacity style={styles.addButton} onPress={addItem}>
+            <Text style={styles.addButtonText}>＋</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* LISTA */}
+        <FlatList
+          data={list.items}
+          keyExtractor={(i) => i.id}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 80 }}
         />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
-          <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -158,64 +226,39 @@ export default function ShoppingListScreen({ route }) {
 // 🎨 ESTILOS
 //
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-    padding: 20,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
 
-  // 🔸 Items
-  itemRow: {
+  totalContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 14,
-    marginBottom: 10,
-    backgroundColor: "#FFF",
+    backgroundColor: "#E3F2FD",
+    padding: 12,
     borderRadius: 10,
-    borderColor: "#E0E0E0",
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    marginHorizontal: 10,
+    marginTop: 12,
+    marginBottom: 16,
   },
-  itemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  itemName: {
-    marginLeft: 10,
-    fontSize: 16,
-  },
-  completedText: {
-    textDecorationLine: "line-through",
-    color: "#777",
-  },
+  totalLabel: { fontSize: 20, fontWeight: "600" },
+  totalValue: { fontSize: 30, fontWeight: "800" },
 
-  // ➕ Add product row
   addRow: {
     flexDirection: "row",
-    marginTop: 10,
+    alignItems: "center",
+    marginHorizontal: 10,
+    marginBottom: 10,
   },
-  input: {
+  newInput: {
     flex: 1,
-    backgroundColor: "#fff",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
+    borderColor: "#ccc",
     borderWidth: 1,
-    borderColor: "#ddd",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
   },
   addButton: {
     marginLeft: 8,
@@ -224,9 +267,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "bold",
+  addButtonText: { color: "#fff", fontSize: 22, fontWeight: "bold" },
+
+  itemRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 14,
+    marginHorizontal: 10,
+    marginBottom: 10,
+    backgroundColor: "#FFF",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  itemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexShrink: 1,
+  },
+  itemName: { marginLeft: 10, fontSize: 16 },
+
+  priceBox: {
+    justifyContent: "center",
+    alignItems: "flex-end",
+    minWidth: 70,
+  },
+  priceText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
   },
 });

@@ -1,4 +1,4 @@
-// ItemDetailScreen.js
+// screens/ItemDetailScreen.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -16,17 +16,19 @@ import { safeAlert } from "../utils/safeAlert";
 export default function ItemDetailScreen({ route, navigation }) {
   const { item, onSave, onDelete } = route.params;
 
-  // 🧊 Congelar ID original
+  // 🧊 Congelar ID original del item
   const originalId = item.id;
 
-  // ⭐ Un estado único
+  // ⭐ Estado único y consistente
   const [itemData, setItemData] = useState({
     ...defaultItem,
     ...item,
-    id: originalId, // ID garantizado
+    id: originalId,
   });
 
-  // ☰ Menú
+  //
+  // ☰ Menú (hamburguesa)
+  //
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -40,7 +42,9 @@ export default function ItemDetailScreen({ route, navigation }) {
     });
   }, [navigation]);
 
+  //
   // 💾 Guardar
+  //
   const handleSave = async () => {
     if (!itemData.name.trim()) {
       safeAlert("Nombre vacío", "Introduce un nombre para el producto.");
@@ -49,11 +53,13 @@ export default function ItemDetailScreen({ route, navigation }) {
 
     const updatedItem = {
       ...itemData,
-      id: originalId, // por si algún estado lo modificara
+      id: originalId,
     };
 
     try {
       await onSave(updatedItem);
+
+      // Volver a la lista
       requestAnimationFrame(() => navigation.goBack());
     } catch (err) {
       console.error(err);
@@ -61,16 +67,24 @@ export default function ItemDetailScreen({ route, navigation }) {
     }
   };
 
-  // 🗑️ Eliminar
+  //
+  // 🗑 Eliminar
+  //
   const handleDelete = () => {
     safeAlert("Eliminar producto", "¿Seguro que deseas eliminarlo?", [
-      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
       {
         text: "Eliminar",
         style: "destructive",
         onPress: async () => {
           try {
+            // Ejecutar callback pasado desde ShoppingListScreen
             await Promise.resolve(onDelete(originalId));
+
+            // Volver atrás después de actualizar almacenamiento
             requestAnimationFrame(() => navigation.goBack());
           } catch (err) {
             console.error(err);
@@ -83,6 +97,7 @@ export default function ItemDetailScreen({ route, navigation }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* Nombre */}
       <Text style={styles.label}>Nombre</Text>
       <TextInput
         style={styles.input}
@@ -92,6 +107,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         }
       />
 
+      {/* Precio y promociones */}
       <PrecioPromocion
         value={itemData.priceInfo}
         onChange={(info) =>
@@ -99,6 +115,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         }
       />
 
+      {/* Botones */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveText}>💾 Guardar</Text>
@@ -112,6 +129,9 @@ export default function ItemDetailScreen({ route, navigation }) {
   );
 }
 
+//
+// 🎨 Estilos
+//
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
