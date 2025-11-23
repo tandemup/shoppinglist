@@ -47,9 +47,9 @@ export default function ShoppingListScreen({ route, navigation }) {
   //
   const loadList = useCallback(async () => {
     const data = await getList(listId);
-    console.log("DEBUG listId:", listId);
+    //console.log("DEBUG listId:", listId);
     //console.log("DEBUG loadLists():", await loadLists());
-    console.log("LISTA CARGADA:", data, "ID:", listId);
+    //console.log("LISTA CARGADA:", data, "ID:", listId);
     if (data) {
       setList(data);
       navigation.setOptions({ title: data.name });
@@ -72,7 +72,7 @@ export default function ShoppingListScreen({ route, navigation }) {
       ...defaultItem,
       id: uuidv4(),
       name: nuevoItem.trim(),
-      checked: false, // corregido
+      checked: true,
       priceInfo: { total: 0, unitPrice: 0, qty: 1 },
     };
 
@@ -129,7 +129,7 @@ export default function ShoppingListScreen({ route, navigation }) {
     if (!list?.items) return "0.00";
 
     return list.items
-      .filter((i) => !i.checked)
+      .filter((i) => i.checked) // <--- suma los incluidos
       .reduce((acc, item) => {
         const p = item.priceInfo || {};
         const subtotal = parseFloat(p.total) || 0;
@@ -219,8 +219,11 @@ export default function ShoppingListScreen({ route, navigation }) {
           <TextInput
             style={styles.newInput}
             placeholder="Añadir producto..."
+            placeholderTextColor="#999"
             value={nuevoItem}
             onChangeText={setNuevoItem}
+            returnKeyType="done"
+            blurOnSubmit={true}
             onSubmitEditing={addItem}
           />
           <TouchableOpacity style={styles.addButton} onPress={addItem}>
