@@ -9,6 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { safeAlert } from "../utils/safeAlert";
 
 import { Ionicons } from "@expo/vector-icons"; // ✅ AÑADIDO
 
@@ -71,17 +72,39 @@ export default function ShoppingListsScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => handleOpenList(item)}
-      onLongPress={() => handleDeleteList(item.id)}
-    >
-      <Text style={styles.name}>{item.name}</Text>
-      <Text style={styles.date}>
-        Creada el {new Date(item.createdAt).toLocaleDateString()}
-      </Text>
-      <Text style={styles.count}>{item.items?.length || 0} productos</Text>
-    </TouchableOpacity>
+    <View style={styles.card}>
+      <TouchableOpacity
+        style={{ flex: 1 }}
+        onPress={() => handleOpenList(item)}
+      >
+        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.date}>
+          Creada el {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
+        <Text style={styles.count}>{item.items?.length || 0} productos</Text>
+      </TouchableOpacity>
+
+      {/* Botón eliminar */}
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() =>
+          safeAlert(
+            "Eliminar lista",
+            "¿Seguro que deseas eliminar esta lista?",
+            [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Eliminar",
+                style: "destructive",
+                onPress: () => handleDeleteList(item.id),
+              },
+            ]
+          )
+        }
+      >
+        <Ionicons name="trash" size={22} color="#fff" />
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -179,5 +202,15 @@ const styles = StyleSheet.create({
   count: {
     color: "#888",
     marginTop: 4,
+  },
+  deleteButton: {
+    backgroundColor: "#e11d48",
+    padding: 10,
+    borderRadius: 10,
+    marginLeft: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    height: 45,
+    alignSelf: "center",
   },
 });

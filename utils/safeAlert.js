@@ -8,8 +8,6 @@ import { Alert, Platform } from "react-native";
  *  - safeAlert("Eliminar", "¿Seguro?", [ ... ]) ← ahora soportado
  */
 export function safeAlert(title, message, buttons) {
-  console.log("Safe Alertv !!!!");
-
   // --- WEB ---
   if (Platform.OS === "web") {
     if (!buttons) {

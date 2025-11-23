@@ -44,7 +44,17 @@ export default function MenuScreen({ navigation }) {
 
       <TouchableOpacity
         style={[styles.button, { backgroundColor: "#ef4444" }]}
-        onPress={clearStorage}
+        onPress={async () => {
+          try {
+            await clearStorage();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "ShoppingLists" }],
+            });
+          } catch (e) {
+            console.log("Error limpiando almacenamiento:", e);
+          }
+        }}
       >
         <Text style={styles.buttonText}>🧹 Borrar almacenamiento local</Text>
       </TouchableOpacity>
