@@ -11,7 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
-import { createList } from "../utils/listStorage";
+import { createList } from "../utils/storage/listStorage";
 
 export default function PurchaseDetailScreen({ route, navigation }) {
   const { purchase } = route.params;
