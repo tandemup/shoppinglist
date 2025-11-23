@@ -1,4 +1,3 @@
-// screens/ShoppingListsScreen.js
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -10,6 +9,8 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Ionicons } from "@expo/vector-icons"; // ✅ AÑADIDO
 
 import { loadLists, addList, deleteList } from "../utils/storage/listStorage";
 
@@ -27,6 +28,20 @@ export default function ShoppingListsScreen({ navigation }) {
     const unsubscribe = navigation.addListener("focus", fetchLists);
     return unsubscribe;
   }, [navigation, fetchLists]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerTitleAlign: "center",
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Menu")}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="menu" size={26} color="black" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   // ➕ Crear una nueva lista
   const handleAddList = async () => {

@@ -1,70 +1,44 @@
 // utils/storage/listStorage.js
-import { storageClient } from "./storageClient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const LISTS_KEY = "@expo-shop/lists";
+const KEY = "shoppingLists";
 
-/**
- * Cargar todas las listas almacenadas
- */
 export async function loadLists() {
-  const lists = await storageClient.get(LISTS_KEY);
-  return Array.isArray(lists) ? lists : [];
-}
-
-/**
- * Guardar todas las listas (sobrescribe completamente)
- */
-export async function saveLists(lists) {
-  if (!Array.isArray(lists)) {
-    console.warn("[listStorage] saveLists: se esperaba un array");
-    return false;
+  try {
+    const raw = await AsyncStorage.getItem(KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.error("Error loading lists:", err);
+    return [];
   }
-  return await storageClient.set(LISTS_KEY, lists);
 }
 
-/**
- * Obtener una lista por id
- */
-export async function getList(id) {
-  const lists = await loadLists();
-  return lists.find((l) => l.id === id) ?? null;
+export async function addList(list) {
+  try {
+    const lists = await loadLists();
+    const newLists = [...lists, list];
+    await AsyncStorage.setItem(KEY, JSON.stringify(newLists));
+  } catch (err) {
+    console.error("Error adding list:", err);
+  }
 }
 
-/**
- * Actualizar una lista aplicando un callback
- */
-export async function updateList(id, updater) {
-  return await storageClient.update(LISTS_KEY, (current) => {
-    const lists = Array.isArray(current) ? [...current] : [];
-    const index = lists.findIndex((l) => l.id === id);
-
-    // Si no existe, devolvemos la lista intacta
-    if (index === -1) return lists;
-
-    // Actualizar la lista usando la función provista
-    const updated = updater(lists[index]);
-    lists[index] = updated;
-
-    return lists;
-  });
-}
-
-/**
- * Eliminar una lista por id
- */
 export async function deleteList(id) {
-  return await storageClient.update(LISTS_KEY, (current) => {
-    const lists = Array.isArray(current) ? [...current] : [];
-    return lists.filter((l) => l.id !== id);
-  });
+  try {
+    const lists = await loadLists();
+    const newLists = lists.filter((l) => l.id !== id);
+    await AsyncStorage.setItem(KEY, JSON.stringify(newLists));
+  } catch (err) {
+    console.error("Error deleting list:", err);
+  }
 }
 
-/**
- * Crear una nueva lista
- */
-export async function addList(newList) {
-  return await storageClient.update(LISTS_KEY, (current) => {
-    const lists = Array.isArray(current) ? [...current] : [];
-    return [...lists, newList];
-  });
+export async function updateList(id, updates) {
+  try {
+    const lists = await loadLists();
+    const newLists = lists.map((l) => (l.id === id ? { ...l, ...updates } : l));
+    await AsyncStorage.setItem(KEY, JSON.stringify(newLists));
+  } catch (err) {
+    console.error("Error updating list:", err);
+  }
 }

@@ -1,28 +1,34 @@
 // utils/searchHelpers.js
-import { getAllLists } from "./storage/listStorage";
+
+import { loadLists } from "./storage/listStorage";
 
 /**
- * Busca productos similares en todas las listas (menos la actual)
+ * Busca productos en todas las listas guardadas
+ * Devuelve un array de:
+ * {
+ *   item: objeto del producto,
+ *   listId: string,
+ *   listName: string
+ * }
  */
 export async function searchItemsAcrossLists(query) {
-  if (!query || !query.trim()) return [];
+  const text = query.toLowerCase().trim();
+  if (!text) return [];
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const allLists = await getAllLists();
-  const results = [];
+  const lists = await loadLists();
+  let results = [];
 
-  allLists.forEach((list) => {
-    list.items.forEach((item) => {
-      const itemName = (item.name || "").toLowerCase();
-      if (itemName.includes(normalizedQuery)) {
+  for (const list of lists) {
+    for (const item of list.items || []) {
+      if (item.name?.toLowerCase().includes(text)) {
         results.push({
           item,
           listId: list.id,
           listName: list.name,
         });
       }
-    });
-  });
+    }
+  }
 
   return results;
 }

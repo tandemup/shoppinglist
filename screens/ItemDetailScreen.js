@@ -111,7 +111,15 @@ export default function ItemDetailScreen({ route, navigation }) {
       <PrecioPromocion
         value={itemData.priceInfo}
         onChange={(info) =>
-          setItemData((prev) => ({ ...prev, priceInfo: info }))
+          setItemData((prev) => ({
+            ...prev,
+            priceInfo: {
+              ...info,
+              total: parseFloat(info.total) || 0,
+              qty: parseFloat(info.qty) || 1,
+              unitPrice: parseFloat(info.unitPrice) || 0,
+            },
+          }))
         }
       />
 

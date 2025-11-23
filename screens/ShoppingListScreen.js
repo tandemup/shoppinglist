@@ -47,6 +47,9 @@ export default function ShoppingListScreen({ route, navigation }) {
   //
   const loadList = useCallback(async () => {
     const data = await getList(listId);
+    console.log("DEBUG listId:", listId);
+    //console.log("DEBUG loadLists():", await loadLists());
+    console.log("LISTA CARGADA:", data, "ID:", listId);
     if (data) {
       setList(data);
       navigation.setOptions({ title: data.name });
@@ -69,8 +72,8 @@ export default function ShoppingListScreen({ route, navigation }) {
       ...defaultItem,
       id: uuidv4(),
       name: nuevoItem.trim(),
-      checked: true, // ← importante
-      priceInfo: { total: 0, unitPrice: 0, qty: 1 }, // ← imprescindible para web
+      checked: false, // corregido
+      priceInfo: { total: 0, unitPrice: 0, qty: 1 },
     };
 
     await updateList(listId, (prev) => ({
@@ -126,22 +129,28 @@ export default function ShoppingListScreen({ route, navigation }) {
     if (!list?.items) return "0.00";
 
     return list.items
-      .filter((i) => i.checked)
+      .filter((i) => !i.checked)
       .reduce((acc, item) => {
         const p = item.priceInfo || {};
-        const subtotal =
-          p.total ?? parseFloat(p.unitPrice || 0) * parseFloat(p.qty || 1);
-        return acc + (isNaN(subtotal) ? 0 : subtotal);
+        const subtotal = parseFloat(p.total) || 0;
+        return acc + subtotal;
       }, 0)
       .toFixed(2);
   })();
+
+  //
+  // ORDENAR: no marcados arriba
+  //
+  const sortedItems = [...(list?.items || [])].sort((a, b) => {
+    if (a.checked === b.checked) return 0;
+    return a.checked ? 1 : -1;
+  });
 
   //
   // RENDER ITEM
   //
   const renderItem = ({ item }) => (
     <View style={styles.itemRow}>
-      {/* ✔ Checkbox + nombre */}
       <TouchableOpacity
         style={styles.itemLeft}
         onPress={() => toggleChecked(item.id)}
@@ -151,16 +160,25 @@ export default function ShoppingListScreen({ route, navigation }) {
           size={26}
           color={item.checked ? "#4CAF50" : "#555"}
         />
-        <Text style={styles.itemName}>{item.name}</Text>
+        <Text
+          style={[
+            styles.itemName,
+            item.checked && {
+              textDecorationLine: "line-through",
+              opacity: 0.6,
+            },
+          ]}
+        >
+          {item.name}
+        </Text>
       </TouchableOpacity>
 
-      {/* 💶 Precio editable */}
       <TouchableOpacity
         style={styles.priceBox}
         onPress={() => openItemDetail(item)}
       >
         <Text style={styles.priceText}>
-          {(item?.priceInfo?.total ?? 0).toFixed(2)} €
+          {(parseFloat(item?.priceInfo?.total) || 0).toFixed(2)} €
         </Text>
       </TouchableOpacity>
     </View>
@@ -212,7 +230,7 @@ export default function ShoppingListScreen({ route, navigation }) {
 
         {/* LISTA */}
         <FlatList
-          data={list.items}
+          data={sortedItems}
           keyExtractor={(i) => i.id}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 80 }}

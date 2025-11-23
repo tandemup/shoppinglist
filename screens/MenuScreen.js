@@ -7,16 +7,9 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { safeAlert } from "../utils/safeAlert";
-
-const clearStorage = async () => {
-  //app_config
-  //shopping_lists
-  await AsyncStorage.removeItem("shopping_lists");
-  await AsyncStorage.removeItem("lists");
-  await AsyncStorage.removeItem("scanned_history");
-};
+import { storageClient } from "../utils/storage/storageClient";
+import { clearStorage } from "../utils/storage/clearStorage";
 
 export default function MenuScreen({ navigation }) {
   return (
