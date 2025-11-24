@@ -12,27 +12,15 @@ export default function ItemRow({ item, onToggle, onEdit }) {
   const handleToggle = () => onToggle(item.id);
   const handleEdit = () => onEdit(item);
 
-  // 💰 Mostrar precio total con tolerancia a valores 0 o undefined
+  // 💰 Mostrar precio total con tolerancia
   const totalPrice = (() => {
-    if (item.priceInfo && typeof item.priceInfo.total === "number") {
-      return item.priceInfo.total.toFixed(2);
-    }
-    if (item.priceInfo && item.priceInfo.total) {
-      return parseFloat(item.priceInfo.total).toFixed(2);
-    }
-    if (item.price) {
-      return parseFloat(item.price).toFixed(2);
-    }
+    if (item.priceInfo?.total != null)
+      return Number(item.priceInfo.total).toFixed(2);
     return "0.00";
   })();
 
   return (
-    <View
-      style={[
-        styles.item,
-        !item.checked && { backgroundColor: "#f8f8f8", opacity: 0.9 },
-      ]}
-    >
+    <View style={styles.item}>
       {/* ☑️ Checkbox */}
       <Pressable
         onPress={handleToggle}
@@ -42,57 +30,37 @@ export default function ItemRow({ item, onToggle, onEdit }) {
         {item.checked && <Text style={styles.checkboxMark}>✓</Text>}
       </Pressable>
 
-      {/* 🧾 Nombre del producto */}
+      {/* 🧾 Nombre */}
       <View style={styles.nameContainer}>
         <Text
           style={[
             styles.name,
-            !item.checked && {
-              textDecorationLine: "line-through",
-              color: "#aaa",
-            },
+            item.checked === false &&
+              item.priceInfo?.total > 0 && {
+                textDecorationLine: "line-through",
+                color: "#aaa",
+              },
           ]}
-          numberOfLines={1}
         >
-          {item.name || "Sin nombre"}
+          {item.name}
         </Text>
       </View>
 
-      {/* 💰 Precio y detalles */}
+      {/* 💰 Precio */}
       <TouchableOpacity
         style={styles.priceContainer}
         onPress={handleEdit}
         activeOpacity={0.7}
       >
-        {/* Precio total */}
         <Text style={styles.priceText}>{totalPrice} €</Text>
 
-        {/* 🧮 Mostrar (n × precio unitario) solo si hay más de una unidad */}
         {CONFIG.SHOW_MULTIUNIT_DETAIL &&
           item.priceInfo?.qty > 1 &&
           item.priceInfo?.unitPrice && (
             <Text style={styles.multiUnitText}>
-              ({item.priceInfo.qty} × {item.priceInfo.unitPrice.toFixed(2)} €/
-              {item.priceInfo.unitType === "kg"
-                ? "kg"
-                : item.priceInfo.unitType === "l"
-                ? "l"
-                : "u"}
-              )
+              ({item.priceInfo.qty} × {item.priceInfo.unitPrice.toFixed(2)} €)
             </Text>
           )}
-
-        {/* Tipo de promoción */}
-        {CONFIG.SHOW_PROMO_TYPE && item.priceInfo?.promo !== "none" && (
-          <Text style={styles.promoText}>{item.priceInfo.promo}</Text>
-        )}
-
-        {/* Fórmula de promoción */}
-        {CONFIG.SHOW_PROMO_FORMULA && item.priceInfo?.summary && (
-          <Text style={styles.summaryText} numberOfLines={1}>
-            {item.priceInfo.summary}
-          </Text>
-        )}
       </TouchableOpacity>
     </View>
   );
@@ -111,6 +79,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
+
   checkbox: {
     width: 26,
     height: 26,
@@ -130,19 +99,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  nameContainer: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  name: {
-    fontSize: 16,
-    color: "#111",
-    fontWeight: "500",
-  },
+
+  nameContainer: { flex: 1 },
+  name: { fontSize: 16, color: "#111", fontWeight: "500" },
+
   priceContainer: {
-    justifyContent: "center",
-    alignItems: "flex-end",
     minWidth: 80,
+    alignItems: "flex-end",
   },
   priceText: {
     fontSize: 15,
@@ -152,19 +115,6 @@ const styles = StyleSheet.create({
   multiUnitText: {
     fontSize: 11,
     color: "#777",
-    marginTop: 2,
-    textAlign: "right",
-  },
-  promoText: {
-    fontSize: 11,
-    color: "#666",
-    marginTop: 2,
-    textAlign: "right",
-  },
-  summaryText: {
-    fontSize: 10,
-    color: "#999",
-    textAlign: "right",
     marginTop: 2,
   },
 });

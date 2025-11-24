@@ -1,4 +1,3 @@
-// screens/ShoppingListScreen.js
 import { v4 as uuidv4 } from "uuid";
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -19,6 +18,7 @@ import { defaultItem } from "../utils/defaultItem";
 
 import StoreSelector from "../components/StoreSelector";
 import SearchCombinedBar from "../components/SearchCombinedBar";
+import ItemRow from "../components/ItemRow";
 
 export default function ShoppingListScreen({ route, navigation }) {
   const { listId } = route.params;
@@ -47,9 +47,6 @@ export default function ShoppingListScreen({ route, navigation }) {
   //
   const loadList = useCallback(async () => {
     const data = await getList(listId);
-    //console.log("DEBUG listId:", listId);
-    //console.log("DEBUG loadLists():", await loadLists());
-    //console.log("LISTA CARGADA:", data, "ID:", listId);
     if (data) {
       setList(data);
       navigation.setOptions({ title: data.name });
@@ -72,13 +69,13 @@ export default function ShoppingListScreen({ route, navigation }) {
       ...defaultItem,
       id: uuidv4(),
       name: nuevoItem.trim(),
-      checked: true,
-      priceInfo: { total: 0, unitPrice: 0, qty: 1 },
+      checked: true, // <<< CORREGIDO
+      priceInfo: { total: 0, unitPrice: 0, qty: 1 }, // <<< CORREGIDO
     };
 
     await updateList(listId, (prev) => ({
       ...prev,
-      items: [newItem, ...(prev.items || [])],
+      items: [...(prev.items || []), newItem], // <<< NO ORDENAR, RESPETAR INSERCIÓN
     }));
 
     setNuevoItem("");
@@ -123,65 +120,25 @@ export default function ShoppingListScreen({ route, navigation }) {
   };
 
   //
-  // 💶 TOTAL
+  // 💶 TOTAL (solo suma marcados)
   //
   const total = (() => {
     if (!list?.items) return "0.00";
 
     return list.items
-      .filter((i) => i.checked) // <--- suma los incluidos
+      .filter((i) => i.checked)
       .reduce((acc, item) => {
         const p = item.priceInfo || {};
-        const subtotal = parseFloat(p.total) || 0;
-        return acc + subtotal;
+        return acc + (parseFloat(p.total) || 0);
       }, 0)
       .toFixed(2);
   })();
 
   //
-  // ORDENAR: no marcados arriba
-  //
-  const sortedItems = [...(list?.items || [])].sort((a, b) => {
-    if (a.checked === b.checked) return 0;
-    return a.checked ? 1 : -1;
-  });
-
-  //
-  // RENDER ITEM
+  // RENDER ITEM (usamos ItemRow.js)
   //
   const renderItem = ({ item }) => (
-    <View style={styles.itemRow}>
-      <TouchableOpacity
-        style={styles.itemLeft}
-        onPress={() => toggleChecked(item.id)}
-      >
-        <Ionicons
-          name={item.checked ? "checkbox" : "square-outline"}
-          size={26}
-          color={item.checked ? "#4CAF50" : "#555"}
-        />
-        <Text
-          style={[
-            styles.itemName,
-            item.checked && {
-              textDecorationLine: "line-through",
-              opacity: 0.6,
-            },
-          ]}
-        >
-          {item.name}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.priceBox}
-        onPress={() => openItemDetail(item)}
-      >
-        <Text style={styles.priceText}>
-          {(parseFloat(item?.priceInfo?.total) || 0).toFixed(2)} €
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <ItemRow item={item} onToggle={toggleChecked} onEdit={openItemDetail} />
   );
 
   //
@@ -231,9 +188,9 @@ export default function ShoppingListScreen({ route, navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* LISTA */}
+        {/* LISTA → SIN ORDENAR */}
         <FlatList
-          data={sortedItems}
+          data={list.items}
           keyExtractor={(i) => i.id}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 80 }}
@@ -289,33 +246,4 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   addButtonText: { color: "#fff", fontSize: 22, fontWeight: "bold" },
-
-  itemRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 14,
-    marginHorizontal: 10,
-    marginBottom: 10,
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-  },
-  itemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexShrink: 1,
-  },
-  itemName: { marginLeft: 10, fontSize: 16 },
-
-  priceBox: {
-    justifyContent: "center",
-    alignItems: "flex-end",
-    minWidth: 70,
-  },
-  priceText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-  },
 });
