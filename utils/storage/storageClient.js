@@ -3,7 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 function safeParse(value) {
   try {
-    return value ? JSON.parse(value) : null;
+    if (value === null || value === undefined) return null;
+    return JSON.parse(value);
   } catch (e) {
     console.warn("[storageClient] JSON parse error:", e);
     return null;
@@ -14,7 +15,8 @@ export const storageClient = {
   async get(key) {
     try {
       const raw = await AsyncStorage.getItem(key);
-      return safeParse(raw);
+      const parsed = safeParse(raw);
+      return parsed === null ? null : parsed;
     } catch (e) {
       console.warn(`[storageClient.get] Error reading ${key}:`, e);
       return null;
@@ -23,43 +25,35 @@ export const storageClient = {
 
   async set(key, value) {
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(value));
+      // Nunca guardar undefined → lo convertimos a null
+      const safeValue = value === undefined ? null : value;
+      await AsyncStorage.setItem(key, JSON.stringify(safeValue));
       return true;
     } catch (e) {
-      console.warn(`[storageClient.set] Error writing ${key}:`, e);
+      console.warn(`[storageClient.set] Error saving ${key}:`, e);
       return false;
     }
   },
 
-  async update(key, updaterFn) {
+  async update(key, updater) {
     try {
       const raw = await AsyncStorage.getItem(key);
-      let current = safeParse(raw);
+      const current = safeParse(raw);
 
-      // ⚠️ ARREGLO CRÍTICO PARA EXPO GO (iOS/Android):
-      // No permitir null/undefined porque rompe listas y produce updates vacíos.
-      if (current === null || current === undefined) {
-        // Por defecto, las listas y la mayoría de estructuras de este proyecto son arrays
-        current = [];
-      }
+      // Siempre enviamos un objeto o array válido al updater
+      const safeCurrent =
+        current !== null && current !== undefined ? current : {};
 
-      const updated = updaterFn(current);
+      const updated = updater(safeCurrent);
 
-      await AsyncStorage.setItem(key, JSON.stringify(updated));
-      return updated;
+      // Asegurar que updated es guardable
+      const safeUpdated = updated === undefined ? safeCurrent : updated;
+
+      await AsyncStorage.setItem(key, JSON.stringify(safeUpdated));
+      return safeUpdated;
     } catch (e) {
       console.warn(`[storageClient.update] Error updating ${key}:`, e);
       return null;
-    }
-  },
-
-  async remove(key) {
-    try {
-      await AsyncStorage.removeItem(key);
-      return true;
-    } catch (e) {
-      console.warn(`[storageClient.remove] Error removing ${key}:`, e);
-      return false;
     }
   },
 };

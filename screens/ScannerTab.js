@@ -9,16 +9,19 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import { useCameraPermissions } from "expo-camera";
 
 import BarcodeScanner from "../components/BarcodeScanner";
 import { fetchProductInfo } from "./ProductLookup";
 import SEARCH_ENGINES from "../data/search_engines.json";
-//import { addScannedProduct } from "../utils/storageHelpers";
 import { addScannedProductFull } from "../utils/storage/scannerHistory";
 import { useConfig } from "../context/ConfigContext";
 
 export default function ScannerTab({ navigation }) {
   const { config } = useConfig();
+
+  // 📌 Permisos de cámara
+  const [permission, requestPermission] = useCameraPermissions();
 
   const [scanned, setScanned] = useState(false);
   const [product, setProduct] = useState(null);
@@ -75,6 +78,51 @@ export default function ScannerTab({ navigation }) {
     }
   };
 
+  // 🆕 📸 **GESTIÓN DE PERMISOS**
+  if (!permission) {
+    return <View style={{ flex: 1, backgroundColor: "black" }} />;
+  }
+
+  if (!permission.granted) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "black",
+          padding: 20,
+        }}
+      >
+        <Text
+          style={{
+            color: "white",
+            marginBottom: 20,
+            fontSize: 18,
+            textAlign: "center",
+          }}
+        >
+          La app necesita permiso para usar la cámara
+        </Text>
+
+        <Pressable
+          onPress={requestPermission}
+          style={{
+            backgroundColor: "#2563eb",
+            paddingVertical: 12,
+            paddingHorizontal: 30,
+            borderRadius: 10,
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
+            Conceder permiso
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // ✔ Si ya hay permisos → render normal
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
       <BarcodeScanner
@@ -122,7 +170,7 @@ export default function ScannerTab({ navigation }) {
         <View style={styles.infoBox}>
           <Text style={styles.codeTitle}>Código escaneado: {lastCode}</Text>
 
-          {/* 🔎 Selector de motores de búsqueda */}
+          {/* 🔎 Selector de motores */}
           <View style={styles.searchSelector}>
             {SEARCH_ENGINES.map((engine) => {
               const active = selectedSearch.id === engine.id;
@@ -221,7 +269,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  // 🔎 Menú de motores
   searchSelector: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -230,7 +277,7 @@ const styles = StyleSheet.create({
   },
 
   searchButton: {
-    backgroundColor: "#1f2937", // gris oscuro
+    backgroundColor: "#1f2937",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 10,
@@ -239,7 +286,7 @@ const styles = StyleSheet.create({
   },
 
   searchButtonActive: {
-    backgroundColor: "#2563eb", // azul seleccionado
+    backgroundColor: "#2563eb",
     borderColor: "#1e40af",
     borderWidth: 1.4,
   },

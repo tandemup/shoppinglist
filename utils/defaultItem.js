@@ -1,14 +1,9 @@
 // utils/defaultItem.js
 
-// Este objeto define la estructura inicial de un item NUEVO.
-// No incluye "id" porque eso se genera con uuidv4().
-// Todos los valores aquí deben ser seguros y no sobrescribir
-// datos reales cuando hacemos: { ...defaultItem, ...item }.
-
 export const defaultItem = {
   name: "",
   checked: false,
-  date: null,
+  date: null, // Puedes cambiarlo a Date.now() si deseas tracking automático
   priceInfo: {
     unitType: "u",
     unitPrice: 0,

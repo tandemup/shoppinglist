@@ -1,15 +1,23 @@
-/* ItemRow.js (versión estable iOS) */
 import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
+import { CONFIG } from "../constants/config";
 
 export default function ItemRow({ item, onToggle, onEdit }) {
   const handleToggle = () => onToggle(item.id);
   const handleEdit = () => onEdit(item);
 
-  const totalPrice =
-    item.priceInfo?.total != null
-      ? Number(item.priceInfo.total).toFixed(2)
-      : "0.00";
+  // 💰 Mostrar precio total con tolerancia
+  const totalPrice = (() => {
+    if (item.priceInfo?.total != null)
+      return Number(item.priceInfo.total).toFixed(2);
+    return "0.00";
+  })();
 
   return (
     <View style={styles.item}>
@@ -17,12 +25,12 @@ export default function ItemRow({ item, onToggle, onEdit }) {
       <Pressable
         onPress={handleToggle}
         style={[styles.checkbox, item.checked && styles.checkboxChecked]}
-        hitSlop={14}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         {item.checked && <Text style={styles.checkboxMark}>✓</Text>}
       </Pressable>
 
-      {/* Nombre */}
+      {/* 🧾 Nombre */}
       <View style={styles.nameContainer}>
         <Text
           style={[
@@ -38,20 +46,23 @@ export default function ItemRow({ item, onToggle, onEdit }) {
         </Text>
       </View>
 
-      {/* 💰 Precio (Pressable en lugar de TouchableOpacity) */}
-      <Pressable
-        onPress={handleEdit}
+      {/* 💰 Precio */}
+      <TouchableOpacity
         style={styles.priceContainer}
-        hitSlop={14}
+        onPress={handleEdit}
+        activeOpacity={0.7}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Text style={styles.priceText}>{totalPrice} €</Text>
 
-        {item.priceInfo?.qty > 1 && item.priceInfo?.unitPrice > 0 && (
-          <Text style={styles.multiUnitText}>
-            ({item.priceInfo.qty} × {item.priceInfo.unitPrice.toFixed(2)} €)
-          </Text>
-        )}
-      </Pressable>
+        {CONFIG.SHOW_MULTIUNIT_DETAIL &&
+          item.priceInfo?.qty > 1 &&
+          item.priceInfo?.unitPrice && (
+            <Text style={styles.multiUnitText}>
+              ({item.priceInfo.qty} × {item.priceInfo.unitPrice.toFixed(2)} €)
+            </Text>
+          )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -62,7 +73,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     marginHorizontal: 5,
     marginVertical: 4,
@@ -71,8 +82,8 @@ const styles = StyleSheet.create({
   },
 
   checkbox: {
-    width: 28,
-    height: 28,
+    width: 26,
+    height: 26,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: "#ccc",
@@ -86,12 +97,14 @@ const styles = StyleSheet.create({
   },
   checkboxMark: {
     color: "white",
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "bold",
   },
 
+  // 🔥 NO captura eventos táctiles → deja pasar el tap al precio
   nameContainer: {
     flex: 1,
+    pointerEvents: "none",
   },
 
   name: {
@@ -100,11 +113,13 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
+  // 🔥 Siempre recibe el toque, incluso si algo se solapa
   priceContainer: {
     minWidth: 80,
     alignItems: "flex-end",
     justifyContent: "center",
     paddingHorizontal: 8,
+    pointerEvents: "box-only",
   },
 
   priceText: {

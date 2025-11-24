@@ -1,4 +1,8 @@
-import { v4 as uuidv4 } from "uuid";
+//import { nanoid } from "nanoid/non-secure";
+import { generateId } from "../utils/generateId";
+
+console.log("ID TEST:", generateId());
+
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -22,12 +26,11 @@ import ItemRow from "../components/ItemRow";
 
 export default function ShoppingListScreen({ route, navigation }) {
   const { listId } = route.params;
-
   const [list, setList] = useState(null);
   const [nuevoItem, setNuevoItem] = useState("");
 
   //
-  // ☰ ICONO HAMBURGUESA
+  // HAMBURGUESA
   //
   useEffect(() => {
     navigation.setOptions({
@@ -43,14 +46,26 @@ export default function ShoppingListScreen({ route, navigation }) {
   }, [navigation]);
 
   //
-  // 🔄 CARGAR LISTA
+  // CARGAR LISTA
   //
   const loadList = useCallback(async () => {
     const data = await getList(listId);
-    if (data) {
-      setList(data);
-      navigation.setOptions({ title: data.name });
+
+    if (!data) {
+      const empty = { id: listId, name: "Nueva lista", items: [] };
+      await updateList(listId, () => empty);
+      setList(empty);
+      navigation.setOptions({ title: empty.name });
+      return;
     }
+
+    // iOS puede retornar items = undefined
+    setList({
+      ...data,
+      items: Array.isArray(data.items) ? data.items : [],
+    });
+
+    navigation.setOptions({ title: data.name });
   }, [listId]);
 
   useEffect(() => {
@@ -60,67 +75,98 @@ export default function ShoppingListScreen({ route, navigation }) {
   }, [navigation, loadList]);
 
   //
-  // ➕ AÑADIR ITEM NUEVO
+  // PROTECCIÓN PARA prev NULL
+  //
+  const ensurePrev = (prev) => {
+    if (prev && typeof prev === "object") {
+      return {
+        ...prev,
+        items: Array.isArray(prev.items) ? prev.items : [],
+      };
+    }
+
+    return { id: listId, name: "Nueva lista", items: [] };
+  };
+
+  //
+  // AÑADIR ITEM
   //
   const addItem = async () => {
-    if (!nuevoItem.trim()) return;
+    const name = (nuevoItem ?? "").toString().trim();
+    if (!name) return;
 
     const newItem = {
       ...defaultItem,
-      id: uuidv4(),
-      name: nuevoItem.trim(),
-      checked: true, // <<< CORREGIDO
-      priceInfo: { total: 0, unitPrice: 0, qty: 1 }, // <<< CORREGIDO
+      id: generateId(), // *** SUSTITUYE uuidv4 ***
+      name,
+      checked: true,
+      priceInfo: { total: 0, unitPrice: 0, qty: 1 },
     };
 
-    await updateList(listId, (prev) => ({
-      ...prev,
-      items: [...(prev.items || []), newItem], // <<< NO ORDENAR, RESPETAR INSERCIÓN
-    }));
+    await updateList(listId, (prev) => {
+      const base = ensurePrev(prev);
+      const safeItems = Array.isArray(base.items) ? base.items : [];
+
+      return {
+        ...base,
+        items: [...safeItems, newItem],
+      };
+    });
 
     setNuevoItem("");
     loadList();
   };
 
   //
-  // ☑ TOGGLE CHECKED
+  // TOGGLE CHECK
   //
   const toggleChecked = async (id) => {
-    await updateList(listId, (prev) => ({
-      ...prev,
-      items: prev.items.map((i) =>
-        i.id === id ? { ...i, checked: !i.checked } : i
-      ),
-    }));
+    await updateList(listId, (prev) => {
+      const base = ensurePrev(prev);
+
+      return {
+        ...base,
+        items: base.items.map((i) =>
+          i.id === id ? { ...i, checked: !i.checked } : i
+        ),
+      };
+    });
 
     loadList();
   };
 
   //
-  // ✏️ ABRIR DETALLE
+  // DETALLE
   //
   const openItemDetail = (item) => {
     navigation.navigate("ItemDetailScreen", {
       item,
 
       onSave: async (updated) => {
-        await updateList(listId, (prev) => ({
-          ...prev,
-          items: prev.items.map((i) => (i.id === updated.id ? updated : i)),
-        }));
+        await updateList(listId, (prev) => {
+          const base = ensurePrev(prev);
+
+          return {
+            ...base,
+            items: base.items.map((i) => (i.id === updated.id ? updated : i)),
+          };
+        });
       },
 
       onDelete: async (id) => {
-        await updateList(listId, (prev) => ({
-          ...prev,
-          items: prev.items.filter((i) => i.id !== id),
-        }));
+        await updateList(listId, (prev) => {
+          const base = ensurePrev(prev);
+          return {
+            ...base,
+            items: base.items.filter((i) => i.id !== id),
+          };
+        });
       },
     });
   };
 
   //
-  // 💶 TOTAL (solo suma marcados)
+  // TOTAL
   //
   const total = (() => {
     if (!list?.items) return "0.00";
@@ -134,16 +180,10 @@ export default function ShoppingListScreen({ route, navigation }) {
       .toFixed(2);
   })();
 
-  //
-  // RENDER ITEM (usamos ItemRow.js)
-  //
   const renderItem = ({ item }) => (
     <ItemRow item={item} onToggle={toggleChecked} onEdit={openItemDetail} />
   );
 
-  //
-  // LOADING
-  //
   if (!list) {
     return (
       <View style={styles.loadingContainer}>
@@ -152,9 +192,6 @@ export default function ShoppingListScreen({ route, navigation }) {
     );
   }
 
-  //
-  // UI FINAL
-  //
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
@@ -180,15 +217,13 @@ export default function ShoppingListScreen({ route, navigation }) {
             value={nuevoItem}
             onChangeText={setNuevoItem}
             returnKeyType="done"
-            blurOnSubmit={true}
-            onSubmitEditing={addItem}
+            blurOnSubmit={false} // ← iOS FIX
           />
           <TouchableOpacity style={styles.addButton} onPress={addItem}>
             <Text style={styles.addButtonText}>＋</Text>
           </TouchableOpacity>
         </View>
 
-        {/* LISTA → SIN ORDENAR */}
         <FlatList
           data={list.items}
           keyExtractor={(i) => i.id}
@@ -201,7 +236,7 @@ export default function ShoppingListScreen({ route, navigation }) {
 }
 
 //
-// 🎨 ESTILOS
+// ESTILOS
 //
 const styles = StyleSheet.create({
   loadingContainer: {

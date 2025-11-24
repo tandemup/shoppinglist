@@ -7,11 +7,12 @@ import {
   TextInput,
   StyleSheet,
   Platform,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { safeAlert } from "../utils/safeAlert";
 
-import { Ionicons } from "@expo/vector-icons"; // ✅ AÑADIDO
+import { Ionicons } from "@expo/vector-icons";
 
 import { loadLists, addList, deleteList } from "../utils/storage/listStorage";
 
@@ -19,7 +20,7 @@ export default function ShoppingListsScreen({ navigation }) {
   const [lists, setLists] = useState([]);
   const [newListName, setNewListName] = useState("");
 
-  // 📌 Cargar listas al iniciar
+  // 📌 Cargar listas
   const fetchLists = useCallback(async () => {
     const data = await loadLists();
     setLists(data);
@@ -44,7 +45,7 @@ export default function ShoppingListsScreen({ navigation }) {
     });
   }, [navigation]);
 
-  // ➕ Crear una nueva lista
+  // ➕ Crear nueva lista
   const handleAddList = async () => {
     if (!newListName.trim()) return;
 
@@ -60,51 +61,46 @@ export default function ShoppingListsScreen({ navigation }) {
     fetchLists();
   };
 
-  // 🗑 Eliminar una lista
+  // 🗑 Eliminar lista
   const handleDeleteList = async (id) => {
     await deleteList(id);
     fetchLists();
   };
 
-  // 🧭 Navegar a una lista específica
+  // 👉 Abrir lista
   const handleOpenList = (list) => {
     navigation.navigate("ShoppingList", { listId: list.id });
   };
 
+  // 🔥 Tarjeta con tap + long-press
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <TouchableOpacity
-        style={{ flex: 1 }}
-        onPress={() => handleOpenList(item)}
-      >
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.date}>
-          Creada el {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
-        <Text style={styles.count}>{item.items?.length || 0} productos</Text>
-      </TouchableOpacity>
+    <Pressable
+      style={styles.card}
+      onPress={() => handleOpenList(item)}
+      onLongPress={() =>
+        safeAlert(
+          "Eliminar lista",
+          `¿Seguro que deseas eliminar "${item.name}"?`,
+          [
+            { text: "Cancelar", style: "cancel" },
+            {
+              text: "Eliminar",
+              style: "destructive",
+              onPress: () => handleDeleteList(item.id),
+            },
+          ]
+        )
+      }
+      delayLongPress={400} // Evita borrados accidentales
+    >
+      <Text style={styles.name}>{item.name}</Text>
 
-      {/* Botón eliminar */}
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() =>
-          safeAlert(
-            "Eliminar lista",
-            "¿Seguro que deseas eliminar esta lista?",
-            [
-              { text: "Cancelar", style: "cancel" },
-              {
-                text: "Eliminar",
-                style: "destructive",
-                onPress: () => handleDeleteList(item.id),
-              },
-            ]
-          )
-        }
-      >
-        <Ionicons name="trash" size={22} color="#fff" />
-      </TouchableOpacity>
-    </View>
+      <Text style={styles.date}>
+        Creada el {new Date(item.createdAt).toLocaleDateString()}
+      </Text>
+
+      <Text style={styles.count}>{item.items?.length || 0} productos</Text>
+    </Pressable>
   );
 
   return (
@@ -202,15 +198,5 @@ const styles = StyleSheet.create({
   count: {
     color: "#888",
     marginTop: 4,
-  },
-  deleteButton: {
-    backgroundColor: "#e11d48",
-    padding: 10,
-    borderRadius: 10,
-    marginLeft: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    height: 45,
-    alignSelf: "center",
   },
 });
