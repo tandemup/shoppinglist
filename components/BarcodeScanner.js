@@ -1,7 +1,7 @@
 // components/BarcodeScanner.js
 import React, { useState, useEffect, useRef } from "react";
 import { View, Pressable } from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView } from "expo-camera";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useConfig } from "../context/ConfigContext";

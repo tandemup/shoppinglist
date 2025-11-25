@@ -87,7 +87,7 @@ function ShoppingStack() {
         options={{ title: "Menú", headerTitleAlign: "center" }}
       />
       <Stack.Screen
-        name="EditScannedItemScreen"
+        name="EditScannedItem"
         component={EditScannedItemScreen}
         options={{ title: "Edit scanned item", headerTitleAlign: "center" }}
       />

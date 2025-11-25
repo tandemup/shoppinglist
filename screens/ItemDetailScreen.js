@@ -19,9 +19,11 @@ export default function ItemDetailScreen({ route, navigation }) {
   // 🧊 Congelar ID original del item
   const originalId = item.id;
 
-  // ⭐ Estado único y consistente
+  // ⭐ Estado único y consistente (AÑADIMOS barcode y aiData)
   const [itemData, setItemData] = useState({
     ...defaultItem,
+    barcode: "",
+    aiData: null,
     ...item,
     id: originalId,
   });
@@ -81,10 +83,7 @@ export default function ItemDetailScreen({ route, navigation }) {
         style: "destructive",
         onPress: async () => {
           try {
-            // Ejecutar callback pasado desde ShoppingListScreen
             await Promise.resolve(onDelete(originalId));
-
-            // Volver atrás después de actualizar almacenamiento
             requestAnimationFrame(() => navigation.goBack());
           } catch (err) {
             console.error(err);
@@ -97,6 +96,29 @@ export default function ItemDetailScreen({ route, navigation }) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* ⭐ NUEVO — Código de barras */}
+      {itemData.barcode ? (
+        <>
+          <Text style={styles.label}>Código de barras</Text>
+          <View style={styles.nonEditableBox}>
+            <Text style={styles.nonEditableText}>{itemData.barcode}</Text>
+          </View>
+        </>
+      ) : null}
+
+      {/* ⭐ NUEVO — Datos generados por ChatGPT */}
+      {itemData.aiData ? (
+        <>
+          <Text style={styles.label}>Datos generados por IA</Text>
+          <View style={styles.aiBox}>
+            <Text style={styles.aiText}>
+              {itemData.aiData.description ??
+                JSON.stringify(itemData.aiData, null, 2)}
+            </Text>
+          </View>
+        </>
+      ) : null}
+
       {/* Nombre */}
       <Text style={styles.label}>Nombre</Text>
       <TextInput
@@ -151,6 +173,34 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 4,
   },
+
+  // ⭐ NUEVO — Caja no editable
+  nonEditableBox: {
+    padding: 12,
+    backgroundColor: "#eee",
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  nonEditableText: {
+    fontSize: 16,
+    color: "#555",
+  },
+
+  // ⭐ NUEVO — Caja IA
+  aiBox: {
+    padding: 12,
+    backgroundColor: "#f3f8ff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#c7ddff",
+    marginBottom: 16,
+  },
+  aiText: {
+    fontSize: 15,
+    color: "#333",
+    lineHeight: 20,
+  },
+
   input: {
     borderWidth: 1,
     borderColor: "#ccc",

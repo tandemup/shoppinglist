@@ -24,6 +24,12 @@ export default function EditScannedItemScreen({ route, navigation }) {
     <View style={styles.container}>
       <Text style={styles.title}>Editar producto</Text>
 
+      {/* ⭐ NUEVO: Código de barras (solo lectura) */}
+      <Text style={styles.label}>Código de barras</Text>
+      <View style={styles.codeBox}>
+        <Text style={styles.codeText}>{item.code}</Text>
+      </View>
+
       <Text style={styles.label}>Nombre</Text>
       <TextInput
         style={styles.input}
@@ -74,6 +80,22 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontWeight: "600",
   },
+
+  // ⭐ NUEVO: estilo caja de código
+  codeBox: {
+    backgroundColor: "#e8f0fe",
+    padding: 12,
+    borderRadius: 6,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "#aabbee",
+  },
+  codeText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1a237e",
+  },
+
   input: {
     backgroundColor: "#fff",
     padding: 12,

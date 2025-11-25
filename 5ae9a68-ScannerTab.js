@@ -1,3 +1,4 @@
+// screens/ScannerTab.js
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -9,37 +10,26 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import { useCameraPermissions } from "expo-camera";
 
 import BarcodeScanner from "../components/BarcodeScanner";
 import { fetchProductInfo } from "./ProductLookup";
 import SEARCH_ENGINES from "../data/search_engines.json";
-import { addScannedProductFull } from "../utils/storage/scannerHistory";
+import { addScannedProduct } from "../utils/storageHelpers";
 import { useConfig } from "../context/ConfigContext";
-import { isISBN } from "../utils/isISBN";
 
 export default function ScannerTab({ navigation }) {
   const { config } = useConfig();
 
-  // 📌 Permisos
-  const [permission, requestPermission] = useCameraPermissions();
-
-  // 📌 Estados
   const [scanned, setScanned] = useState(false);
   const [product, setProduct] = useState(null);
   const [lastCode, setLastCode] = useState(null);
   const [message, setMessage] = useState("");
-  const [selectedSearch, setSelectedSearch] = useState(null);
-  const [isBook, setIsBook] = useState(false); // ⭐ NUEVO
+  const [selectedSearch, setSelectedSearch] = useState(SEARCH_ENGINES[0]);
 
   const abortController = useRef(null);
   const checkAnim = useRef(new Animated.Value(0)).current;
 
-  // ⭐ Grupos de motores según el JSON
-  const BOOK_ENGINES = SEARCH_ENGINES.filter((e) => e.forBooks);
-  const PRODUCT_ENGINES = SEARCH_ENGINES.filter((e) => !e.forBooks);
-
-  // ⭐ Escaneo
+  // ⭐ Cuando el código es leído
   const handleBarcodeScanned = async ({ data }) => {
     if (scanned) return;
 
@@ -47,7 +37,7 @@ export default function ScannerTab({ navigation }) {
     setProduct(null);
     setLastCode(data);
 
-    // ✔ Animación de check
+    // ✔ Animación del check
     Animated.sequence([
       Animated.timing(checkAnim, {
         toValue: 1,
@@ -64,20 +54,6 @@ export default function ScannerTab({ navigation }) {
 
     abortController.current = new AbortController();
 
-    // ⭐ Detección ISBN
-    const bookDetected = isISBN(data);
-    setIsBook(bookDetected);
-
-    if (bookDetected) {
-      setSelectedSearch(BOOK_ENGINES[0]);
-      setMessage("📚 ISBN detectado — motores de libros activados");
-    } else {
-      setSelectedSearch(PRODUCT_ENGINES[0]);
-      setMessage("🔍 Producto general");
-    }
-    setTimeout(() => setMessage(""), 2000);
-
-    // ⭐ Lookup real
     const info = await fetchProductInfo(
       data,
       abortController.current.signal,
@@ -87,7 +63,7 @@ export default function ScannerTab({ navigation }) {
     if (info) {
       setProduct(info);
 
-      await addScannedProductFull({
+      await addScannedProduct({
         code: data,
         name: info.name,
         brand: info.brand,
@@ -100,51 +76,6 @@ export default function ScannerTab({ navigation }) {
     }
   };
 
-  // 🆕 Permisos cámara
-  if (!permission) {
-    return <View style={{ flex: 1, backgroundColor: "black" }} />;
-  }
-
-  if (!permission.granted) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "black",
-          padding: 20,
-        }}
-      >
-        <Text
-          style={{
-            color: "white",
-            marginBottom: 20,
-            fontSize: 18,
-            textAlign: "center",
-          }}
-        >
-          La app necesita permiso para usar la cámara
-        </Text>
-
-        <Pressable
-          onPress={requestPermission}
-          style={{
-            backgroundColor: "#2563eb",
-            paddingVertical: 12,
-            paddingHorizontal: 30,
-            borderRadius: 10,
-          }}
-        >
-          <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
-            Conceder permiso
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  // 📸 UI principal
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
       <BarcodeScanner
@@ -163,7 +94,7 @@ export default function ScannerTab({ navigation }) {
         }}
       />
 
-      {/* Indicador */}
+      {/* Indicador de reescaneo */}
       {!scanned && (
         <Text style={styles.hintText}>Apunta al código para escanear</Text>
       )}
@@ -173,7 +104,7 @@ export default function ScannerTab({ navigation }) {
         </Text>
       )}
 
-      {/* ✔ Animación */}
+      {/* Animación ✔ */}
       <Animated.View
         style={{
           position: "absolute",
@@ -192,10 +123,10 @@ export default function ScannerTab({ navigation }) {
         <View style={styles.infoBox}>
           <Text style={styles.codeTitle}>Código escaneado: {lastCode}</Text>
 
-          {/* 🔎 Selector según ISBN */}
+          {/* 🔎 Selector de motores de búsqueda */}
           <View style={styles.searchSelector}>
-            {(isBook ? BOOK_ENGINES : PRODUCT_ENGINES).map((engine) => {
-              const active = selectedSearch?.id === engine.id;
+            {SEARCH_ENGINES.map((engine) => {
+              const active = selectedSearch.id === engine.id;
 
               return (
                 <Pressable
@@ -207,10 +138,8 @@ export default function ScannerTab({ navigation }) {
                   onPress={() => {
                     abortController.current?.abort();
                     setSelectedSearch(engine);
-
                     setMessage("Buscando con: " + engine.name);
                     setTimeout(() => setMessage(""), 1500);
-
                     setProduct({
                       name: "Abrir en " + engine.name,
                       brand: "",
@@ -293,6 +222,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
+  // 🔎 Menú de motores
   searchSelector: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -301,7 +231,7 @@ const styles = StyleSheet.create({
   },
 
   searchButton: {
-    backgroundColor: "#1f2937",
+    backgroundColor: "#1f2937", // gris oscuro
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 10,
@@ -310,7 +240,7 @@ const styles = StyleSheet.create({
   },
 
   searchButtonActive: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#2563eb", // azul seleccionado
     borderColor: "#1e40af",
     borderWidth: 1.4,
   },

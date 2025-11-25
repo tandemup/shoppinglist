@@ -1,124 +1,114 @@
 // screens/ScannedHistoryScreen.js
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
-
 import {
-  getScannedHistory,
-  deleteScannedEntry,
-} from "../utils/storage/scannerHistory";
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
+
+import dayjs from "dayjs";
+import { getScannedHistory } from "../utils/storage/scannerHistory";
 
 export default function ScannedHistoryScreen({ navigation }) {
   const [items, setItems] = useState([]);
-
-  const loadHistory = async () => {
-    const data = await getScannedHistory();
-    setItems(data);
-  };
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
-    const unsub = navigation.addListener("focus", loadHistory);
-    return unsub;
-  }, [navigation]);
+    loadItems();
+  }, []);
 
-  const handleDelete = async (code) => {
-    await deleteScannedEntry(code);
-    loadHistory();
+  const loadItems = async () => {
+    const data = await getScannedHistory();
+
+    // Ordenar por timestamp (ts) descendente
+    const sorted = data.sort((a, b) => b.ts - a.ts);
+    setItems(sorted);
   };
 
-  const handleEdit = (item) => {
-    navigation.navigate("EditScannedItemScreen", { item });
-  };
+  // 🔍 Filtro SearchBar
+  const filteredItems = items.filter((item) => {
+    const text = query.toLowerCase();
+    return (
+      item.name?.toLowerCase().includes(text) ||
+      item.brand?.toLowerCase().includes(text) ||
+      item.code?.toLowerCase().includes(text)
+    );
+  });
 
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate("EditScannedItem", { item })}
+    >
+      <Text style={styles.name}>{item.name || "Sin nombre"}</Text>
+      <Text style={styles.brand}>{item.brand || "Sin marca"}</Text>
+
       <Text style={styles.code}>Código: {item.code}</Text>
-      <Text style={styles.count}>Veces escaneado: {item.count}</Text>
+
+      {item.count > 1 && (
+        <Text style={styles.count}>Escaneado {item.count} veces</Text>
+      )}
+
       <Text style={styles.date}>
-        Último escaneo: {new Date(item.ts).toLocaleString()}
+        {dayjs(item.ts).format("DD/MM/YYYY HH:mm")}
       </Text>
-
-      {/* Mostrar metadatos si existen */}
-      {item.name ? <Text>Nombre: {item.name}</Text> : null}
-      {item.brand ? <Text>Marca: {item.brand}</Text> : null}
-      {item.url ? <Text>URL: {item.url}</Text> : null}
-
-      <View style={styles.row}>
-        <Pressable style={styles.editBtn} onPress={() => handleEdit(item)}>
-          <Text style={styles.editBtnText}>Editar</Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.deleteBtn}
-          onPress={() => handleDelete(item.code)}
-        >
-          <Text style={styles.deleteBtnText}>Eliminar</Text>
-        </Pressable>
-      </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Historial de escaneos</Text>
+      {/* Barra de búsqueda */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Buscar por nombre, marca o código..."
+        value={query}
+        onChangeText={setQuery}
+      />
 
-      {items.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No hay escaneos registrados.</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.code}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        />
-      )}
+      {/* Lista con scroll */}
+      <FlatList
+        data={filteredItems}
+        keyExtractor={(item) => item.code}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingBottom: 24 }}
+      />
     </View>
   );
 }
 
-//
-// 🎨 ESTILOS
-//
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#FAFAFA" },
-  title: { fontSize: 26, fontWeight: "bold", marginBottom: 15 },
+  container: { flex: 1, padding: 12, backgroundColor: "#f7f7f7" },
 
-  emptyContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  emptyText: { fontSize: 16, color: "#888" },
+  searchInput: {
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
 
   card: {
     backgroundColor: "#fff",
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#BBDEFB",
+    borderColor: "#e5e5e5",
   },
 
-  code: { fontSize: 16, fontWeight: "bold" },
-  count: { marginTop: 4 },
-  date: { marginTop: 4, color: "#666", fontSize: 12 },
+  name: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
+  brand: { fontSize: 14, color: "#666" },
+  code: { marginTop: 6, fontSize: 13, color: "#333" },
+  count: { marginTop: 4, fontSize: 12, color: "#666" },
 
-  row: {
-    flexDirection: "row",
-    marginTop: 10,
-    justifyContent: "space-between",
+  date: {
+    marginTop: 8,
+    fontSize: 12,
+    color: "#999",
+    textAlign: "right",
   },
-
-  editBtn: {
-    backgroundColor: "#2563eb",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  editBtnText: { color: "white", fontWeight: "bold" },
-
-  deleteBtn: {
-    backgroundColor: "#e11d48",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  deleteBtnText: { color: "white", fontWeight: "bold" },
 });
