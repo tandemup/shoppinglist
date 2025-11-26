@@ -10,7 +10,10 @@ import {
 } from "react-native";
 
 import dayjs from "dayjs";
-import { getScannedHistory } from "../utils/storage/scannerHistory";
+import {
+  getScannedHistory,
+  deleteScannedItem,
+} from "../utils/storage/scannerHistory";
 
 export default function ScannedHistoryScreen({ navigation }) {
   const [items, setItems] = useState([]);
@@ -23,9 +26,15 @@ export default function ScannedHistoryScreen({ navigation }) {
   const loadItems = async () => {
     const data = await getScannedHistory();
 
-    // Ordenar por timestamp (ts) descendente
+    // Ordenar por fecha (más reciente arriba)
     const sorted = data.sort((a, b) => b.ts - a.ts);
     setItems(sorted);
+  };
+
+  // 🗑 Borrar un item del historial
+  const handleDelete = async (code) => {
+    await deleteScannedItem(code);
+    await loadItems(); // refrescamos la lista
   };
 
   // 🔍 Filtro SearchBar
@@ -39,23 +48,33 @@ export default function ScannedHistoryScreen({ navigation }) {
   });
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate("EditScannedItem", { item })}
-    >
-      <Text style={styles.name}>{item.name || "Sin nombre"}</Text>
-      <Text style={styles.brand}>{item.brand || "Sin marca"}</Text>
+    <View style={[styles.card, item.isBook && styles.bookCard]}>
+      <TouchableOpacity
+        style={{ flex: 1 }}
+        onPress={() => navigation.navigate("EditScannedItem", { item })}
+      >
+        <Text style={styles.name}>{item.name || "Sin nombre"}</Text>
+        <Text style={styles.brand}>{item.brand || "Sin marca"}</Text>
 
-      <Text style={styles.code}>Código: {item.code}</Text>
+        <Text style={styles.code}>Código: {item.code}</Text>
 
-      {item.count > 1 && (
-        <Text style={styles.count}>Escaneado {item.count} veces</Text>
-      )}
+        {item.count > 1 && (
+          <Text style={styles.count}>Escaneado {item.count} veces</Text>
+        )}
 
-      <Text style={styles.date}>
-        {dayjs(item.ts).format("DD/MM/YYYY HH:mm")}
-      </Text>
-    </TouchableOpacity>
+        <Text style={styles.date}>
+          {dayjs(item.ts).format("DD/MM/YYYY HH:mm")}
+        </Text>
+      </TouchableOpacity>
+
+      {/* BOTÓN BORRAR */}
+      <TouchableOpacity
+        onPress={() => handleDelete(item.code)}
+        style={styles.deleteButton}
+      >
+        <Text style={styles.deleteText}>Borrar</Text>
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -79,6 +98,9 @@ export default function ScannedHistoryScreen({ navigation }) {
   );
 }
 
+//
+// 🎨 ESTILOS
+//
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12, backgroundColor: "#f7f7f7" },
 
@@ -98,6 +120,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#e5e5e5",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  // ⭐ Azul claro para libros
+  bookCard: {
+    backgroundColor: "#E6F0FF",
+    borderLeftWidth: 4,
+    borderLeftColor: "#4A90E2",
   },
 
   name: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
@@ -109,6 +141,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 12,
     color: "#999",
-    textAlign: "right",
+  },
+
+  // ❌🗑 Botón BORRAR
+  deleteButton: {
+    backgroundColor: "#ffebee",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  deleteText: {
+    color: "#c62828",
+    fontWeight: "600",
   },
 });

@@ -1,3 +1,5 @@
+// ScannerTab.js — versión corregida y mejorada
+
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -6,7 +8,6 @@ import {
   Animated,
   Image,
   Linking,
-  Platform,
   StyleSheet,
 } from "react-native";
 import { useCameraPermissions } from "expo-camera";
@@ -16,7 +17,9 @@ import { fetchProductInfo } from "./ProductLookup";
 import SEARCH_ENGINES from "../data/search_engines.json";
 import { addScannedProductFull } from "../utils/storage/scannerHistory";
 import { useConfig } from "../context/ConfigContext";
-import { isISBN } from "../utils/isISBN";
+
+// ⭐ Usamos la función mejorada con checksum REAL
+import { isBookBarcode } from "../utils/isISBN";
 
 export default function ScannerTab({ navigation }) {
   const { config } = useConfig();
@@ -30,16 +33,16 @@ export default function ScannerTab({ navigation }) {
   const [lastCode, setLastCode] = useState(null);
   const [message, setMessage] = useState("");
   const [selectedSearch, setSelectedSearch] = useState(null);
-  const [isBook, setIsBook] = useState(false); // ⭐ NUEVO
+  const [isBook, setIsBook] = useState(false); // ⭐ Estado UI
 
   const abortController = useRef(null);
   const checkAnim = useRef(new Animated.Value(0)).current;
 
-  // ⭐ Grupos de motores según el JSON
+  // ⭐ Grupos de motores según JSON
   const BOOK_ENGINES = SEARCH_ENGINES.filter((e) => e.forBooks);
   const PRODUCT_ENGINES = SEARCH_ENGINES.filter((e) => !e.forBooks);
 
-  // ⭐ Escaneo
+  // ⭐ Escaneo principal
   const handleBarcodeScanned = async ({ data }) => {
     if (scanned) return;
 
@@ -47,7 +50,7 @@ export default function ScannerTab({ navigation }) {
     setProduct(null);
     setLastCode(data);
 
-    // ✔ Animación de check
+    // ✔ Animación check
     Animated.sequence([
       Animated.timing(checkAnim, {
         toValue: 1,
@@ -64,9 +67,9 @@ export default function ScannerTab({ navigation }) {
 
     abortController.current = new AbortController();
 
-    // ⭐ Detección ISBN
-    const bookDetected = isISBN(data);
-    setIsBook(bookDetected);
+    // ⭐ Detección ISBN REAL con checksum
+    const bookDetected = isBookBarcode(data);
+    setIsBook(bookDetected); // para la UI
 
     if (bookDetected) {
       setSelectedSearch(BOOK_ENGINES[0]);
@@ -77,7 +80,7 @@ export default function ScannerTab({ navigation }) {
     }
     setTimeout(() => setMessage(""), 2000);
 
-    // ⭐ Lookup real
+    // ⭐ Lookup real del producto
     const info = await fetchProductInfo(
       data,
       abortController.current.signal,
@@ -87,12 +90,14 @@ export default function ScannerTab({ navigation }) {
     if (info) {
       setProduct(info);
 
+      // ⭐ Guardar en historial (CORRECTO)
       await addScannedProductFull({
         code: data,
         name: info.name,
         brand: info.brand,
         image: info.image,
         url: info.url,
+        isBook: bookDetected, // GUARDAR EL VALOR REAL
       });
     } else {
       setMessage("Búsqueda cancelada o no encontrada");
@@ -100,7 +105,7 @@ export default function ScannerTab({ navigation }) {
     }
   };
 
-  // 🆕 Permisos cámara
+  // 🔐 Permisos cámara
   if (!permission) {
     return <View style={{ flex: 1, backgroundColor: "black" }} />;
   }
@@ -164,10 +169,9 @@ export default function ScannerTab({ navigation }) {
       />
 
       {/* Indicador */}
-      {!scanned && (
+      {!scanned ? (
         <Text style={styles.hintText}>Apunta al código para escanear</Text>
-      )}
-      {scanned && (
+      ) : (
         <Text style={styles.hintText}>
           Pulsa el botón central para nuevo escaneo
         </Text>
@@ -190,9 +194,12 @@ export default function ScannerTab({ navigation }) {
       {/* Info Box */}
       {lastCode && (
         <View style={styles.infoBox}>
-          <Text style={styles.codeTitle}>Código escaneado: {lastCode}</Text>
+          <Text style={styles.codeTitle}>
+            Código escaneado: {lastCode}
+            {isBook ? " (ISBN)" : ""}
+          </Text>
 
-          {/* 🔎 Selector según ISBN */}
+          {/* 🔎 Motores según tipo */}
           <View style={styles.searchSelector}>
             {(isBook ? BOOK_ENGINES : PRODUCT_ENGINES).map((engine) => {
               const active = selectedSearch?.id === engine.id;
@@ -235,7 +242,11 @@ export default function ScannerTab({ navigation }) {
           {/* Resultado */}
           {product && (
             <>
-              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productName}>
+                {isBook ? "📘 " : ""}
+                {product.name}
+              </Text>
+
               <Text style={styles.productBrand}>{product.brand}</Text>
 
               {product.image && (
