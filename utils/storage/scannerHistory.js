@@ -28,7 +28,7 @@ export async function addScannedProduct(code) {
     const index = history.findIndex((i) => i.code === code);
 
     if (index !== -1) {
-      // ya existe → incrementar count
+      // ya existe → incrementar
       const old = history[index];
       return history.map((e, i) =>
         i === index
@@ -44,6 +44,7 @@ export async function addScannedProduct(code) {
         code,
         count: 1,
         ts: Date.now(),
+        isBook: false, // ← valor por defecto
       },
     ];
   });
@@ -60,7 +61,14 @@ export async function deleteScannedEntry(code) {
 }
 
 /**
- * ⭐ NUEVA FUNCIÓN: actualizar metadatos del producto escaneado
+ * ⭐ NUEVA FUNCIÓN (wrapper oficial) para borrar
+ */
+export async function deleteScannedItem(code) {
+  return await deleteScannedEntry(code);
+}
+
+/**
+ * Actualizar metadatos del producto escaneado
  */
 export async function updateScannedEntry(code, patch) {
   return await storageClient.update(HISTORY_KEY, (current) => {
@@ -73,8 +81,8 @@ export async function updateScannedEntry(code, patch) {
 
     const updated = {
       ...old,
-      ...patch, // ← mezcla los nuevos campos (name, brand, url)
-      ts: Date.now(), // opcional: actualizamos timestamp
+      ...patch, // mezcla fields (name, brand, url, isBook…)
+      ts: Date.now(),
     };
 
     history[index] = updated;
@@ -83,18 +91,25 @@ export async function updateScannedEntry(code, patch) {
 }
 
 /**
- * Wrapper que restaura el comportamiento antiguo de addScannedProduct
- * Guardando tanto el escaneo como los metadatos del producto.
+ * Guardar producto escaneado (datos completos)
  */
-export async function addScannedProductFull({ code, name, brand, image, url }) {
+export async function addScannedProductFull({
+  code,
+  name,
+  brand,
+  image,
+  url,
+  isBook, // ← NUEVO
+}) {
   // 1. Registrar o incrementar contador
   await addScannedProduct(code);
 
-  // 2. Actualizar metadatos del producto
+  // 2. Actualizar metadatos y tipo libro
   await updateScannedEntry(code, {
     name,
     brand,
     image,
     url,
+    isBook, // ← se guarda ahora sí
   });
 }
