@@ -1,4 +1,4 @@
-// ScannerTab.js — versión corregida y mejorada
+// ScannerTab.js — versión corregida con sistema de mensajes exclusivo
 
 import React, { useState, useRef } from "react";
 import {
@@ -17,8 +17,6 @@ import { fetchProductInfo } from "./ProductLookup";
 import SEARCH_ENGINES from "../data/search_engines.json";
 import { addScannedProductFull } from "../utils/storage/scannerHistory";
 import { useConfig } from "../context/ConfigContext";
-
-// ⭐ Usamos la función mejorada con checksum REAL
 import { isBookBarcode } from "../utils/isISBN";
 
 export default function ScannerTab({ navigation }) {
@@ -33,12 +31,31 @@ export default function ScannerTab({ navigation }) {
   const [lastCode, setLastCode] = useState(null);
   const [message, setMessage] = useState("");
   const [selectedSearch, setSelectedSearch] = useState(null);
-  const [isBook, setIsBook] = useState(false); // ⭐ Estado UI
+  const [isBook, setIsBook] = useState(false);
 
   const abortController = useRef(null);
   const checkAnim = useRef(new Animated.Value(0)).current;
 
-  // ⭐ Grupos de motores según JSON
+  //
+  // ⭐ SISTEMA DE MENSAJES — evita mensajes acumulados
+  //
+  const messageTimeout = useRef(null);
+
+  const showMessage = (text, duration = 2000) => {
+    if (messageTimeout.current) {
+      clearTimeout(messageTimeout.current);
+      messageTimeout.current = null;
+    }
+
+    setMessage(text);
+
+    messageTimeout.current = setTimeout(() => {
+      setMessage("");
+      messageTimeout.current = null;
+    }, duration);
+  };
+
+  // ⭐ Grupos de motores
   const BOOK_ENGINES = SEARCH_ENGINES.filter((e) => e.forBooks);
   const PRODUCT_ENGINES = SEARCH_ENGINES.filter((e) => !e.forBooks);
 
@@ -67,20 +84,19 @@ export default function ScannerTab({ navigation }) {
 
     abortController.current = new AbortController();
 
-    // ⭐ Detección ISBN REAL con checksum
+    // ⭐ Detección ISBN con checksum
     const bookDetected = isBookBarcode(data);
-    setIsBook(bookDetected); // para la UI
+    setIsBook(bookDetected);
 
     if (bookDetected) {
       setSelectedSearch(BOOK_ENGINES[0]);
-      setMessage("📚 ISBN detectado — motores de libros activados");
+      showMessage("📚 ISBN detectado — motores de libros activados");
     } else {
       setSelectedSearch(PRODUCT_ENGINES[0]);
-      setMessage("🔍 Producto general");
+      showMessage("🔍 Producto general");
     }
-    setTimeout(() => setMessage(""), 2000);
 
-    // ⭐ Lookup real del producto
+    // ⭐ Lookup del producto
     const info = await fetchProductInfo(
       data,
       abortController.current.signal,
@@ -90,18 +106,16 @@ export default function ScannerTab({ navigation }) {
     if (info) {
       setProduct(info);
 
-      // ⭐ Guardar en historial (CORRECTO)
       await addScannedProductFull({
         code: data,
         name: info.name,
         brand: info.brand,
         image: info.image,
         url: info.url,
-        isBook: bookDetected, // GUARDAR EL VALOR REAL
+        isBook: bookDetected,
       });
     } else {
-      setMessage("Búsqueda cancelada o no encontrada");
-      setTimeout(() => setMessage(""), 2000);
+      showMessage("Búsqueda cancelada o no encontrada");
     }
   };
 
@@ -149,7 +163,9 @@ export default function ScannerTab({ navigation }) {
     );
   }
 
+  //
   // 📸 UI principal
+  //
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
       <BarcodeScanner
@@ -159,8 +175,7 @@ export default function ScannerTab({ navigation }) {
           setScanned(false);
           setProduct(null);
           setLastCode(null);
-          setMessage("📸 Listo para nuevo escaneo");
-          setTimeout(() => setMessage(""), 2000);
+          showMessage("📸 Listo para nuevo escaneo");
         }}
         onCancel={() => {
           abortController.current?.abort();
@@ -188,10 +203,20 @@ export default function ScannerTab({ navigation }) {
           opacity: checkAnim,
         }}
       >
-        <Text style={{ color: "#22c55e", fontSize: 60 }}>✔</Text>
+        <Text
+          style={{
+            color: "#4CC9F0",
+            fontSize: 70,
+            textShadowColor: "#4CC9F0",
+            textShadowOffset: { width: 0, height: 0 },
+            textShadowRadius: 18,
+          }}
+        >
+          ✔
+        </Text>
       </Animated.View>
 
-      {/* Info Box */}
+      {/* Caja info */}
       {lastCode && (
         <View style={styles.infoBox}>
           <Text style={styles.codeTitle}>
@@ -199,7 +224,7 @@ export default function ScannerTab({ navigation }) {
             {isBook ? " (ISBN)" : ""}
           </Text>
 
-          {/* 🔎 Motores según tipo */}
+          {/* Motores */}
           <View style={styles.searchSelector}>
             {(isBook ? BOOK_ENGINES : PRODUCT_ENGINES).map((engine) => {
               const active = selectedSearch?.id === engine.id;
@@ -215,8 +240,7 @@ export default function ScannerTab({ navigation }) {
                     abortController.current?.abort();
                     setSelectedSearch(engine);
 
-                    setMessage("Buscando con: " + engine.name);
-                    setTimeout(() => setMessage(""), 1500);
+                    showMessage("Buscando con: " + engine.name, 1500);
 
                     setProduct({
                       name: "Abrir en " + engine.name,
