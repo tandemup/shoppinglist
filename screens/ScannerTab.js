@@ -1,4 +1,4 @@
-// ScannerTab.js — versión corregida con sistema de mensajes exclusivo
+// ScannerTab.js — versión FINAL (mensajes corregidos + check neón)
 
 import React, { useState, useRef } from "react";
 import {
@@ -37,7 +37,7 @@ export default function ScannerTab({ navigation }) {
   const checkAnim = useRef(new Animated.Value(0)).current;
 
   //
-  // ⭐ SISTEMA DE MENSAJES — evita mensajes acumulados
+  // ⭐ SISTEMA DE MENSAJES — evita amontonamiento
   //
   const messageTimeout = useRef(null);
 
@@ -59,7 +59,7 @@ export default function ScannerTab({ navigation }) {
   const BOOK_ENGINES = SEARCH_ENGINES.filter((e) => e.forBooks);
   const PRODUCT_ENGINES = SEARCH_ENGINES.filter((e) => !e.forBooks);
 
-  // ⭐ Escaneo principal
+  // ⭐ Evento principal de escaneo
   const handleBarcodeScanned = async ({ data }) => {
     if (scanned) return;
 
@@ -84,7 +84,7 @@ export default function ScannerTab({ navigation }) {
 
     abortController.current = new AbortController();
 
-    // ⭐ Detección ISBN con checksum
+    // ⭐ Detección ISBN
     const bookDetected = isBookBarcode(data);
     setIsBook(bookDetected);
 
@@ -96,7 +96,7 @@ export default function ScannerTab({ navigation }) {
       showMessage("🔍 Producto general");
     }
 
-    // ⭐ Lookup del producto
+    // ⭐ Lookup real del producto
     const info = await fetchProductInfo(
       data,
       abortController.current.signal,
@@ -192,7 +192,7 @@ export default function ScannerTab({ navigation }) {
         </Text>
       )}
 
-      {/* ✔ Animación */}
+      {/* ✔ Animación check súper visible */}
       <Animated.View
         style={{
           position: "absolute",
@@ -205,11 +205,12 @@ export default function ScannerTab({ navigation }) {
       >
         <Text
           style={{
-            color: "#4CC9F0",
+            color: "#39FF14", // Verde neón brillante
             fontSize: 70,
-            textShadowColor: "#4CC9F0",
+            textShadowColor: "#39FF14",
             textShadowOffset: { width: 0, height: 0 },
-            textShadowRadius: 18,
+            textShadowRadius: 20, // Resplandor
+            fontWeight: "900",
           }}
         >
           ✔
@@ -239,7 +240,6 @@ export default function ScannerTab({ navigation }) {
                   onPress={() => {
                     abortController.current?.abort();
                     setSelectedSearch(engine);
-
                     showMessage("Buscando con: " + engine.name, 1500);
 
                     setProduct({

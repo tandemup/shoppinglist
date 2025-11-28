@@ -1,73 +1,95 @@
-// screens/PurchaseHistoryScreen.js
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { safeAlert } from "../utils/safeAlert";
+import React, { useEffect } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+  ScrollView,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useStore } from "../context/StoreContext";
+import dayjs from "dayjs";
+import "dayjs/locale/es";
 
-import { getPurchases, deletePurchase } from "../utils/storage/purchaseHistory";
+dayjs.locale("es");
 
-export default function PurchaseHistoryScreen({ navigation }) {
-  const [purchases, setPurchases] = useState([]);
+export default function PurchaseHistoryScreen() {
+  const { purchaseHistory, fetchLists } = useStore();
 
-  const load = async () => {
-    const data = await getPurchases();
-    setPurchases(data);
-  };
-
+  //
+  // 🔄 Recargar historial cuando se llega a esta pantalla
+  //
   useEffect(() => {
-    const unsub = navigation.addListener("focus", load);
-    return unsub;
-  }, [navigation]);
+    fetchLists(); // opcional — refresca contexto al entrar
+  }, []);
 
-  const handleDelete = async (id) => {
-    await deletePurchase(id);
-    load();
-  };
+  //
+  // 🎯 Agrupar por fecha (YYYY-MM-DD)
+  //
+  const grouped = purchaseHistory.reduce((acc, item) => {
+    const date = dayjs(item.purchasedAt).format("YYYY-MM-DD");
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(item);
+    return acc;
+  }, {});
+
+  //
+  // 🗂 Crear array ordenado por fecha descendente
+  //
+  const sortedSections = Object.keys(grouped)
+    .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())
+    .map((date) => ({
+      title: dayjs(date).format("D MMM YYYY"),
+      data: grouped[date].sort(
+        (a, b) =>
+          dayjs(b.purchasedAt).valueOf() - dayjs(a.purchasedAt).valueOf()
+      ),
+    }));
 
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.titleText}>{item.title}</Text>
-        <Text style={styles.dateText}>
-          {new Date(item.date).toLocaleString()}
-        </Text>
+        <Text style={styles.name}>{item.name}</Text>
+        {item.brand ? <Text style={styles.brand}>{item.brand}</Text> : null}
+
+        {/* Origen de la lista */}
+        {item.listName ? (
+          <Text style={styles.fromList}>De: {item.listName}</Text>
+        ) : null}
+
+        {item.price ? <Text style={styles.price}>{item.price} €</Text> : null}
       </View>
 
-      <Pressable
-        style={styles.deleteBtn}
-        onPress={() =>
-          safeAlert("Confirmar eliminación", "¿Quieres eliminar esta compra?", [
-            { text: "Cancelar" },
-            {
-              text: "Eliminar",
-              style: "destructive",
-              onPress: () => handleDelete(item.id),
-            },
-          ])
-        }
-      >
-        <MaterialCommunityIcons name="delete" size={22} color="#fff" />
-      </Pressable>
+      {item.image ? (
+        <Image source={{ uri: item.image }} style={styles.image} />
+      ) : null}
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Historial de compras</Text>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Historial de Compras</Text>
 
-      {purchases.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={{ color: "#666" }}>No hay compras registradas.</Text>
-        </View>
+      {sortedSections.length === 0 ? (
+        <Text style={styles.empty}>Todavía no tienes compras archivadas</Text>
       ) : (
-        <FlatList
-          data={purchases}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        />
+        <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
+          {sortedSections.map((section) => (
+            <View key={section.title} style={styles.section}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+
+              <FlatList
+                data={section.data}
+                renderItem={renderItem}
+                keyExtractor={(item, idx) => item.id + "-" + idx}
+                scrollEnabled={false}
+              />
+            </View>
+          ))}
+        </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -80,39 +102,67 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#FAFAFA",
   },
-  header: {
+  title: {
     fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 15,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 20,
   },
   empty: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    marginTop: 40,
+    fontSize: 16,
+    textAlign: "center",
+    color: "#888",
   },
-  card: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#BBDEFB",
-    flexDirection: "row",
-    alignItems: "center",
+
+  section: {
+    marginBottom: 25,
   },
-  titleText: {
+  sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
+    marginBottom: 10,
+    color: "#444",
   },
-  dateText: {
-    color: "#666",
-    marginTop: 4,
-    fontSize: 12,
+
+  card: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 2,
+    elevation: 1,
   },
-  deleteBtn: {
-    backgroundColor: "#e11d48",
-    padding: 8,
+  image: {
+    width: 60,
+    height: 60,
     borderRadius: 8,
     marginLeft: 10,
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  brand: {
+    fontSize: 12,
+    color: "#777",
+  },
+  price: {
+    marginTop: 4,
+    fontWeight: "700",
+    color: "#0066CC",
+  },
+  fromList: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#A33",
+    fontStyle: "italic",
   },
 });

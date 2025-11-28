@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -6,31 +6,32 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  Platform,
   Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { safeAlert } from "../utils/safeAlert";
-
 import { Ionicons } from "@expo/vector-icons";
-
-import { loadLists, addList, deleteList } from "../utils/storage/listStorage";
+import { safeAlert } from "../utils/safeAlert";
+import { useStore } from "../context/StoreContext";
 
 export default function ShoppingListsScreen({ navigation }) {
-  const [lists, setLists] = useState([]);
+  //
+  // 🧠 Usamos SOLO el contexto global (sin estados duplicados)
+  //
+  const { lists, addList, deleteList, archiveList, fetchLists } = useStore();
+
   const [newListName, setNewListName] = useState("");
 
-  // 📌 Cargar listas
-  const fetchLists = useCallback(async () => {
-    const data = await loadLists();
-    setLists(data);
-  }, []);
-
+  //
+  // 🔄 Recargar listas cuando se vuelve a esta pantalla
+  //
   useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", fetchLists);
-    return unsubscribe;
+    const unsub = navigation.addListener("focus", fetchLists);
+    return unsub;
   }, [navigation, fetchLists]);
 
+  //
+  // 🎛 Ajustes del header
+  //
   useEffect(() => {
     navigation.setOptions({
       headerTitleAlign: "center",
@@ -45,7 +46,9 @@ export default function ShoppingListsScreen({ navigation }) {
     });
   }, [navigation]);
 
+  //
   // ➕ Crear nueva lista
+  //
   const handleAddList = async () => {
     if (!newListName.trim()) return;
 
@@ -54,6 +57,7 @@ export default function ShoppingListsScreen({ navigation }) {
       name: newListName.trim(),
       createdAt: new Date().toISOString(),
       items: [],
+      archived: false,
     };
 
     await addList(newList);
@@ -61,37 +65,47 @@ export default function ShoppingListsScreen({ navigation }) {
     fetchLists();
   };
 
-  // 🗑 Eliminar lista
-  const handleDeleteList = async (id) => {
-    await deleteList(id);
-    fetchLists();
-  };
-
-  // 👉 Abrir lista
+  //
+  // 🚪 Abrir lista
+  //
   const handleOpenList = (list) => {
     navigation.navigate("ShoppingList", { listId: list.id });
   };
 
-  // 🔥 Tarjeta con tap + long-press
+  //
+  // 🔥 Elemento renderizado: tarjeta + long-press
+  //
   const renderItem = ({ item }) => (
     <Pressable
       style={styles.card}
       onPress={() => handleOpenList(item)}
-      onLongPress={() =>
+      onLongPress={() => {
         safeAlert(
-          "Eliminar lista",
-          `¿Seguro que deseas eliminar "${item.name}"?`,
+          "Opciones de la lista",
+          `¿Qué deseas hacer con "${item.name}"?`,
           [
             { text: "Cancelar", style: "cancel" },
+
+            {
+              text: "Archivar",
+              onPress: async () => {
+                await archiveList(item.id);
+                fetchLists();
+              },
+            },
+
             {
               text: "Eliminar",
               style: "destructive",
-              onPress: () => handleDeleteList(item.id),
+              onPress: async () => {
+                await deleteList(item.id);
+                fetchLists();
+              },
             },
           ]
-        )
-      }
-      delayLongPress={400} // Evita borrados accidentales
+        );
+      }}
+      delayLongPress={400}
     >
       <Text style={styles.name}>{item.name}</Text>
 
@@ -102,6 +116,11 @@ export default function ShoppingListsScreen({ navigation }) {
       <Text style={styles.count}>{item.items?.length || 0} productos</Text>
     </Pressable>
   );
+
+  //
+  // 🎯 MOSTRAR SOLO LISTAS ACTIVAS (NO ARCHIVADAS)
+  //
+  const activeLists = lists.filter((l) => !l.archived);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,10 +142,15 @@ export default function ShoppingListsScreen({ navigation }) {
 
       {/* Listado */}
       <FlatList
-        data={lists}
+        data={activeLists}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 40 }}
+        ListEmptyComponent={
+          <Text style={{ textAlign: "center", marginTop: 30, color: "#888" }}>
+            No tienes listas activas 😊
+          </Text>
+        }
       />
     </SafeAreaView>
   );
@@ -177,7 +201,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 10,
-
     borderWidth: 1,
     borderColor: "#BBDEFB",
 

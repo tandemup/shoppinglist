@@ -20,6 +20,12 @@ export default function MenuScreen({ navigation }) {
       >
         <Text style={styles.buttonText}>📋 Mis listas</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("ArchivedLists")}
+      >
+        <Text style={styles.buttonText}>📋 Mis listas archivadas</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.button}
