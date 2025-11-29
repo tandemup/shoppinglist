@@ -1,356 +1,358 @@
-import React, { useEffect, useState } from "react";
+//import { nanoid } from "nanoid/non-secure";
+import { generateId } from "../utils/generateId";
+
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
+  TextInput,
   FlatList,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
-  Pressable,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-import { useStore } from "../context/StoreContext";
-import { getList } from "../utils/storage/listStorage";
-import { safeAlert } from "../utils/safeAlert";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { getList, updateList } from "../utils/storage/listStorage";
+import { defaultItem } from "../utils/defaultItem";
+
+import StoreSelector from "../components/StoreSelector";
+import SearchCombinedBar from "../components/SearchCombinedBar";
+import ItemRow from "../components/ItemRow";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function ShoppingListScreen({ route, navigation }) {
   const { listId } = route.params;
-
-  const {
-    updateListName,
-    deleteList,
-    archiveList,
-    addItemsToHistory,
-    fetchLists,
-  } = useStore();
-
   const [list, setList] = useState(null);
-  const [newItemText, setNewItemText] = useState("");
+  const [nuevoItem, setNuevoItem] = useState("");
 
   //
-  // 📌 Cargar lista actual
+  // HAMBURGUESA
   //
   useEffect(() => {
-    (async () => {
-      const data = await getList(listId);
-      setList(data);
-    })();
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Menu")}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="menu" size={26} color="black" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  //
+  // CARGAR LISTA
+  //
+  const loadList = useCallback(async () => {
+    const data = await getList(listId);
+
+    if (!data) {
+      const empty = { id: listId, name: "Nueva lista", items: [] };
+      await updateList(listId, () => empty);
+      setList(empty);
+      navigation.setOptions({ title: empty.name });
+      return;
+    }
+
+    // iOS puede retornar items = undefined
+    setList({
+      ...data,
+      items: Array.isArray(data.items) ? data.items : [],
+    });
+
+    navigation.setOptions({ title: data.name });
   }, [listId]);
 
-  // ⭐ Nueva lógica: modo solo lectura si está archivada
-  const readOnly = list?.archived === true;
+  useEffect(() => {
+    loadList();
+    const unsub = navigation.addListener("focus", loadList);
+    return unsub;
+  }, [navigation, loadList]);
 
   //
-  // ➕ Añadir item (bloqueado si archivada)
+  // PROTECCIÓN PARA prev NULL
   //
-  const handleAddItem = async () => {
-    if (readOnly) return;
+  const ensurePrev = (prev) => {
+    if (prev && typeof prev === "object") {
+      return {
+        ...prev,
+        items: Array.isArray(prev.items) ? prev.items : [],
+      };
+    }
 
-    if (!newItemText.trim()) return;
-
-    const updated = {
-      ...list,
-      items: [
-        ...list.items,
-        {
-          id: Date.now().toString(),
-          name: newItemText.trim(),
-          price: 0,
-          checked: false,
-        },
-      ],
-    };
-
-    await updateListName(list.id, updated.name); // guardar
-    setList(updated);
-    setNewItemText("");
+    return { id: listId, name: "Nueva lista", items: [] };
   };
 
   //
-  // ☑️ Toggle checked (bloqueado si archivada)
+  // AÑADIR ITEM
   //
-  const handleToggleChecked = async (itemId) => {
-    if (readOnly) return;
+  const addItem = async () => {
+    const name = (nuevoItem ?? "").toString().trim();
+    if (!name) return;
 
-    const updated = {
-      ...list,
-      items: list.items.map((item) =>
-        item.id === itemId ? { ...item, checked: !item.checked } : item
-      ),
+    const newItem = {
+      ...defaultItem,
+      id: generateId(), // *** SUSTITUYE uuidv4 ***
+      name,
+      checked: true,
+      priceInfo: { total: 0, unitPrice: 0, qty: 1 },
     };
+    await updateList(listId, (prev) => {
+      const base = ensurePrev(prev);
+      const safeItems = Array.isArray(base.items) ? base.items : [];
 
-    await updateListName(list.id, updated.name);
-    setList(updated);
+      return {
+        ...base,
+        items: [newItem, ...safeItems], // 👈 PRIMERO
+      };
+    });
+    setNuevoItem("");
+    loadList();
   };
 
   //
-  // 🗑 Borrar item (bloqueado si archivada)
+  // TOGGLE CHECK
   //
-  const handleDeleteItem = async (itemId) => {
-    if (readOnly) return;
+  const toggleChecked = async (id) => {
+    await updateList(listId, (prev) => {
+      const base = ensurePrev(prev);
 
-    const updated = {
-      ...list,
-      items: list.items.filter((i) => i.id !== itemId),
-    };
+      return {
+        ...base,
+        items: base.items.map((i) =>
+          i.id === id ? { ...i, checked: !i.checked } : i
+        ),
+      };
+    });
 
-    await updateListName(list.id, updated.name);
-    setList(updated);
+    loadList();
   };
 
   //
-  // ✏️ Editar item (bloqueado si archivada)
+  // DETALLE
   //
-  const handleEditItem = (item) => {
-    if (readOnly) return;
-
+  const openItemDetail = (item) => {
     navigation.navigate("ItemDetailScreen", {
       item,
-      listId: list.id,
+
+      onSave: async (updated) => {
+        await updateList(listId, (prev) => {
+          const base = ensurePrev(prev);
+
+          return {
+            ...base,
+            items: base.items.map((i) => (i.id === updated.id ? updated : i)),
+          };
+        });
+      },
+
+      onDelete: async (id) => {
+        await updateList(listId, (prev) => {
+          const base = ensurePrev(prev);
+          return {
+            ...base,
+            items: base.items.filter((i) => i.id !== id),
+          };
+        });
+      },
     });
   };
 
   //
-  // 📦 Archivar lista (bloqueado si archivada)
+  // TOTAL
   //
-  const handleArchiveList = () => {
-    if (readOnly) return;
+  const total = (() => {
+    if (!list?.items) return "0.00";
 
-    safeAlert("Finalizar compra", "¿Has pagado esta compra?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Archivar",
-        style: "destructive",
-        onPress: async () => {
-          await archiveList(list.id);
-          await fetchLists();
-          navigation.goBack();
-        },
-      },
-    ]);
-  };
+    return list.items
+      .filter((i) => i.checked)
+      .reduce((acc, item) => {
+        const p = item.priceInfo || {};
+        return acc + (parseFloat(p.total) || 0);
+      }, 0)
+      .toFixed(2);
+  })();
 
-  //
-  // 🗑 Eliminar lista (bloqueado si archivada)
-  //
-  const handleDeleteList = () => {
-    if (readOnly) return;
-
-    safeAlert("Eliminar lista", `¿Seguro que deseas eliminar "${list.name}"?`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          await deleteList(list.id);
-          fetchLists();
-          navigation.goBack();
-        },
-      },
-    ]);
-  };
+  const renderItem = ({ item }) => (
+    <ItemRow item={item} onToggle={toggleChecked} onEdit={openItemDetail} />
+  );
 
   if (!list) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={styles.loadingContainer}>
         <Text>Cargando...</Text>
       </View>
     );
   }
 
-  //
-  // 🎨 ITEM ROW (sin cambios de UI, solo bloqueo)
-  //
-  const renderItem = ({ item }) => (
-    <Pressable
-      onPress={() => handleEditItem(item)}
-      disabled={readOnly}
-      style={[styles.itemRow, readOnly && { opacity: 0.4 }]}
-    >
-      <TouchableOpacity
-        onPress={() => handleToggleChecked(item.id)}
-        disabled={readOnly}
-        style={styles.checkbox}
-      >
-        <Ionicons
-          name={item.checked ? "checkbox" : "square-outline"}
-          size={24}
-          color={readOnly ? "#aaa" : "#007BFF"}
-        />
-      </TouchableOpacity>
+  const handleSelectHistoryItem = async (historyItem) => {
+    const newItem = {
+      ...defaultItem,
+      id: generateId(),
+      name: historyItem.name || "",
+      brand: historyItem.brand || "",
+      barcode: historyItem.barcode || "",
+      image: historyItem.image || null,
+      priceInfo: historyItem.priceInfo || {
+        total: 0,
+        unitPrice: 0,
+        qty: 1,
+      },
+      checked: true,
+    };
 
-      <View style={{ flex: 1 }}>
-        <Text
-          style={[
-            styles.itemName,
-            item.checked && {
-              textDecorationLine: "line-through",
-              color: "#999",
-            },
-          ]}
-        >
-          {item.name}
-        </Text>
+    await updateList(listId, (prev) => {
+      const base = ensurePrev(prev);
+      return {
+        ...base,
+        items: [newItem, ...base.items], // ⬅️ CORREGIDO
+      };
+    });
 
-        <Text style={styles.itemPrice}>{item.price} €</Text>
-      </View>
-
-      {!readOnly && (
-        <TouchableOpacity onPress={() => handleDeleteItem(item.id)}>
-          <Ionicons name="trash" size={22} color="#CC0000" />
-        </TouchableOpacity>
-      )}
-    </Pressable>
-  );
+    loadList();
+  };
 
   return (
-    <View style={styles.container}>
-      {/* ⭐ Banner mínimo, no cambia la UI */}
-      {readOnly && (
-        <View style={styles.archivedBanner}>
-          <Text style={styles.archivedText}>
-            LISTA ARCHIVADA – SOLO LECTURA
-          </Text>
-        </View>
-      )}
+    <SafeAreaView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <FlatList
+          data={list.items}
+          keyExtractor={(i) => i.id}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 80 }}
+          // ⭐ AÑADIMOS HEADER A LA LISTA
+          ListHeaderComponent={
+            <View>
+              <StoreSelector navigation={navigation} />
 
-      <Text style={styles.title}>{list.name}</Text>
+              {/* BOTÓN PAGAR */}
+              <TouchableOpacity
+                style={styles.payButton}
+                onPress={() => {
+                  if (!list.items || list.items.length === 0) return;
+                  safeAlert(
+                    "Finalizar compra",
+                    "¿Confirmas que has pagado en la tienda?",
+                    [
+                      { text: "Cancelar", style: "cancel" },
+                      {
+                        text: "Sí, pagar",
+                        onPress: async () => {
+                          await addItemsToHistory(
+                            list.items.map((i) => ({
+                              ...i,
+                              listName: list.name,
+                            }))
+                          );
+                          await archiveList(list.id);
+                          navigation.navigate("ShoppingLists");
+                        },
+                      },
+                    ]
+                  );
+                }}
+              >
+                <Text style={styles.payButtonText}>💳 Finalizar compra</Text>
+              </TouchableOpacity>
 
-      {/* ➕ Añadir item (oculto si archivada) */}
-      {!readOnly && (
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nuevo producto..."
-            placeholderTextColor="#999"
-            value={newItemText}
-            onChangeText={setNewItemText}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
-            <Text style={styles.addButtonText}>+</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+              <SearchCombinedBar
+                currentList={list}
+                onSelectHistoryItem={handleSelectHistoryItem}
+              />
 
-      {/* LISTA DE ITEMS */}
-      <FlatList
-        data={list.items}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      />
+              {/* TOTAL */}
+              <View style={styles.totalContainer}>
+                <Text style={styles.totalLabel}>Total:</Text>
+                <Text style={styles.totalValue}>{total} €</Text>
+              </View>
 
-      {/* BOTONES DE PIE – mismos que tu UI original */}
-      {!readOnly && (
-        <View style={styles.footerButtons}>
-          <TouchableOpacity
-            style={[styles.footerBtn, { backgroundColor: "#007BFF" }]}
-            onPress={handleArchiveList}
-          >
-            <Text style={styles.footerBtnText}>Archivar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.footerBtn, { backgroundColor: "#CC0000" }]}
-            onPress={handleDeleteList}
-          >
-            <Text style={styles.footerBtnText}>Eliminar</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
+              {/* AÑADIR */}
+              <View style={styles.addRow}>
+                <TextInput
+                  style={styles.newInput}
+                  placeholder="Añadir producto..."
+                  placeholderTextColor="#999"
+                  value={nuevoItem}
+                  onChangeText={setNuevoItem}
+                  returnKeyType="done"
+                  blurOnSubmit={false}
+                />
+                <TouchableOpacity style={styles.addButton} onPress={addItem}>
+                  <Text style={styles.addButtonText}>＋</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          }
+        />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 //
-// 🎨 ESTILOS (los tuyos, intactos)
+// ESTILOS
 //
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#FAFAFA",
-  },
-  archivedBanner: {
-    backgroundColor: "#B00020",
-    padding: 6,
-    borderRadius: 6,
-    marginBottom: 10,
-  },
-  archivedText: {
-    color: "white",
-    textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 13,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-  inputRow: {
-    flexDirection: "row",
-    marginBottom: 15,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  addButton: {
-    marginLeft: 10,
-    backgroundColor: "#007BFF",
-    width: 45,
-    height: 45,
-    borderRadius: 8,
-    alignItems: "center",
     justifyContent: "center",
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  itemRow: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#E0E7FF",
     alignItems: "center",
   },
-  checkbox: {
-    marginRight: 12,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  itemPrice: {
-    fontSize: 12,
-    color: "#007BFF",
-  },
-  footerButtons: {
+
+  totalContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 15,
+    backgroundColor: "#E3F2FD",
+    padding: 12,
+    borderRadius: 10,
+    marginHorizontal: 10,
+    marginTop: 12,
+    marginBottom: 16,
   },
-  footerBtn: {
+  totalLabel: { fontSize: 20, fontWeight: "600" },
+  totalValue: { fontSize: 30, fontWeight: "800" },
+
+  addRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 10,
+    marginBottom: 10,
+  },
+  newInput: {
     flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    marginHorizontal: 5,
+    borderRadius: 10,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
   },
-  footerBtnText: {
+  addButton: {
+    marginLeft: 8,
+    backgroundColor: "#4CAF50",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  addButtonText: { color: "#fff", fontSize: 22, fontWeight: "bold" },
+  payButton: {
+    backgroundColor: "#4CAF50",
+    padding: 12,
+    marginHorizontal: 10,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  payButtonText: {
     color: "white",
-    textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: "600",
   },
 });

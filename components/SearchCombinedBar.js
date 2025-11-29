@@ -5,6 +5,7 @@ import {
   FlatList,
   Text,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
 } from "react-native";
 import { searchItemsAcrossLists } from "../utils/searchHelpers";
@@ -28,13 +29,15 @@ export default function SearchCombinedBar({
 
     const q = text.toLowerCase();
 
-    // 1️⃣ Buscar coincidencias locales
+    // 🔍 Resultados en la lista actual
     const local = currentList.items.filter((i) =>
       (i.name || "").toLowerCase().includes(q)
     );
 
-    // 2️⃣ Buscar coincidencias históricas
+    // 🔍 Resultados históricos
     const history = await searchItemsAcrossLists(text);
+
+    // Evitar duplicar coincidencias de la misma lista
     const filteredHistory = history.filter(
       (r) => String(r.listId) !== String(currentList.id)
     );
@@ -43,22 +46,22 @@ export default function SearchCombinedBar({
     setHistoryResults(filteredHistory);
   };
 
-  // 🧮 Comparar precios unitarios
   const getUnitPriceDiff = (currentName, pastUnitPrice) => {
     const match = currentList.items.find(
       (i) => i.name.trim().toLowerCase() === currentName.trim().toLowerCase()
     );
+
     if (!match || !match.priceInfo?.unitPrice) return null;
 
     const current = parseFloat(match.priceInfo.unitPrice);
     const diff = current - parseFloat(pastUnitPrice || 0);
+
     if (diff === 0) return { symbol: "=", color: "#999", value: "0.00" };
     if (diff > 0)
       return { symbol: "↑", color: "#e53935", value: `+${diff.toFixed(2)}` };
     return { symbol: "↓", color: "#43a047", value: diff.toFixed(2) };
   };
 
-  // 🧾 Formatear unidad
   const getUnitLabel = (item) => {
     const u = item?.priceInfo?.unitType || "unidad";
     return u === "kg" ? "€/kg" : u === "l" ? "€/l" : "€/u";
@@ -86,41 +89,48 @@ export default function SearchCombinedBar({
           ]}
           keyExtractor={(item, index) => item.id || `header-${index}`}
           renderItem={({ item }) => {
+            // 🏷 Header
             if (item.header) {
               return <Text style={styles.header}>{item.header}</Text>;
             }
 
-            // 🟩 Producto actual (muestra precio unitario)
+            // 🟩 Resultado LOCAL
             if (!item.listName) {
               const unitPrice =
                 item?.priceInfo?.unitPrice != null
                   ? parseFloat(item.priceInfo.unitPrice).toFixed(2)
                   : "—";
+
               return (
-                <View style={[styles.resultRow, styles.currentRow]}>
+                <TouchableOpacity
+                  style={[styles.resultRow, styles.currentRow]}
+                  onPress={() => onSelectHistoryItem(item)}
+                >
                   <Text style={styles.itemName}>{item.name}</Text>
                   <Text style={styles.listInfo}>
                     💰 {unitPrice} {getUnitLabel(item)}
                   </Text>
-                </View>
+                </TouchableOpacity>
               );
             }
 
-            // ⚪ Producto histórico (con comparación)
+            // 🟦 Resultado HISTÓRICO
             const pastUnit = item.item.priceInfo?.unitPrice ?? 0;
             const diff = getUnitPriceDiff(item.item.name, pastUnit);
 
             return (
               <TouchableOpacity
                 style={[styles.resultRow, styles.historyRow]}
-                onPress={() => onSelectHistoryItem(item)}
+                onPress={() => onSelectHistoryItem(item.item)}
               >
                 <Text style={styles.itemName}>{item.item.name}</Text>
+
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Text style={styles.listInfo}>
                     💰 {pastUnit.toFixed(2)} {getUnitLabel(item.item)} · 🧾{" "}
                     {item.listName}
                   </Text>
+
                   {diff && (
                     <Text
                       style={[
@@ -142,6 +152,9 @@ export default function SearchCombinedBar({
   );
 }
 
+//
+// 🎨 ESTILOS
+//
 const styles = StyleSheet.create({
   container: {
     position: "relative",
@@ -177,23 +190,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#eee",
   },
-  currentRow: {
-    backgroundColor: "#E8F5E9",
-  },
-  historyRow: {
-    backgroundColor: "#F9FAFB",
-  },
+  currentRow: { backgroundColor: "#E8F5E9" },
+  historyRow: { backgroundColor: "#F9FAFB" },
   itemName: {
     fontSize: 15,
     fontWeight: "600",
   },
-  listInfo: {
-    fontSize: 13,
-    color: "#555",
-    marginTop: 2,
-  },
-  diffText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  listInfo: { fontSize: 13, color: "#555", marginTop: 2 },
+  diffText: { fontSize: 12, fontWeight: "700" },
 });

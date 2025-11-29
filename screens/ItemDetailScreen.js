@@ -6,20 +6,18 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import PrecioPromocion from "../components/PrecioPromocion";
 import { defaultItem } from "../utils/defaultItem";
 import { safeAlert } from "../utils/safeAlert";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function ItemDetailScreen({ route, navigation }) {
   const { item, onSave, onDelete } = route.params;
 
-  // 🧊 Congelar ID original del item
   const originalId = item.id;
 
-  // ⭐ Estado único y consistente (AÑADIMOS barcode y aiData)
   const [itemData, setItemData] = useState({
     ...defaultItem,
     barcode: "",
@@ -29,7 +27,19 @@ export default function ItemDetailScreen({ route, navigation }) {
   });
 
   //
-  // ☰ Menú (hamburguesa)
+  // 🔁 Cuando volvemos del Scanner → actualizar barcode
+  //
+  useEffect(() => {
+    if (route.params?.scannedBarcode) {
+      setItemData((prev) => ({
+        ...prev,
+        barcode: route.params.scannedBarcode,
+      }));
+    }
+  }, [route.params?.scannedBarcode]);
+
+  //
+  // ☰ Menú
   //
   useEffect(() => {
     navigation.setOptions({
@@ -60,8 +70,6 @@ export default function ItemDetailScreen({ route, navigation }) {
 
     try {
       await onSave(updatedItem);
-
-      // Volver a la lista
       requestAnimationFrame(() => navigation.goBack());
     } catch (err) {
       console.error(err);
@@ -74,10 +82,7 @@ export default function ItemDetailScreen({ route, navigation }) {
   //
   const handleDelete = () => {
     safeAlert("Eliminar producto", "¿Seguro que deseas eliminarlo?", [
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
+      { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
         style: "destructive",
@@ -95,30 +100,11 @@ export default function ItemDetailScreen({ route, navigation }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* ⭐ NUEVO — Código de barras */}
-      {itemData.barcode ? (
-        <>
-          <Text style={styles.label}>Código de barras</Text>
-          <View style={styles.nonEditableBox}>
-            <Text style={styles.nonEditableText}>{itemData.barcode}</Text>
-          </View>
-        </>
-      ) : null}
-
-      {/* ⭐ NUEVO — Datos generados por ChatGPT */}
-      {itemData.aiData ? (
-        <>
-          <Text style={styles.label}>Datos generados por IA</Text>
-          <View style={styles.aiBox}>
-            <Text style={styles.aiText}>
-              {itemData.aiData.description ??
-                JSON.stringify(itemData.aiData, null, 2)}
-            </Text>
-          </View>
-        </>
-      ) : null}
-
+    <KeyboardAwareScrollView
+      contentContainerStyle={styles.container}
+      enableOnAndroid={true}
+      extraScrollHeight={40}
+    >
       {/* Nombre */}
       <Text style={styles.label}>Nombre</Text>
       <TextInput
@@ -126,6 +112,16 @@ export default function ItemDetailScreen({ route, navigation }) {
         value={itemData.name}
         onChangeText={(text) =>
           setItemData((prev) => ({ ...prev, name: text }))
+        }
+      />
+
+      {/* Barcode */}
+      <Text style={styles.label}>Código de barras</Text>
+      <TextInput
+        style={styles.input}
+        value={itemData.barcode}
+        onChangeText={(text) =>
+          setItemData((prev) => ({ ...prev, barcode: text }))
         }
       />
 
@@ -155,7 +151,7 @@ export default function ItemDetailScreen({ route, navigation }) {
           <Text style={styles.deleteText}>🗑️ Eliminar</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
@@ -173,34 +169,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 4,
   },
-
-  // ⭐ NUEVO — Caja no editable
-  nonEditableBox: {
-    padding: 12,
-    backgroundColor: "#eee",
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  nonEditableText: {
-    fontSize: 16,
-    color: "#555",
-  },
-
-  // ⭐ NUEVO — Caja IA
-  aiBox: {
-    padding: 12,
-    backgroundColor: "#f3f8ff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#c7ddff",
-    marginBottom: 16,
-  },
-  aiText: {
-    fontSize: 15,
-    color: "#333",
-    lineHeight: 20,
-  },
-
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -209,6 +177,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
+
+  // 📷 Botón escanear
+  scanBtn: {
+    backgroundColor: "#2196F3",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  scanBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
   actions: {
     flexDirection: "row",
     justifyContent: "space-between",
