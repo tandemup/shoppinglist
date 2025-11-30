@@ -1,17 +1,19 @@
 // screens/MenuScreen.js
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { safeAlert } from "../utils/safeAlert";
-import { storageClient } from "../utils/storage/storageClient";
+import { useStore } from "../context/StoreContext"; // ✅ IMPORTACIÓN CORRECTA
 import { clearStorage } from "../utils/storage/clearStorage";
 
 export default function MenuScreen({ navigation }) {
+  // ⬅️ OBTENER MÉTODOS DEL STORE
+  const {
+    clearActiveLists,
+    clearArchivedLists,
+    clearPurchaseHistory,
+    clearScannedHistory,
+  } = useStore();
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -20,6 +22,7 @@ export default function MenuScreen({ navigation }) {
       >
         <Text style={styles.buttonText}>📋 Mis listas</Text>
       </TouchableOpacity>
+
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("ArchivedLists")}
@@ -48,6 +51,88 @@ export default function MenuScreen({ navigation }) {
         <Text style={styles.buttonText}>⚙️ Configuración</Text>
       </TouchableOpacity>
 
+      {/* ⭐ BORRADO SELECTIVO */}
+
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#ef4444" }]}
+        onPress={() =>
+          safeAlert(
+            "Borrar listas activas",
+            "¿Seguro que quieres borrar TODAS las listas activas?",
+            [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Borrar",
+                style: "destructive",
+                onPress: clearActiveLists,
+              },
+            ]
+          )
+        }
+      >
+        <Text style={styles.buttonText}>🗑 Borrar listas activas</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#ef4444" }]}
+        onPress={() =>
+          safeAlert(
+            "Borrar listas archivadas",
+            "¿Seguro que quieres borrar TODAS las listas archivadas?",
+            [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Borrar",
+                style: "destructive",
+                onPress: clearArchivedLists,
+              },
+            ]
+          )
+        }
+      >
+        <Text style={styles.buttonText}>📦 Borrar listas archivadas</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#ef4444" }]}
+        onPress={() =>
+          safeAlert(
+            "Borrar historial de compras",
+            "¿Seguro que quieres borrar TODO el historial de compras?",
+            [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Borrar",
+                style: "destructive",
+                onPress: clearPurchaseHistory,
+              },
+            ]
+          )
+        }
+      >
+        <Text style={styles.buttonText}>🧾 Borrar historial de compras</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: "#ef4444" }]}
+        onPress={() =>
+          safeAlert(
+            "Borrar historial de escaneos",
+            "¿Seguro que quieres borrar TODO el historial de escaneos?",
+            [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Borrar",
+                style: "destructive",
+                onPress: clearScannedHistory,
+              },
+            ]
+          )
+        }
+      >
+        <Text style={styles.buttonText}>📷 Borrar historial de escaneos</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity
         style={[styles.button, { backgroundColor: "#ef4444" }]}
         onPress={async () => {
@@ -68,18 +153,15 @@ export default function MenuScreen({ navigation }) {
   );
 }
 
+//
+// 🎨 ESTILOS
+//
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     justifyContent: "center",
     backgroundColor: "#fff",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: 30,
-    textAlign: "center",
   },
   button: {
     backgroundColor: "#007bff",

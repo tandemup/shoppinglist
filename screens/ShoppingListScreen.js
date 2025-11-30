@@ -1,4 +1,5 @@
-//import { nanoid } from "nanoid/non-secure";
+// ShoppingListScreen.js — versión completa y corregida
+
 import { generateId } from "../utils/generateId";
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -21,10 +22,15 @@ import { defaultItem } from "../utils/defaultItem";
 import StoreSelector from "../components/StoreSelector";
 import SearchCombinedBar from "../components/SearchCombinedBar";
 import ItemRow from "../components/ItemRow";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { safeAlert } from "../utils/safeAlert";
+
+import { useStore } from "../context/StoreContext"; // IMPORTANTE
 
 export default function ShoppingListScreen({ route, navigation }) {
   const { listId } = route.params;
+
+  const { archiveList, addItemsToHistory } = useStore();
+
   const [list, setList] = useState(null);
   const [nuevoItem, setNuevoItem] = useState("");
 
@@ -58,7 +64,6 @@ export default function ShoppingListScreen({ route, navigation }) {
       return;
     }
 
-    // iOS puede retornar items = undefined
     setList({
       ...data,
       items: Array.isArray(data.items) ? data.items : [],
@@ -83,12 +88,11 @@ export default function ShoppingListScreen({ route, navigation }) {
         items: Array.isArray(prev.items) ? prev.items : [],
       };
     }
-
     return { id: listId, name: "Nueva lista", items: [] };
   };
 
   //
-  // AÑADIR ITEM
+  // AÑADIR ITEM MANUAL — al principio
   //
   const addItem = async () => {
     const name = (nuevoItem ?? "").toString().trim();
@@ -96,20 +100,22 @@ export default function ShoppingListScreen({ route, navigation }) {
 
     const newItem = {
       ...defaultItem,
-      id: generateId(), // *** SUSTITUYE uuidv4 ***
+      id: generateId(),
       name,
       checked: true,
       priceInfo: { total: 0, unitPrice: 0, qty: 1 },
     };
+
     await updateList(listId, (prev) => {
       const base = ensurePrev(prev);
       const safeItems = Array.isArray(base.items) ? base.items : [];
 
       return {
         ...base,
-        items: [newItem, ...safeItems], // 👈 PRIMERO
+        items: [newItem, ...safeItems], // 👈 AL PRINCIPIO
       };
     });
+
     setNuevoItem("");
     loadList();
   };
@@ -133,7 +139,7 @@ export default function ShoppingListScreen({ route, navigation }) {
   };
 
   //
-  // DETALLE
+  // DETALLE DE ITEM
   //
   const openItemDetail = (item) => {
     navigation.navigate("ItemDetailScreen", {
@@ -177,6 +183,32 @@ export default function ShoppingListScreen({ route, navigation }) {
       .toFixed(2);
   })();
 
+  //
+  // AÑADIR ITEM DESDE SEARCH BAR (sugerencia) — al principio
+  //
+  const handleSelectHistoryItem = async (historyItem) => {
+    const newItem = {
+      ...defaultItem,
+      id: generateId(),
+      name: historyItem.name || "",
+      brand: historyItem.brand || "",
+      barcode: historyItem.barcode || "",
+      image: historyItem.image || null,
+      priceInfo: historyItem.priceInfo || { total: 0, unitPrice: 0, qty: 1 },
+      checked: true,
+    };
+
+    await updateList(listId, (prev) => {
+      const base = ensurePrev(prev);
+      return {
+        ...base,
+        items: [newItem, ...base.items], // 👈 AL PRINCIPIO
+      };
+    });
+
+    loadList();
+  };
+
   const renderItem = ({ item }) => (
     <ItemRow item={item} onToggle={toggleChecked} onEdit={openItemDetail} />
   );
@@ -189,33 +221,9 @@ export default function ShoppingListScreen({ route, navigation }) {
     );
   }
 
-  const handleSelectHistoryItem = async (historyItem) => {
-    const newItem = {
-      ...defaultItem,
-      id: generateId(),
-      name: historyItem.name || "",
-      brand: historyItem.brand || "",
-      barcode: historyItem.barcode || "",
-      image: historyItem.image || null,
-      priceInfo: historyItem.priceInfo || {
-        total: 0,
-        unitPrice: 0,
-        qty: 1,
-      },
-      checked: true,
-    };
-
-    await updateList(listId, (prev) => {
-      const base = ensurePrev(prev);
-      return {
-        ...base,
-        items: [newItem, ...base.items], // ⬅️ CORREGIDO
-      };
-    });
-
-    loadList();
-  };
-
+  //
+  // RENDER PRINCIPAL
+  //
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <KeyboardAvoidingView
@@ -227,7 +235,6 @@ export default function ShoppingListScreen({ route, navigation }) {
           keyExtractor={(i) => i.id}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 80 }}
-          // ⭐ AÑADIMOS HEADER A LA LISTA
           ListHeaderComponent={
             <View>
               <StoreSelector navigation={navigation} />
@@ -237,6 +244,7 @@ export default function ShoppingListScreen({ route, navigation }) {
                 style={styles.payButton}
                 onPress={() => {
                   if (!list.items || list.items.length === 0) return;
+
                   safeAlert(
                     "Finalizar compra",
                     "¿Confirmas que has pagado en la tienda?",
@@ -251,7 +259,9 @@ export default function ShoppingListScreen({ route, navigation }) {
                               listName: list.name,
                             }))
                           );
+
                           await archiveList(list.id);
+
                           navigation.navigate("ShoppingLists");
                         },
                       },
@@ -262,6 +272,7 @@ export default function ShoppingListScreen({ route, navigation }) {
                 <Text style={styles.payButtonText}>💳 Finalizar compra</Text>
               </TouchableOpacity>
 
+              {/* BUSCADOR */}
               <SearchCombinedBar
                 currentList={list}
                 onSelectHistoryItem={handleSelectHistoryItem}
@@ -297,7 +308,7 @@ export default function ShoppingListScreen({ route, navigation }) {
 }
 
 //
-// ESTILOS
+// 🎨 ESTILOS
 //
 const styles = StyleSheet.create({
   loadingContainer: {
@@ -342,6 +353,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   addButtonText: { color: "#fff", fontSize: 22, fontWeight: "bold" },
+
   payButton: {
     backgroundColor: "#4CAF50",
     padding: 12,

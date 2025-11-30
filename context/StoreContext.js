@@ -1,15 +1,18 @@
-// StoreContext.js — versión FINAL integrada y limpia
+// StoreContext.js — versión FINAL con limpieza selectiva, explosión de items, historial separado
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// ⭐ Importamos helpers OFICIALES del almacenamiento
+// 🔹 Helpers de listas
 import {
   loadLists,
+  saveLists,
   addList as storageAddList,
   deleteList as storageDeleteList,
   updateList,
 } from "../utils/storage/listStorage";
 
+// 🔹 Helpers de historial de compras
 import {
   loadHistory,
   saveHistory,
@@ -21,9 +24,9 @@ export function StoreProvider({ children }) {
   const [lists, setLists] = useState([]);
   const [purchaseHistory, setPurchaseHistory] = useState([]);
 
-  //
-  // 📌 Cargar datos al iniciar
-  //
+  // ------------------------------------------------------
+  // 🔄 CARGA INICIAL
+  // ------------------------------------------------------
   useEffect(() => {
     (async () => {
       const listData = await loadLists();
@@ -34,95 +37,137 @@ export function StoreProvider({ children }) {
     })();
   }, []);
 
-  //
+  // ------------------------------------------------------
   // ➕ AÑADIR LISTA
-  //
+  // ------------------------------------------------------
   const addList = async (newList) => {
     await storageAddList(newList);
-
     const updated = await loadLists();
-    const sorted = updated.sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    );
-
-    setLists(sorted);
+    setLists(updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
   };
 
-  //
+  // ------------------------------------------------------
   // ✏️ RENOMBRAR LISTA
-  //
+  // ------------------------------------------------------
   const updateListName = async (id, newName) => {
-    await updateList(id, (base) => ({
-      ...base,
-      name: newName,
-    }));
-
+    await updateList(id, (base) => ({ ...base, name: newName }));
     const updated = await loadLists();
     setLists(updated);
   };
 
-  //
-  // 🗑 ELIMINAR LISTA — VERSIÓN FINAL
-  //
+  // ------------------------------------------------------
+  // 🗑 ELIMINAR LISTA
+  // ------------------------------------------------------
   const deleteList = async (id) => {
     await storageDeleteList(id);
-
     const updated = await loadLists();
-    const sorted = updated.sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    );
-
-    setLists(sorted);
+    setLists(updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
   };
 
-  //
-  // 📦 ARCHIVAR LISTA — VERSIÓN FINAL
-  //
+  // ------------------------------------------------------
+  // 📦 ARCHIVAR LISTA → Explota items al historial de compras
+  // ------------------------------------------------------
   const archiveList = async (id) => {
+    const allLists = await loadLists();
+    const target = allLists.find((l) => l.id === id);
+    if (!target) return;
+
+    // 1️⃣ Preparar items para historial
+    const itemsToAdd = (target.items || []).map((i) => ({
+      ...i,
+      listName: target.name,
+      barcode: i.barcode ?? null,
+      qty: i.priceInfo?.qty ?? 1,
+      price: i.priceInfo?.total ?? 0,
+      store: target.store || target.selectedStore || null,
+      purchasedAt: new Date().toISOString(),
+    }));
+
+    // 2️⃣ Añadir al historial de compras
+    const existing = await loadHistory();
+    const updatedHistory = [...existing, ...itemsToAdd];
+
+    await saveHistory(updatedHistory);
+    setPurchaseHistory(updatedHistory);
+
+    // 3️⃣ Marcar lista como archivada
     await updateList(id, (base) => ({
       ...base,
       archived: true,
       archivedAt: Date.now(),
     }));
 
-    const updated = await loadLists();
-    const sorted = updated.sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    );
-
-    setLists(sorted);
+    // 4️⃣ Refrescar listas
+    const refreshed = await loadLists();
+    setLists(refreshed.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
   };
 
-  //
-  // 📚 HISTORIAL DE COMPRAS
-  //
+  // ------------------------------------------------------
+  // 🧾 Añadir items al historial (desde botón pagar)
+  // ------------------------------------------------------
   const addItemsToHistory = async (items) => {
-    const current = await loadHistory();
-
+    const base = await loadHistory();
     const stamped = items.map((i) => ({
       ...i,
       purchasedAt: new Date().toISOString(),
     }));
 
-    const updated = [...current, ...stamped];
+    const updated = [...base, ...stamped];
     await saveHistory(updated);
     setPurchaseHistory(updated);
   };
 
-  //
-  // 🔄 fetchLists OFICIAL (usado por pantallas)
-  //
+  // ------------------------------------------------------
+  // 🔄 REFRESCAR LISTAS
+  // ------------------------------------------------------
   const fetchLists = async () => {
     const loaded = await loadLists();
-
-    // ⭐ ORDENAR — nueva lista primero
     const sorted = loaded.sort((a, b) =>
       b.createdAt.localeCompare(a.createdAt)
     );
-
     setLists(sorted);
     return sorted;
   };
+
+  // ------------------------------------------------------
+  // 🧹 BORRADO SELECTIVO
+  // ------------------------------------------------------
+
+  // 1️⃣ Borrar listas activas
+  const clearActiveLists = async () => {
+    const remaining = lists.filter((l) => l.archived);
+    await saveLists(remaining);
+    setLists(remaining);
+  };
+
+  // 2️⃣ Borrar listas archivadas
+  const clearArchivedLists = async () => {
+    // 1️⃣ Leer listas reales desde el almacenamiento
+    const all = await loadLists();
+
+    // 2️⃣ Eliminar las archivadas
+    const remaining = all.filter((l) => !l.archived);
+
+    // 3️⃣ Guardar nuevas listas
+    await saveLists(remaining);
+
+    // 4️⃣ Recargar listas y actualizar estado
+    const refreshed = await loadLists();
+    setLists(refreshed.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+  };
+
+  // 3️⃣ Borrar historial de compras
+  const clearPurchaseHistory = async () => {
+    await saveHistory([]);
+    setPurchaseHistory([]);
+  };
+
+  // 4️⃣ Borrar historial de escaneos
+  const clearScannedHistory = async () => {
+    await AsyncStorage.setItem("SCANNED_HISTORY", JSON.stringify([]));
+  };
+
+  // ------------------------------------------------------
 
   return (
     <StoreContext.Provider
@@ -136,6 +181,11 @@ export function StoreProvider({ children }) {
         archiveList,
         addItemsToHistory,
         fetchLists,
+
+        clearActiveLists,
+        clearArchivedLists,
+        clearPurchaseHistory,
+        clearScannedHistory,
       }}
     >
       {children}

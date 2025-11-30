@@ -61,6 +61,7 @@ export default function BarcodeScanner({
           barcodeTypes: config.scanner.barcodeTypes,
         }}
         onBarcodeScanned={(event) => {
+          if (!scanningEnabled) return; // 🔥 FIX CRÍTICO
           setScanningEnabled(false);
           onScanned(event);
         }}

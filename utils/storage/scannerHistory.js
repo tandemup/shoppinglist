@@ -1,34 +1,25 @@
-// utils/storage/scannerHistory.js
+// utils/storage/scannerHistory.js — VERSIÓN FINAL
+
 import { storageClient } from "./storageClient";
 
-const HISTORY_KEY = "@expo-shop/history";
+// 👈 NUEVA KEY EXCLUSIVA PARA ESCANEOS
+const SCANNED_KEY = "@expo-shop/scanned-history";
 
-/**
- * Leer historial
- */
 export async function getScannedHistory() {
-  const data = await storageClient.get(HISTORY_KEY);
+  const data = await storageClient.get(SCANNED_KEY);
   return Array.isArray(data) ? data : [];
 }
 
-/**
- * Limpiar historial
- */
 export async function clearScannedHistory() {
-  return await storageClient.set(HISTORY_KEY, []);
+  return await storageClient.set(SCANNED_KEY, []);
 }
 
-/**
- * Añadir o incrementar contador
- */
 export async function addScannedProduct(code) {
-  return await storageClient.update(HISTORY_KEY, (current) => {
+  return await storageClient.update(SCANNED_KEY, (current) => {
     const history = Array.isArray(current) ? [...current] : [];
-
     const index = history.findIndex((i) => i.code === code);
 
     if (index !== -1) {
-      // ya existe → incrementar
       const old = history[index];
       return history.map((e, i) =>
         i === index
@@ -37,51 +28,32 @@ export async function addScannedProduct(code) {
       );
     }
 
-    // entrada nueva
     return [
-      ...history,
       {
+        id: Date.now().toString(),
         code,
         count: 1,
+        scannedAt: new Date().toISOString(),
+        source: "scanner",
         ts: Date.now(),
-        isBook: false, // ← valor por defecto
       },
+      ...history,
     ];
   });
 }
 
-/**
- * Eliminar entrada
- */
-export async function deleteScannedEntry(code) {
-  return await storageClient.update(HISTORY_KEY, (current) => {
-    if (!Array.isArray(current)) return [];
-    return current.filter((item) => item.code !== code);
-  });
-}
-
-/**
- * ⭐ NUEVA FUNCIÓN (wrapper oficial) para borrar
- */
-export async function deleteScannedItem(code) {
-  return await deleteScannedEntry(code);
-}
-
-/**
- * Actualizar metadatos del producto escaneado
- */
 export async function updateScannedEntry(code, patch) {
-  return await storageClient.update(HISTORY_KEY, (current) => {
+  return await storageClient.update(SCANNED_KEY, (current) => {
     const history = Array.isArray(current) ? [...current] : [];
-
     const index = history.findIndex((i) => i.code === code);
     if (index === -1) return history;
 
     const old = history[index];
-
     const updated = {
       ...old,
-      ...patch, // mezcla fields (name, brand, url, isBook…)
+      ...patch,
+      source: "scanner",
+      scannedAt: old.scannedAt ?? new Date().toISOString(),
       ts: Date.now(),
     };
 
@@ -90,26 +62,32 @@ export async function updateScannedEntry(code, patch) {
   });
 }
 
-/**
- * Guardar producto escaneado (datos completos)
- */
 export async function addScannedProductFull({
   code,
   name,
   brand,
   image,
   url,
-  isBook, // ← NUEVO
+  isBook,
 }) {
-  // 1. Registrar o incrementar contador
   await addScannedProduct(code);
 
-  // 2. Actualizar metadatos y tipo libro
   await updateScannedEntry(code, {
     name,
     brand,
     image,
     url,
-    isBook, // ← se guarda ahora sí
+    isBook,
   });
+}
+
+export async function deleteScannedEntry(code) {
+  return await storageClient.update(SCANNED_KEY, (current) => {
+    if (!Array.isArray(current)) return [];
+    return current.filter((item) => item.code !== code);
+  });
+}
+
+export async function deleteScannedItem(code) {
+  return await deleteScannedEntry(code);
 }

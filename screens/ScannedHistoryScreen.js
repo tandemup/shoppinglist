@@ -1,100 +1,106 @@
-// screens/ScannedHistoryScreen.js
 import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
+  Image,
+  TouchableOpacity,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import dayjs from "dayjs";
-import {
-  getScannedHistory,
-  deleteScannedItem,
-} from "../utils/storage/scannerHistory";
+import { useStore } from "../context/StoreContext";
 
 export default function ScannedHistoryScreen({ navigation }) {
-  const [items, setItems] = useState([]);
-  const [query, setQuery] = useState("");
+  const [scannedItems, setScannedItems] = useState([]);
 
+  //
+  // 🍔 MENÚ HAMBURGUESA
+  //
   useEffect(() => {
-    loadItems();
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Menu")}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="menu" size={26} color="black" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  //
+  // 🔄 CARGAR ELEMENTOS ESCANEADOS
+  //
+  useEffect(() => {
+    loadScannedHistory();
   }, []);
 
-  const loadItems = async () => {
-    const data = await getScannedHistory();
+  const loadScannedHistory = async () => {
+    try {
+      const raw = await AsyncStorage.getItem("SCANNED_HISTORY");
+      const data = raw ? JSON.parse(raw) : [];
 
-    // Ordenar por fecha (más reciente arriba)
-    const sorted = data.sort((a, b) => b.ts - a.ts);
-    setItems(sorted);
+      // ❗ SOLO ESCANEADOS
+      const onlyScanned = data.filter((i) => i.source === "scanner");
+
+      // Ordenar por fecha descendente
+      onlyScanned.sort(
+        (a, b) =>
+          new Date(b.scannedAt).valueOf() - new Date(a.scannedAt).valueOf()
+      );
+
+      setScannedItems(onlyScanned);
+    } catch (error) {
+      console.log("Error loading scanned history:", error);
+    }
   };
 
-  // 🗑 Borrar un item del historial
-  const handleDelete = async (code) => {
-    await deleteScannedItem(code);
-    await loadItems(); // refrescamos la lista
-  };
-
-  // 🔍 Filtro SearchBar
-  const filteredItems = items.filter((item) => {
-    const text = query.toLowerCase();
-    return (
-      item.name?.toLowerCase().includes(text) ||
-      item.brand?.toLowerCase().includes(text) ||
-      item.code?.toLowerCase().includes(text)
-    );
-  });
-
+  //
+  // 🎨 RENDER DE CADA ITEM
+  //
   const renderItem = ({ item }) => (
-    <View style={[styles.card, item.isBook && styles.bookCard]}>
-      <TouchableOpacity
-        style={{ flex: 1 }}
-        onPress={() => navigation.navigate("EditScannedItem", { item })}
-      >
-        <Text style={styles.name}>{item.name || "Sin nombre"}</Text>
-        <Text style={styles.brand}>{item.brand || "Sin marca"}</Text>
+    <View style={styles.card}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.name}>{item.name}</Text>
 
-        <Text style={styles.code}>Código: {item.code}</Text>
-
-        {item.count > 1 && (
-          <Text style={styles.count}>Escaneado {item.count} veces</Text>
+        {item.barcode && (
+          <Text style={styles.barcode}>Código: {item.barcode}</Text>
         )}
 
-        <Text style={styles.date}>
-          {dayjs(item.ts).format("DD/MM/YYYY HH:mm")}
-        </Text>
-      </TouchableOpacity>
+        {item.scannedAt && (
+          <Text style={styles.date}>
+            Escaneado el {new Date(item.scannedAt).toLocaleDateString("es-ES")}
+          </Text>
+        )}
+      </View>
 
-      {/* BOTÓN BORRAR */}
-      <TouchableOpacity
-        onPress={() => handleDelete(item.code)}
-        style={styles.deleteButton}
-      >
-        <Text style={styles.deleteText}>Borrar</Text>
-      </TouchableOpacity>
+      {item.image ? (
+        <Image source={{ uri: item.image }} style={styles.image} />
+      ) : null}
     </View>
   );
 
+  //
+  // 🖥 RENDER PRINCIPAL
+  //
   return (
-    <View style={styles.container}>
-      {/* Barra de búsqueda */}
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Buscar por nombre, marca o código..."
-        value={query}
-        onChangeText={setQuery}
-      />
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Historial de Escaneos</Text>
 
-      {/* Lista con scroll */}
       <FlatList
-        data={filteredItems}
-        keyExtractor={(item) => item.code}
+        data={scannedItems}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 50 }}
+        ListEmptyComponent={
+          <Text style={styles.empty}>Todavía no has escaneado nada</Text>
+        }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -102,57 +108,60 @@ export default function ScannedHistoryScreen({ navigation }) {
 // 🎨 ESTILOS
 //
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 12, backgroundColor: "#f7f7f7" },
-
-  searchInput: {
-    backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#ddd",
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#FAFAFA",
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  empty: {
+    marginTop: 40,
+    fontSize: 16,
+    textAlign: "center",
+    color: "#888",
   },
 
   card: {
+    flexDirection: "row",
     backgroundColor: "#fff",
     padding: 14,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 10,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#e5e5e5",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    borderColor: "#E0E7FF",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 2,
+    elevation: 1,
   },
 
-  // ⭐ Azul claro para libros
-  bookCard: {
-    backgroundColor: "#E6F0FF",
-    borderLeftWidth: 4,
-    borderLeftColor: "#4A90E2",
-  },
-
-  name: { fontSize: 16, fontWeight: "bold", marginBottom: 2 },
-  brand: { fontSize: 14, color: "#666" },
-  code: { marginTop: 6, fontSize: 13, color: "#333" },
-  count: { marginTop: 4, fontSize: 12, color: "#666" },
-
-  date: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#999",
-  },
-
-  // ❌🗑 Botón BORRAR
-  deleteButton: {
-    backgroundColor: "#ffebee",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+  image: {
+    width: 60,
+    height: 60,
     borderRadius: 8,
     marginLeft: 10,
   },
-  deleteText: {
-    color: "#c62828",
+
+  name: {
+    fontSize: 16,
     fontWeight: "600",
+  },
+
+  barcode: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  date: {
+    marginTop: 4,
+    color: "#0066CC",
+    fontSize: 12,
   },
 });

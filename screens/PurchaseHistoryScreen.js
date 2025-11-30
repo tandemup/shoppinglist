@@ -6,26 +6,44 @@ import {
   StyleSheet,
   Image,
   ScrollView,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "../context/StoreContext";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 
 dayjs.locale("es");
 
-export default function PurchaseHistoryScreen() {
+export default function PurchaseHistoryScreen({ navigation }) {
   const { purchaseHistory, fetchLists } = useStore();
 
   //
-  // 🔄 Recargar historial cuando se llega a esta pantalla
+  // 🍔 MENÚ HAMBURGUESA
   //
   useEffect(() => {
-    fetchLists(); // opcional — refresca contexto al entrar
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Menu")}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="menu" size={26} color="black" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  //
+  // 🔄 Refrescar historial cuando se entra aquí
+  //
+  useEffect(() => {
+    fetchLists();
   }, []);
 
   //
-  // 🎯 Agrupar por fecha (YYYY-MM-DD)
+  // 🗂 AGRUPAR POR FECHA
   //
   const grouped = purchaseHistory.reduce((acc, item) => {
     const date = dayjs(item.purchasedAt).format("YYYY-MM-DD");
@@ -34,9 +52,6 @@ export default function PurchaseHistoryScreen() {
     return acc;
   }, {});
 
-  //
-  // 🗂 Crear array ordenado por fecha descendente
-  //
   const sortedSections = Object.keys(grouped)
     .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())
     .map((date) => ({
@@ -47,18 +62,27 @@ export default function PurchaseHistoryScreen() {
       ),
     }));
 
+  //
+  // 🎨 CARD DEL ITEM
+  //
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>{item.name}</Text>
-        {item.brand ? <Text style={styles.brand}>{item.brand}</Text> : null}
 
-        {/* Origen de la lista */}
-        {item.listName ? (
-          <Text style={styles.fromList}>De: {item.listName}</Text>
-        ) : null}
+        {item.barcode && (
+          <Text style={styles.barcode}>Código: {item.barcode}</Text>
+        )}
 
-        {item.price ? <Text style={styles.price}>{item.price} €</Text> : null}
+        <Text style={styles.price}>
+          💶 {item.price} € · Cant: {item.qty ?? 1}
+        </Text>
+
+        {item.store && (
+          <Text style={styles.store}>🏪 Tienda: {item.store}</Text>
+        )}
+
+        <Text style={styles.fromList}>De la lista: {item.listName}</Text>
       </View>
 
       {item.image ? (
@@ -67,6 +91,9 @@ export default function PurchaseHistoryScreen() {
     </View>
   );
 
+  //
+  // 🖥 RENDER
+  //
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Historial de Compras</Text>
@@ -133,31 +160,38 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: "#E0E7FF",
-
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 2,
     elevation: 1,
   },
+
   image: {
     width: 60,
     height: 60,
     borderRadius: 8,
     marginLeft: 10,
   },
+
   name: {
     fontSize: 16,
     fontWeight: "600",
   },
-  brand: {
-    fontSize: 12,
-    color: "#777",
+  barcode: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
   },
   price: {
     marginTop: 4,
     fontWeight: "700",
     color: "#0066CC",
+  },
+  store: {
+    marginTop: 2,
+    fontSize: 13,
+    color: "#777",
   },
   fromList: {
     marginTop: 4,

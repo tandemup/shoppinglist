@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -16,15 +16,46 @@ import { safeAlert } from "../utils/safeAlert";
 export default function ArchivedListsScreen({ navigation }) {
   const { lists, deleteList, fetchLists } = useStore();
 
+  //
+  // 🍔 MENÚ HAMBURGUESA
+  //
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Menu")}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="menu" size={26} color="black" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
+  //
+  // 🔄 RECARGAR AL ENTRAR
+  //
+  useEffect(() => {
+    fetchLists();
+  }, []);
+
+  //
   // ⭐ Solo listas archivadas
+  //
   const archivedLists = lists
     .filter((l) => l.archived)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .sort((a, b) => b.archivedAt - a.archivedAt);
 
+  //
+  // 🚪 ABRIR LISTA ARCHIVADA (solo lectura)
+  //
   const handleOpenList = (list) => {
     navigation.navigate("ShoppingList", { listId: list.id });
   };
 
+  //
+  // 🗑 BORRAR LISTA ARCHIVADA (long press)
+  //
   const handleDeleteList = (list) => {
     safeAlert("Eliminar lista", `¿Seguro que deseas eliminar "${list.name}"?`, [
       { text: "Cancelar", style: "cancel" },
@@ -39,6 +70,9 @@ export default function ArchivedListsScreen({ navigation }) {
     ]);
   };
 
+  //
+  // 🎨 RENDER ITEM
+  //
   const renderItem = ({ item }) => (
     <Pressable
       style={[styles.card, { opacity: 0.55 }]}
@@ -49,17 +83,24 @@ export default function ArchivedListsScreen({ navigation }) {
       <Text style={styles.name}>{item.name}</Text>
 
       <Text style={styles.date}>
-        Archivada el {new Date(item.archivedAt).toLocaleDateString()}
+        Archivada el{" "}
+        {item.archivedAt
+          ? new Date(item.archivedAt).toLocaleDateString("es-ES")
+          : "—"}
       </Text>
 
       <Text style={styles.count}>{item.items?.length || 0} productos</Text>
 
+      {/* Icono de candado */}
       <View style={styles.lock}>
         <Ionicons name="lock-closed" size={20} color="#B00020" />
       </View>
     </Pressable>
   );
 
+  //
+  // 🖥 RENDER PRINCIPAL
+  //
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Listas Archivadas</Text>
@@ -78,7 +119,7 @@ export default function ArchivedListsScreen({ navigation }) {
 }
 
 //
-// 🎨 ESTILOS (coherentes con tus pantallas actuales)
+// 🎨 ESTILOS
 //
 const styles = StyleSheet.create({
   container: {
@@ -86,16 +127,19 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#FAFAFA",
   },
+
   title: {
     fontSize: 26,
     fontWeight: "bold",
     marginBottom: 15,
   },
+
   empty: {
     textAlign: "center",
     color: "#777",
     marginTop: 20,
   },
+
   card: {
     backgroundColor: "#fff",
     padding: 16,
@@ -110,18 +154,22 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
+
   name: {
     fontSize: 16,
     fontWeight: "bold",
   },
+
   date: {
     color: "#666",
     fontSize: 12,
   },
+
   count: {
     color: "#888",
     marginTop: 4,
   },
+
   lock: {
     position: "absolute",
     top: 10,
