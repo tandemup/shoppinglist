@@ -1,192 +1,267 @@
-// ScannerTab.js — versión clásica con 3 botones + fixes internos
-
 import React, { useState, useRef } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
-  StyleSheet,
+  Pressable,
+  Animated,
   Image,
-  ActivityIndicator,
+  Linking,
+  Platform,
+  StyleSheet,
 } from "react-native";
+import { useCameraPermissions } from "expo-camera";
 
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { Ionicons } from "@expo/vector-icons";
-
+import BarcodeScanner from "../components/BarcodeScanner";
+import { fetchProductInfo } from "./ProductLookup";
+import SEARCH_ENGINES from "../data/search_engines.json";
 import { addScannedProductFull } from "../utils/storage/scannerHistory";
-import {
-  isISBN,
-  fetchBookInfo,
-  fetchProductInfo,
-} from "../utils/scannerHelpers";
+import { useConfig } from "../context/ConfigContext";
+import { isISBN } from "../utils/isISBN";
 
 export default function ScannerTab({ navigation }) {
+  const { config } = useConfig();
+
+  // 📌 Permisos
   const [permission, requestPermission] = useCameraPermissions();
 
-  const [scanningEnabled, setScanningEnabled] = useState(true);
-  const [torch, setTorch] = useState(false);
-  const [zoom] = useState(0);
+  // 📌 Estados
+  const [scanned, setScanned] = useState(false);
+  const [product, setProduct] = useState(null);
+  const [lastCode, setLastCode] = useState(null);
+  const [message, setMessage] = useState("");
+  const [selectedSearch, setSelectedSearch] = useState(null);
+  const [isBook, setIsBook] = useState(false); // ⭐ NUEVO
 
-  const [loading, setLoading] = useState(false);
-  const [info, setInfo] = useState(null);
+  const abortController = useRef(null);
+  const checkAnim = useRef(new Animated.Value(0)).current;
 
-  const zoomRef = useRef(0);
+  // ⭐ Grupos de motores según el JSON
+  const BOOK_ENGINES = SEARCH_ENGINES.filter((e) => e.forBooks);
+  const PRODUCT_ENGINES = SEARCH_ENGINES.filter((e) => !e.forBooks);
 
-  // -------------------------------------------------
-  // Permisos de cámara
-  // -------------------------------------------------
-  if (!permission?.granted) {
+  // ⭐ Escaneo
+  const handleBarcodeScanned = async ({ data }) => {
+    if (scanned) return;
+
+    setScanned(true);
+    setProduct(null);
+    setLastCode(data);
+
+    // ✔ Animación de check
+    Animated.sequence([
+      Animated.timing(checkAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.delay(900),
+      Animated.timing(checkAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    abortController.current = new AbortController();
+
+    // ⭐ Detección ISBN
+    const bookDetected = isISBN(data);
+    setIsBook(bookDetected);
+
+    if (bookDetected) {
+      setSelectedSearch(BOOK_ENGINES[0]);
+      setMessage("📚 ISBN detectado — motores de libros activados");
+    } else {
+      setSelectedSearch(PRODUCT_ENGINES[0]);
+      setMessage("🔍 Producto general");
+    }
+    setTimeout(() => setMessage(""), 2000);
+
+    // ⭐ Lookup real
+    const info = await fetchProductInfo(
+      data,
+      abortController.current.signal,
+      config
+    );
+
+    if (info) {
+      setProduct(info);
+
+      await addScannedProductFull({
+        id: Date.now().toString(),
+        barcode: data,
+        name: info.name,
+        brand: info.brand,
+        image: info.image,
+        url: info.url,
+        isBook: bookDetected, // ⭐ NUEVO
+        scannedAt: new Date().toISOString(),
+        source: "scanner",
+      });
+    } else {
+      setMessage("Búsqueda cancelada o no encontrada");
+      setTimeout(() => setMessage(""), 2000);
+    }
+  };
+
+  // 🆕 Permisos cámara
+  if (!permission) {
+    return <View style={{ flex: 1, backgroundColor: "black" }} />;
+  }
+
+  if (!permission.granted) {
     return (
-      <View style={styles.center}>
-        <Text style={{ marginBottom: 15 }}>
-          Necesitamos permiso para usar la cámara.
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "black",
+          padding: 20,
+        }}
+      >
+        <Text
+          style={{
+            color: "white",
+            marginBottom: 20,
+            fontSize: 18,
+            textAlign: "center",
+          }}
+        >
+          La app necesita permiso para usar la cámara
         </Text>
-        <TouchableOpacity style={styles.bigButton} onPress={requestPermission}>
-          <Text style={styles.bigButtonText}>Conceder permiso</Text>
-        </TouchableOpacity>
+
+        <Pressable
+          onPress={requestPermission}
+          style={{
+            backgroundColor: "#2563eb",
+            paddingVertical: 12,
+            paddingHorizontal: 30,
+            borderRadius: 10,
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
+            Conceder permiso
+          </Text>
+        </Pressable>
       </View>
     );
   }
 
-  // -------------------------------------------------
-  // Lógica principal del escaneo
-  // -------------------------------------------------
-  const handleScan = async ({ data }) => {
-    if (loading) return;
-    setLoading(true);
-
-    console.log("📸 Escaneado:", data);
-
-    let meta = null;
-    let isBook = false;
-
-    try {
-      if (isISBN(data)) {
-        isBook = true;
-        meta = await fetchBookInfo(data);
-      } else {
-        meta = await fetchProductInfo(data);
-      }
-    } catch (e) {
-      console.log("Error obteniendo info:", e);
-    }
-
-    meta = {
-      name: meta?.name ?? "Producto desconocido",
-      brand: meta?.brand ?? "",
-      image: meta?.image ?? null,
-      url: meta?.url ?? null,
-    };
-
-    // Mostrar info básica en pantalla
-    setInfo({
-      code: data,
-      name: meta.name,
-      brand: meta.brand,
-      image: meta.image,
-      isBook,
-    });
-
-    // Guardar en historial de escaneos
-    await addScannedProductFull({
-      id: Date.now().toString(),
-      code: data,
-      name: meta.name,
-      brand: meta.brand,
-      image: meta.image,
-      isBook,
-      scannedAt: new Date().toISOString(),
-      source: "scanner",
-    });
-
-    console.log("💾 Guardado correctamente en historial");
-
-    setLoading(false);
-  };
-
-  // -------------------------------------------------
-  // UI principal
-  // -------------------------------------------------
+  // 📸 UI principal
   return (
-    <View style={{ flex: 1 }}>
-      {/* Cámara */}
-      <CameraView
-        style={{ flex: 1 }}
-        facing="back"
-        zoom={zoomRef.current}
-        autoFocus="on"
-        enableTorch={torch}
-        barcodeScannerSettings={{
-          barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e", "code128"],
+    <View style={{ flex: 1, backgroundColor: "black" }}>
+      <BarcodeScanner
+        onScanned={handleBarcodeScanned}
+        onReenable={() => {
+          abortController.current?.abort();
+          setScanned(false);
+          setProduct(null);
+          setLastCode(null);
+          setMessage("📸 Listo para nuevo escaneo");
+          setTimeout(() => setMessage(""), 2000);
         }}
-        onBarcodeScanned={(event) => {
-          if (!scanningEnabled) return; // 🔥 FIX CRÍTICO
-          setScanningEnabled(false);
-          handleScan(event);
+        onCancel={() => {
+          abortController.current?.abort();
+          navigation.goBack();
         }}
       />
 
-      {/* Información simple debajo (UI original de 1 línea) */}
-      {info && (
+      {/* Indicador */}
+      {!scanned && (
+        <Text style={styles.hintText}>Apunta al código para escanear</Text>
+      )}
+      {scanned && (
+        <Text style={styles.hintText}>
+          Pulsa el botón central para nuevo escaneo
+        </Text>
+      )}
+
+      {/* ✔ Animación */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          top: "35%",
+          left: 0,
+          right: 0,
+          alignItems: "center",
+          opacity: checkAnim,
+        }}
+      >
+        <Text style={{ color: "#22c55e", fontSize: 60 }}>✔</Text>
+      </Animated.View>
+
+      {/* Info Box */}
+      {lastCode && (
         <View style={styles.infoBox}>
-          <Text style={styles.infoName}>{info.name}</Text>
-          {info.brand ? (
-            <Text style={styles.infoBrand}>{info.brand}</Text>
-          ) : null}
-          {info.image ? (
-            <Image source={{ uri: info.image }} style={styles.infoImg} />
-          ) : null}
-          <Text style={styles.infoCode}>Código: {info.code}</Text>
+          <Text style={styles.codeTitle}>Código escaneado: {lastCode}</Text>
+
+          {/* 🔎 Selector según ISBN */}
+          <View style={styles.searchSelector}>
+            {(isBook ? BOOK_ENGINES : PRODUCT_ENGINES).map((engine) => {
+              const active = selectedSearch?.id === engine.id;
+
+              return (
+                <Pressable
+                  key={engine.id}
+                  style={[
+                    styles.searchButton,
+                    active && styles.searchButtonActive,
+                  ]}
+                  onPress={() => {
+                    abortController.current?.abort();
+                    setSelectedSearch(engine);
+
+                    setMessage("Buscando con: " + engine.name);
+                    setTimeout(() => setMessage(""), 1500);
+
+                    setProduct({
+                      name: "Abrir en " + engine.name,
+                      brand: "",
+                      image: null,
+                      url: engine.baseUrl + lastCode,
+                    });
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.searchButtonText,
+                      active && styles.searchButtonTextActive,
+                    ]}
+                  >
+                    {engine.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Resultado */}
+          {product && (
+            <>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productBrand}>{product.brand}</Text>
+
+              {product.image && (
+                <Image
+                  source={{ uri: product.image }}
+                  style={styles.productImage}
+                />
+              )}
+
+              <Pressable
+                onPress={() => Linking.openURL(product.url)}
+                style={styles.openLinkBtn}
+              >
+                <Text style={styles.openLinkText}>🌐 Abrir enlace</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       )}
 
-      {/* LOADING */}
-      {loading && (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={{ color: "white", marginTop: 5 }}>Procesando…</Text>
-        </View>
-      )}
-
-      {/* ---------------------------- */}
-      {/*    BARRA DE TRES BOTONES     */}
-      {/* ---------------------------- */}
-
-      <View style={styles.buttonBar}>
-        {/* 🔦 Linterna */}
-        <TouchableOpacity
-          style={styles.barButton}
-          onPress={() => setTorch((v) => !v)}
-        >
-          <Ionicons
-            name={torch ? "flash" : "flash-off"}
-            size={30}
-            color="white"
-          />
-          <Text style={styles.barButtonText}>Linterna</Text>
-        </TouchableOpacity>
-
-        {/* 🔄 Re-escanear */}
-        <TouchableOpacity
-          style={styles.barButton}
-          onPress={() => {
-            setInfo(null);
-            setScanningEnabled(true);
-          }}
-        >
-          <Ionicons name="scan" size={30} color="white" />
-          <Text style={styles.barButtonText}>Escanear</Text>
-        </TouchableOpacity>
-
-        {/* 📚 Historial */}
-        <TouchableOpacity
-          style={styles.barButton}
-          onPress={() => navigation.navigate("ScannedHistory")}
-        >
-          <Ionicons name="time" size={30} color="white" />
-          <Text style={styles.barButtonText}>Historial</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Mensaje flotante */}
+      {message ? <Text style={styles.floatMsg}>{message}</Text> : null}
     </View>
   );
 }
@@ -195,72 +270,103 @@ export default function ScannerTab({ navigation }) {
 // 🎨 ESTILOS
 //
 const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  hintText: {
+    position: "absolute",
+    bottom: 70,
+    alignSelf: "center",
+    color: "white",
+    backgroundColor: "#0006",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    fontSize: 14,
   },
 
   infoBox: {
     position: "absolute",
-    bottom: 140,
-    left: 0,
-    right: 0,
-    padding: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    alignItems: "center",
+    top: 50,
+    left: 20,
+    right: 20,
+    padding: 16,
+    backgroundColor: "rgba(0,0,0,0.65)",
+    borderRadius: 14,
   },
-  infoName: { color: "white", fontSize: 18, fontWeight: "700" },
-  infoBrand: { color: "#ccc", marginTop: 3 },
-  infoCode: { color: "#ddd", marginTop: 5 },
-  infoImg: {
-    width: 100,
-    height: 100,
+
+  codeTitle: {
+    color: "#22c55e",
+    fontSize: 16,
+  },
+
+  searchSelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 10,
+  },
+
+  searchButton: {
+    backgroundColor: "#1f2937",
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+
+  searchButtonActive: {
+    backgroundColor: "#2563eb",
+    borderColor: "#1e40af",
+    borderWidth: 1.4,
+  },
+
+  searchButtonText: {
+    color: "#e5e7eb",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  searchButtonTextActive: {
+    color: "white",
+    fontWeight: "700",
+  },
+
+  productName: {
+    color: "white",
+    fontSize: 20,
+    marginTop: 10,
+  },
+
+  productBrand: {
+    color: "#bbb",
+  },
+
+  productImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
     marginTop: 8,
+  },
+
+  openLinkBtn: {
+    backgroundColor: "#2563eb",
+    marginTop: 10,
+    padding: 8,
     borderRadius: 8,
   },
 
-  loading: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  buttonBar: {
-    position: "absolute",
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-  },
-
-  barButton: {
-    backgroundColor: "black",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    width: 110,
-  },
-
-  barButtonText: {
+  openLinkText: {
     color: "white",
-    fontSize: 12,
-    marginTop: 4,
+    textAlign: "center",
+    fontWeight: "bold",
   },
 
-  bigButton: {
-    backgroundColor: "#007bff",
-    padding: 14,
-    borderRadius: 10,
-  },
-  bigButtonText: {
-    fontSize: 16,
+  floatMsg: {
+    position: "absolute",
+    bottom: 80,
     color: "white",
+    backgroundColor: "#0007",
+    padding: 6,
+    borderRadius: 8,
+    alignSelf: "center",
   },
 });

@@ -63,9 +63,17 @@ export default function ScannedHistoryScreen({ navigation }) {
   // 🎨 RENDER DE CADA ITEM
   //
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        item.isBook && styles.cardBook, // ⭐ NUEVO
+      ]}
+    >
       <View style={{ flex: 1 }}>
-        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.name}>
+          {item.isBook ? "📚 " : ""}
+          {item.name}
+        </Text>
 
         {item.barcode && (
           <Text style={styles.barcode}>Código: {item.barcode}</Text>
@@ -163,5 +171,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#0066CC",
     fontSize: 12,
+  },
+  cardBook: {
+    backgroundColor: "#E0F2FF", // Azul muy suave
+    borderColor: "#60A5FA",
+    borderWidth: 1.2,
   },
 });
