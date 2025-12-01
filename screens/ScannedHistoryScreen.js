@@ -90,20 +90,17 @@ export default function ScannedHistoryScreen({ navigation }) {
   }, [searchQuery, scannedItems]);
 
   //
-  // 🗑 LONG PRESS PARA BORRAR UN ITEM (SAFEALERT)
+  // 🗑 LONG PRESS PARA BORRAR UN ITEM
   //
   const handleDelete = (item) => {
     safeAlert("Eliminar", `¿Deseas eliminar este escaneo?\n\n${item.name}`, [
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
+      { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
         style: "destructive",
         onPress: async () => {
-          await removeScannedItem(item.id);
-          loadScannedHistory();
+          await removeScannedItem(item.barcode); // ← ✔ CORREGIDO
+          loadScannedHistory(); // Recargar
         },
       },
     ]);
@@ -185,7 +182,7 @@ export default function ScannedHistoryScreen({ navigation }) {
       <FlatList
         data={filteredItems}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.barcode} // ← ✔ CORREGIDO
         contentContainerStyle={{ paddingBottom: 50 }}
         ListEmptyComponent={
           <Text style={styles.empty}>No se encontraron resultados</Text>
@@ -237,13 +234,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#E0F2FF",
     borderColor: "#60A5FA",
     borderWidth: 1.2,
-  },
-
-  image: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginLeft: 10,
   },
 
   name: {

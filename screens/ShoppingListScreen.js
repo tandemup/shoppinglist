@@ -213,7 +213,7 @@ export default function ShoppingListScreen({ route, navigation }) {
   // RENDER PRINCIPAL
   //
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -258,6 +258,12 @@ export default function ShoppingListScreen({ route, navigation }) {
                       {
                         text: "Sí, pagar",
                         onPress: async () => {
+                          await addItemsToHistory(
+                            list.items.map((i) => ({
+                              ...i,
+                              listName: list.name,
+                            }))
+                          );
                           await archiveList(list.id);
                           navigation.navigate("ShoppingLists");
                         },

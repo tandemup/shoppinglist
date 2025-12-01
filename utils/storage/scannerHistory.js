@@ -6,7 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const SCANNED_KEY = "@expo-shop/scanned-history";
 
 //
-// 🔄 Cargar historial completo
+// 📌 Cargar historial completo
 //
 export const getScannedHistory = async () => {
   try {
@@ -19,21 +19,26 @@ export const getScannedHistory = async () => {
 };
 
 //
-// 💾 Guardar un nuevo escaneo (sin duplicados + contador)
+// 📌 Guardar un nuevo escaneo
+//    - Evita duplicados
+//    - Incrementa scanCount
+//    - Siempre usa BARCODE como ID real
 //
 export const addScannedProductFull = async (item) => {
   try {
     const all = await getScannedHistory();
-
     const code = item.barcode ?? item.code ?? null;
 
-    // Buscar si ya existe
-    const existing = all.find((i) => i.barcode === code);
+    if (!code) {
+      console.log("❌ No barcode found in scanned item");
+      return null;
+    }
 
+    const existing = all.find((i) => i.barcode === code);
     let newItem;
 
     if (existing) {
-      // 🔁 Ya existe → actualizarlo y sumar contador
+      // 🔁 Ya existe → actualizar y sumar contador
       newItem = {
         ...existing,
         name: item.name ?? existing.name,
@@ -52,9 +57,9 @@ export const addScannedProductFull = async (item) => {
       return newItem;
     }
 
-    // 🆕 No existe → crear nuevo
+    // 🆕 Nuevo producto escaneado
     newItem = {
-      id: Date.now().toString(),
+      id: Date.now().toString(), // ID opcional, ya no se usa como clave
       barcode: code,
       name: item.name ?? "Producto",
       brand: item.brand ?? "",
@@ -75,7 +80,7 @@ export const addScannedProductFull = async (item) => {
 };
 
 //
-// ✏️ Actualizar un item existente
+// ✏️ Actualizar un item por BARCODE
 //
 export const updateScannedEntry = async (barcode, updates) => {
   try {
@@ -98,12 +103,14 @@ export const updateScannedEntry = async (barcode, updates) => {
 };
 
 //
-// 🗑 Eliminar un solo item
+// 🗑 Eliminar un SOLO item usando barcode (CORREGIDO)
 //
-export const removeScannedItem = async (id) => {
+export const removeScannedItem = async (barcode) => {
   try {
     const all = await getScannedHistory();
-    const filtered = all.filter((i) => i.id !== id);
+
+    // ⭐ Ahora se borra por BARCODE, no por id
+    const filtered = all.filter((item) => item.barcode !== barcode);
 
     await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(filtered));
   } catch (err) {
