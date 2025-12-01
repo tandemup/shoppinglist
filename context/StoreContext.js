@@ -73,13 +73,20 @@ export function StoreProvider({ children }) {
     if (!target) return;
 
     // 1️⃣ Preparar items para historial
+    const normalizeStore = (storeObj) => {
+      if (!storeObj) return null;
+      if (typeof storeObj === "string") return storeObj;
+      if (storeObj.name) return storeObj.name;
+      return JSON.stringify(storeObj); // fallback
+    };
+
     const itemsToAdd = (target.items || []).map((i) => ({
       ...i,
       listName: target.name,
       barcode: i.barcode ?? null,
       qty: i.priceInfo?.qty ?? 1,
       price: i.priceInfo?.total ?? 0,
-      store: target.store || target.selectedStore || null,
+      store: normalizeStore(target.store),
       purchasedAt: new Date().toISOString(),
     }));
 
@@ -142,18 +149,25 @@ export function StoreProvider({ children }) {
 
   // 2️⃣ Borrar listas archivadas
   const clearArchivedLists = async () => {
-    // 1️⃣ Leer listas reales desde el almacenamiento
-    const all = await loadLists();
+    try {
+      // 1️⃣ Leer listas reales desde el almacenamiento
+      const all = await loadLists();
 
-    // 2️⃣ Eliminar las archivadas
-    const remaining = all.filter((l) => !l.archived);
+      // 2️⃣ Eliminar las archivadas
+      const remaining = all.filter((l) => !l.archived);
 
-    // 3️⃣ Guardar nuevas listas
-    await saveLists(remaining);
+      // 3️⃣ Guardar nuevas listas (solo activas)
+      await saveLists(remaining);
 
-    // 4️⃣ Recargar listas y actualizar estado
-    const refreshed = await loadLists();
-    setLists(refreshed.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+      // 4️⃣ Ordenar y actualizar estado directamente (sin segunda lectura)
+      const sorted = [...remaining].sort((a, b) =>
+        (b.createdAt ?? "").localeCompare(a.createdAt ?? "")
+      );
+
+      setLists(sorted);
+    } catch (err) {
+      console.log("❌ Error clearing archived lists:", err);
+    }
   };
 
   // 3️⃣ Borrar historial de compras
@@ -161,10 +175,11 @@ export function StoreProvider({ children }) {
     await saveHistory([]);
     setPurchaseHistory([]);
   };
-
-  // 4️⃣ Borrar historial de escaneos
   const clearScannedHistory = async () => {
-    await AsyncStorage.setItem("SCANNED_HISTORY", JSON.stringify([]));
+    await AsyncStorage.setItem(
+      "@expo-shop/scanned-history",
+      JSON.stringify([])
+    );
   };
 
   // ------------------------------------------------------

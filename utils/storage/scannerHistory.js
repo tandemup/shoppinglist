@@ -1,93 +1,123 @@
-// utils/storage/scannerHistory.js — VERSIÓN FINAL
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { storageClient } from "./storageClient";
-
-// 👈 NUEVA KEY EXCLUSIVA PARA ESCANEOS
+//
+// 🔑 CLAVE OFICIAL DEL PROYECTO
+//
 const SCANNED_KEY = "@expo-shop/scanned-history";
 
-export async function getScannedHistory() {
-  const data = await storageClient.get(SCANNED_KEY);
-  return Array.isArray(data) ? data : [];
-}
+//
+// 🔄 Cargar historial completo
+//
+export const getScannedHistory = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(SCANNED_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.log("❌ Error reading scanned history:", err);
+    return [];
+  }
+};
 
-export async function clearScannedHistory() {
-  return await storageClient.set(SCANNED_KEY, []);
-}
+//
+// 💾 Guardar un nuevo escaneo (sin duplicados + contador)
+//
+export const addScannedProductFull = async (item) => {
+  try {
+    const all = await getScannedHistory();
 
-export async function addScannedProduct(code) {
-  return await storageClient.update(SCANNED_KEY, (current) => {
-    const history = Array.isArray(current) ? [...current] : [];
-    const index = history.findIndex((i) => i.code === code);
+    const code = item.barcode ?? item.code ?? null;
 
-    if (index !== -1) {
-      const old = history[index];
-      return history.map((e, i) =>
-        i === index
-          ? { ...old, count: (old.count ?? 1) + 1, ts: Date.now() }
-          : e
-      );
+    // Buscar si ya existe
+    const existing = all.find((i) => i.barcode === code);
+
+    let newItem;
+
+    if (existing) {
+      // 🔁 Ya existe → actualizarlo y sumar contador
+      newItem = {
+        ...existing,
+        name: item.name ?? existing.name,
+        brand: item.brand ?? existing.brand,
+        image: item.image ?? existing.image,
+        url: item.url ?? existing.url,
+        isBook: item.isBook ?? existing.isBook,
+        scannedAt: new Date().toISOString(),
+        scanCount: (existing.scanCount ?? 1) + 1,
+      };
+
+      const filtered = all.filter((i) => i.barcode !== code);
+      const updated = [newItem, ...filtered];
+
+      await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(updated));
+      return newItem;
     }
 
-    return [
-      {
-        id: Date.now().toString(),
-        code,
-        count: 1,
-        scannedAt: new Date().toISOString(),
-        source: "scanner",
-        ts: Date.now(),
-      },
-      ...history,
-    ];
-  });
-}
-
-export async function updateScannedEntry(code, patch) {
-  return await storageClient.update(SCANNED_KEY, (current) => {
-    const history = Array.isArray(current) ? [...current] : [];
-    const index = history.findIndex((i) => i.code === code);
-    if (index === -1) return history;
-
-    const old = history[index];
-    const updated = {
-      ...old,
-      ...patch,
+    // 🆕 No existe → crear nuevo
+    newItem = {
+      id: Date.now().toString(),
+      barcode: code,
+      name: item.name ?? "Producto",
+      brand: item.brand ?? "",
+      image: item.image ?? null,
+      url: item.url ?? null,
+      isBook: item.isBook ?? false,
+      scannedAt: new Date().toISOString(),
       source: "scanner",
-      scannedAt: old.scannedAt ?? new Date().toISOString(),
-      ts: Date.now(),
+      scanCount: 1,
     };
 
-    history[index] = updated;
-    return history;
-  });
-}
+    const updated = [newItem, ...all];
+    await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(updated));
+    return newItem;
+  } catch (err) {
+    console.log("❌ Error saving scanned product:", err);
+  }
+};
 
-export async function addScannedProductFull({
-  code,
-  name,
-  brand,
-  image,
-  url,
-  isBook,
-}) {
-  await addScannedProduct(code);
+//
+// ✏️ Actualizar un item existente
+//
+export const updateScannedEntry = async (barcode, updates) => {
+  try {
+    const all = await getScannedHistory();
 
-  await updateScannedEntry(code, {
-    name,
-    brand,
-    image,
-    url,
-    isBook,
-  });
-}
+    const updatedList = all.map((item) => {
+      if (item.barcode === barcode) {
+        return {
+          ...item,
+          ...updates,
+        };
+      }
+      return item;
+    });
 
-export async function deleteScannedEntry(code) {
-  return await storageClient.update(SCANNED_KEY, (current) => {
-    if (!Array.isArray(current)) return [];
-    return current.filter((item) => item.code !== code);
-  });
-}
+    await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(updatedList));
+  } catch (err) {
+    console.log("❌ Error updating scanned entry:", err);
+  }
+};
 
-export async function deleteScannedItem(code) {
-  return await deleteScannedEntry(code);
-}
+//
+// 🗑 Eliminar un solo item
+//
+export const removeScannedItem = async (id) => {
+  try {
+    const all = await getScannedHistory();
+    const filtered = all.filter((i) => i.id !== id);
+
+    await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(filtered));
+  } catch (err) {
+    console.log("❌ Error deleting scanned item:", err);
+  }
+};
+
+//
+// 🚨 Borrar TODO el historial
+//
+export const clearScannedHistory = async () => {
+  try {
+    await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify([]));
+  } catch (err) {
+    console.log("❌ Error clearing scanned history:", err);
+  }
+};

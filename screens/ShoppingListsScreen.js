@@ -15,14 +15,14 @@ import { useStore } from "../context/StoreContext";
 
 export default function ShoppingListsScreen({ navigation }) {
   //
-  // 🧠 OBTENER DATOS DEL STORE
+  // 🧠 Usamos SOLO el contexto global (sin estados duplicados)
   //
   const { lists, addList, deleteList, archiveList, fetchLists } = useStore();
 
   const [newListName, setNewListName] = useState("");
 
   //
-  // 🔄 AL VOLVER A LA PANTALLA → RECARGAR LISTAS
+  // 🔄 Recargar listas cuando se vuelve a esta pantalla
   //
   useEffect(() => {
     const unsub = navigation.addListener("focus", fetchLists);
@@ -30,7 +30,7 @@ export default function ShoppingListsScreen({ navigation }) {
   }, [navigation, fetchLists]);
 
   //
-  // 🎛 CONFIGURAR CABECERA
+  // 🎛 Ajustes del header
   //
   useEffect(() => {
     navigation.setOptions({
@@ -47,7 +47,7 @@ export default function ShoppingListsScreen({ navigation }) {
   }, [navigation]);
 
   //
-  // ➕ CREAR NUEVA LISTA
+  // ➕ Crear nueva lista
   //
   const handleAddList = async () => {
     if (!newListName.trim()) return;
@@ -66,14 +66,14 @@ export default function ShoppingListsScreen({ navigation }) {
   };
 
   //
-  // 🚪 ABRIR UNA LISTA
+  // 🚪 Abrir lista
   //
   const handleOpenList = (list) => {
     navigation.navigate("ShoppingList", { listId: list.id });
   };
 
   //
-  // 🔥 RENDER DE UN ITEM DE LISTA
+  // 🔥 Elemento renderizado: tarjeta + long-press
   //
   const renderItem = ({ item }) => (
     <Pressable
@@ -89,7 +89,7 @@ export default function ShoppingListsScreen({ navigation }) {
             {
               text: "Archivar",
               onPress: async () => {
-                await archiveList(item.id); // 👈 LISTA + ITEMS → HISTORIAL
+                await archiveList(item.id);
                 fetchLists();
               },
             },
@@ -118,7 +118,7 @@ export default function ShoppingListsScreen({ navigation }) {
   );
 
   //
-  // 🎯 LISTAS ACTIVAS SOLAMENTE
+  // 🎯 MOSTRAR SOLO LISTAS ACTIVAS (NO ARCHIVADAS)
   //
   const activeLists = lists.filter((l) => !l.archived);
 

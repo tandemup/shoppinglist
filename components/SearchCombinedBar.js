@@ -5,10 +5,10 @@ import {
   FlatList,
   Text,
   TouchableOpacity,
-  Pressable,
   StyleSheet,
 } from "react-native";
 import { searchItemsAcrossLists } from "../utils/searchHelpers";
+import { getScannedHistory } from "../utils/storage/scannerHistory"; // ⭐ NUEVO
 
 export default function SearchCombinedBar({
   currentList,
@@ -17,9 +17,10 @@ export default function SearchCombinedBar({
   const [query, setQuery] = useState("");
   const [localResults, setLocalResults] = useState([]);
   const [historyResults, setHistoryResults] = useState([]);
+  const [scanResults, setScanResults] = useState([]); // ⭐ NUEVO
 
   //
-  // 🔎 BÚSQUEDA
+  // 🔎 BÚSQUEDA GLOBAL
   //
   const handleSearch = async (text) => {
     setQuery(text);
@@ -27,30 +28,38 @@ export default function SearchCombinedBar({
     if (text.trim().length < 2) {
       setLocalResults([]);
       setHistoryResults([]);
+      setScanResults([]); // ⭐ limpiar
       return;
     }
 
     const q = text.toLowerCase();
 
-    // 1️⃣ COINCIDENCIAS EN LA LISTA ACTUAL
+    // 1️⃣ Coincidencias en la lista actual
     const local = currentList.items.filter((i) =>
       (i.name || "").toLowerCase().includes(q)
     );
 
-    // 2️⃣ COINCIDENCIAS EN LISTAS ANTERIORES
+    // 2️⃣ Coincidencias en listas anteriores
     const history = await searchItemsAcrossLists(text);
-
-    // Evitar mezclar con la propia lista
     const filteredHistory = history.filter(
       (r) => String(r.listId) !== String(currentList.id)
     );
 
+    // 3️⃣ Coincidencias en HISTORIAL DE ESCANEOS
+    const scanned = await getScannedHistory();
+    const scanMatches = scanned.filter(
+      (s) =>
+        (s.name || "").toLowerCase().includes(q) ||
+        (s.barcode || "").toLowerCase().includes(q)
+    );
+
     setLocalResults(local);
     setHistoryResults(filteredHistory);
+    setScanResults(scanMatches); // ⭐ guardar resultados
   };
 
   //
-  // 🧮 DIFERENCIA DE PRECIO UNITARIO
+  // 🧮 DIFERENCIA DE PRECIO UNITARIO (igual que antes)
   //
   const getUnitPriceDiff = (name, pastUnitPrice) => {
     const match = currentList.items.find(
@@ -87,37 +96,43 @@ export default function SearchCombinedBar({
       {/* INPUT */}
       <TextInput
         style={styles.input}
-        placeholder="🔍 Buscar producto (actual o histórico)..."
+        placeholder="🔍 Buscar producto (actual, histórico o escaneos)..."
         placeholderTextColor="#999"
         value={query}
         onChangeText={handleSearch}
       />
 
-      {/* RESULTADOS */}
-      {(localResults.length > 0 || historyResults.length > 0) && (
+      {(localResults.length > 0 ||
+        historyResults.length > 0 ||
+        scanResults.length > 0) && (
         <FlatList
           data={[
             ...(localResults.length > 0
               ? [{ header: "📋 En esta lista" }, ...localResults]
               : []),
+
             ...(historyResults.length > 0
               ? [{ header: "🕓 En listas anteriores" }, ...historyResults]
+              : []),
+
+            ...(scanResults.length > 0
+              ? [{ header: "📷 En historial de escaneos" }, ...scanResults]
               : []),
           ]}
           keyExtractor={(item, index) => item.id || `header-${index}`}
           style={styles.resultsBox}
           renderItem={({ item }) => {
             //
-            // 🟥 HEADER DE SECCIÓN
+            // 🟥 HEADER
             //
             if (item.header) {
               return <Text style={styles.header}>{item.header}</Text>;
             }
 
             //
-            // 🟩 COINCIDENCIA LOCAL — añade item directamente
+            // 🟩 COINCIDENCIA EN LISTA ACTUAL (sin listName)
             //
-            if (!item.listName) {
+            if (!item.listName && !item.source) {
               const unit = item.priceInfo?.unitPrice ?? null;
               const formatted = unit ? parseFloat(unit).toFixed(2) : "—";
 
@@ -136,7 +151,29 @@ export default function SearchCombinedBar({
             }
 
             //
-            // 🟦 COINCIDENCIA HISTÓRICA (estructura item.item)
+            // 🟧 RESULTADO EN HISTORIAL DE ESCANEOS
+            //
+            if (item.source === "scanner") {
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.resultRow,
+                    { backgroundColor: "#FFF7ED" }, // tono suave naranja
+                  ]}
+                  onPress={() => onSelectHistoryItem(item)}
+                >
+                  <Text style={styles.itemName}>
+                    {item.isBook ? "📚 " : ""}
+                    {item.name}
+                  </Text>
+
+                  <Text style={styles.listInfo}>Código: {item.barcode}</Text>
+                </TouchableOpacity>
+              );
+            }
+
+            //
+            // 🟦 COINCIDENCIA HISTÓRICA (listas anteriores)
             //
             const historicItem = item.item;
             const pastUnit = historicItem.priceInfo?.unitPrice ?? 0;

@@ -1,27 +1,13 @@
 // components/StoreSelector.js
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  loadSelectedStore,
-  saveSelectedStore,
-  clearSelectedStore,
-} from "../utils/storage/storeService";
 
-export default function StoreSelector({ navigation }) {
-  const [store, setStore] = useState(null);
-
-  useEffect(() => {
-    loadSelectedStore().then((s) => {
-      if (s) setStore(s);
-    });
-  }, []);
-
+export default function StoreSelector({ navigation, store, onChangeStore }) {
   const handleSelectStore = () => {
     navigation.navigate("StoresScreen", {
       onSelectStore: async (selected) => {
-        setStore(selected);
-        await saveSelectedStore(selected);
+        onChangeStore(selected); // ⭐ Actualizar SOLO esta lista
       },
     });
   };
@@ -30,7 +16,6 @@ export default function StoreSelector({ navigation }) {
     <TouchableOpacity style={styles.box} onPress={handleSelectStore}>
       <Ionicons name="storefront" size={20} color="#007bff" />
 
-      {/* ESTE ERA inline:  marginLeft: 12, flex: 1 */}
       <View style={styles.middleColumn}>
         <Text style={styles.label}>Tienda seleccionada</Text>
 
@@ -44,7 +29,6 @@ export default function StoreSelector({ navigation }) {
         )}
       </View>
 
-      {/* ESTE ERA inline: marginLeft: "auto" */}
       <Ionicons
         name="chevron-forward"
         size={20}
@@ -65,20 +49,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
     marginVertical: 12,
-    marginHorizontal: 0,
   },
-
-  // ⬅ NUEVO: reemplaza <View style={{ marginLeft:12, flex:1 }}>
   middleColumn: {
     marginLeft: 12,
     flex: 1,
   },
-
-  // ⬅ NUEVO: reemplaza style={{ marginLeft:"auto" }}
   chevron: {
     marginLeft: "auto",
   },
-
   label: {
     fontSize: 12,
     color: "#777",

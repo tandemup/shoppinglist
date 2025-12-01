@@ -78,9 +78,9 @@ export default function PurchaseHistoryScreen({ navigation }) {
           💶 {item.price} € · Cant: {item.qty ?? 1}
         </Text>
 
-        {item.store && (
-          <Text style={styles.store}>🏪 Tienda: {item.store}</Text>
-        )}
+        {item.store ? (
+          <Text style={styles.store}>🏪 Tienda: {String(item.store)}</Text>
+        ) : null}
 
         <Text style={styles.fromList}>De la lista: {item.listName}</Text>
       </View>

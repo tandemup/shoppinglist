@@ -76,3 +76,8 @@ export async function updateList(id, updater) {
 
   return await save(lists);
 }
+
+// Guardar TODAS las listas (API pública para el contexto)
+export async function saveLists(listArray) {
+  return await save(listArray); // usa la función interna
+}

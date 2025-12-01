@@ -57,7 +57,7 @@ export default function ShoppingListScreen({ route, navigation }) {
     const data = await getList(listId);
 
     if (!data) {
-      const empty = { id: listId, name: "Nueva lista", items: [] };
+      const empty = { id: listId, name: "Nueva lista", items: [], store: null };
       await updateList(listId, () => empty);
       setList(empty);
       navigation.setOptions({ title: empty.name });
@@ -66,6 +66,7 @@ export default function ShoppingListScreen({ route, navigation }) {
 
     setList({
       ...data,
+      store: data.store ?? null, // ⭐ tienda propia por lista
       items: Array.isArray(data.items) ? data.items : [],
     });
 
@@ -85,17 +86,18 @@ export default function ShoppingListScreen({ route, navigation }) {
     if (prev && typeof prev === "object") {
       return {
         ...prev,
+        store: prev.store ?? null,
         items: Array.isArray(prev.items) ? prev.items : [],
       };
     }
-    return { id: listId, name: "Nueva lista", items: [] };
+    return { id: listId, name: "Nueva lista", items: [], store: null };
   };
 
   //
   // AÑADIR ITEM MANUAL — al principio
   //
   const addItem = async () => {
-    const name = (nuevoItem ?? "").toString().trim();
+    const name = (nuevoItem ?? "").trim();
     if (!name) return;
 
     const newItem = {
@@ -108,11 +110,9 @@ export default function ShoppingListScreen({ route, navigation }) {
 
     await updateList(listId, (prev) => {
       const base = ensurePrev(prev);
-      const safeItems = Array.isArray(base.items) ? base.items : [];
-
       return {
         ...base,
-        items: [newItem, ...safeItems], // 👈 AL PRINCIPIO
+        items: [newItem, ...base.items],
       };
     });
 
@@ -126,7 +126,6 @@ export default function ShoppingListScreen({ route, navigation }) {
   const toggleChecked = async (id) => {
     await updateList(listId, (prev) => {
       const base = ensurePrev(prev);
-
       return {
         ...base,
         items: base.items.map((i) =>
@@ -139,23 +138,20 @@ export default function ShoppingListScreen({ route, navigation }) {
   };
 
   //
-  // DETALLE DE ITEM
+  // ABRIR DETALLE
   //
   const openItemDetail = (item) => {
     navigation.navigate("ItemDetailScreen", {
       item,
-
       onSave: async (updated) => {
         await updateList(listId, (prev) => {
           const base = ensurePrev(prev);
-
           return {
             ...base,
             items: base.items.map((i) => (i.id === updated.id ? updated : i)),
           };
         });
       },
-
       onDelete: async (id) => {
         await updateList(listId, (prev) => {
           const base = ensurePrev(prev);
@@ -173,18 +169,14 @@ export default function ShoppingListScreen({ route, navigation }) {
   //
   const total = (() => {
     if (!list?.items) return "0.00";
-
     return list.items
       .filter((i) => i.checked)
-      .reduce((acc, item) => {
-        const p = item.priceInfo || {};
-        return acc + (parseFloat(p.total) || 0);
-      }, 0)
+      .reduce((acc, item) => acc + (parseFloat(item.priceInfo?.total) || 0), 0)
       .toFixed(2);
   })();
 
   //
-  // AÑADIR ITEM DESDE SEARCH BAR (sugerencia) — al principio
+  // AÑADIR ITEM DESDE SEARCH COMBINED
   //
   const handleSelectHistoryItem = async (historyItem) => {
     const newItem = {
@@ -202,16 +194,12 @@ export default function ShoppingListScreen({ route, navigation }) {
       const base = ensurePrev(prev);
       return {
         ...base,
-        items: [newItem, ...base.items], // 👈 AL PRINCIPIO
+        items: [newItem, ...base.items],
       };
     });
 
     loadList();
   };
-
-  const renderItem = ({ item }) => (
-    <ItemRow item={item} onToggle={toggleChecked} onEdit={openItemDetail} />
-  );
 
   if (!list) {
     return (
@@ -233,11 +221,28 @@ export default function ShoppingListScreen({ route, navigation }) {
         <FlatList
           data={list.items}
           keyExtractor={(i) => i.id}
-          renderItem={renderItem}
+          renderItem={({ item }) => (
+            <ItemRow
+              item={item}
+              onToggle={toggleChecked}
+              onEdit={openItemDetail}
+            />
+          )}
           contentContainerStyle={{ paddingBottom: 80 }}
           ListHeaderComponent={
             <View>
-              <StoreSelector navigation={navigation} />
+              {/* ⭐ STORE SELECTOR */}
+              <StoreSelector
+                navigation={navigation}
+                store={list.store}
+                onChangeStore={async (newStore) => {
+                  await updateList(listId, (prev) => ({
+                    ...prev,
+                    store: newStore, // ⭐ GUARDAR TIENDA SOLO EN ESTA LISTA
+                  }));
+                  loadList();
+                }}
+              />
 
               {/* BOTÓN PAGAR */}
               <TouchableOpacity
@@ -253,15 +258,7 @@ export default function ShoppingListScreen({ route, navigation }) {
                       {
                         text: "Sí, pagar",
                         onPress: async () => {
-                          await addItemsToHistory(
-                            list.items.map((i) => ({
-                              ...i,
-                              listName: list.name,
-                            }))
-                          );
-
                           await archiveList(list.id);
-
                           navigation.navigate("ShoppingLists");
                         },
                       },
@@ -272,7 +269,7 @@ export default function ShoppingListScreen({ route, navigation }) {
                 <Text style={styles.payButtonText}>💳 Finalizar compra</Text>
               </TouchableOpacity>
 
-              {/* BUSCADOR */}
+              {/* SEARCH BAR */}
               <SearchCombinedBar
                 currentList={list}
                 onSelectHistoryItem={handleSelectHistoryItem}
@@ -284,7 +281,7 @@ export default function ShoppingListScreen({ route, navigation }) {
                 <Text style={styles.totalValue}>{total} €</Text>
               </View>
 
-              {/* AÑADIR */}
+              {/* ADD ITEM */}
               <View style={styles.addRow}>
                 <TextInput
                   style={styles.newInput}
@@ -292,8 +289,6 @@ export default function ShoppingListScreen({ route, navigation }) {
                   placeholderTextColor="#999"
                   value={nuevoItem}
                   onChangeText={setNuevoItem}
-                  returnKeyType="done"
-                  blurOnSubmit={false}
                 />
                 <TouchableOpacity style={styles.addButton} onPress={addItem}>
                   <Text style={styles.addButtonText}>＋</Text>

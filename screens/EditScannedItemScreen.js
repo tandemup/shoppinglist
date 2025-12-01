@@ -1,33 +1,63 @@
 // screens/EditScannedItemScreen.js
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
-import { updateScannedEntry } from "../utils/storage/scannerHistory";
+import {
+  updateScannedEntry,
+  removeScannedItem,
+} from "../utils/storage/scannerHistory";
+import { safeAlert } from "../utils/safeAlert";
 
 export default function EditScannedItemScreen({ route, navigation }) {
-  const { item } = route.params;
+  const { item, reload } = route.params;
+
+  const barcode = item.barcode;
 
   const [name, setName] = useState(item.name ?? "");
   const [brand, setBrand] = useState(item.brand ?? "");
   const [url, setUrl] = useState(item.url ?? "");
 
+  //
+  // 💾 Guardar cambios
+  //
   const save = async () => {
-    await updateScannedEntry(item.code, {
+    await updateScannedEntry(barcode, {
       name: name.trim(),
       brand: brand.trim(),
       url: url.trim(),
     });
-
+    if (reload) reload();
     navigation.goBack();
   };
 
+  //
+  // 🗑 Borrar este item
+  //
+  const removeItem = () => {
+    safeAlert("Eliminar", `¿Deseas eliminar este escaneo?\n\n${item.name}`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: async () => {
+          await removeScannedItem(item.id);
+
+          if (reload) reload();
+          navigation.goBack();
+        },
+      },
+    ]);
+  };
+
+  //
+  // UI
+  //
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Editar producto</Text>
 
-      {/* ⭐ NUEVO: Código de barras (solo lectura) */}
       <Text style={styles.label}>Código de barras</Text>
       <View style={styles.codeBox}>
-        <Text style={styles.codeText}>{item.code}</Text>
+        <Text style={styles.codeText}>{barcode}</Text>
       </View>
 
       <Text style={styles.label}>Nombre</Text>
@@ -55,8 +85,14 @@ export default function EditScannedItemScreen({ route, navigation }) {
         autoCapitalize="none"
       />
 
-      <Pressable style={styles.button} onPress={save}>
-        <Text style={styles.buttonText}>Guardar cambios</Text>
+      {/* 💾 GUARDAR */}
+      <Pressable style={styles.saveButton} onPress={save}>
+        <Text style={styles.saveText}>Guardar cambios</Text>
+      </Pressable>
+
+      {/* 🗑 BORRAR */}
+      <Pressable style={styles.deleteButton} onPress={removeItem}>
+        <Text style={styles.deleteText}>Borrar</Text>
       </Pressable>
     </View>
   );
@@ -74,6 +110,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    textAlign: "center",
     marginBottom: 20,
   },
   label: {
@@ -81,7 +118,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // ⭐ NUEVO: estilo caja de código
   codeBox: {
     backgroundColor: "#e8f0fe",
     padding: 12,
@@ -104,13 +140,26 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     marginTop: 4,
   },
-  button: {
+
+  saveButton: {
     backgroundColor: "#2563eb",
     padding: 12,
     marginTop: 30,
     borderRadius: 6,
   },
-  buttonText: {
+  saveText: {
+    color: "white",
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+
+  deleteButton: {
+    backgroundColor: "#dc2626",
+    padding: 12,
+    marginTop: 15,
+    borderRadius: 6,
+  },
+  deleteText: {
     color: "white",
     textAlign: "center",
     fontWeight: "bold",
