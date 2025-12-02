@@ -45,7 +45,7 @@ export default function MenuScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Menú</Text>
 

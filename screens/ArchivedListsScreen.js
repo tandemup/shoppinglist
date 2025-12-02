@@ -1,118 +1,143 @@
-import React, { useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
   FlatList,
-  Pressable,
-  StyleSheet,
   TouchableOpacity,
+  StyleSheet,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-
+import dayjs from "dayjs";
+import "dayjs/locale/es";
 import { useStore } from "../context/StoreContext";
-import { safeAlert } from "../utils/safeAlert";
+
+dayjs.locale("es");
 
 export default function ArchivedListsScreen({ navigation }) {
-  const { lists, deleteList, fetchLists } = useStore();
+  const { purchaseHistory } = useStore();
+
+  // 🔍 Estado del buscador
+  const [search, setSearch] = useState("");
 
   //
-  // 🍔 MENÚ HAMBURGUESA
+  // 🧠 AGRUPAR ITEMS POR LISTA (listName + fecha archivada)
   //
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Menu")}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="menu" size={26} color="black" />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
+  const groupedLists = useMemo(() => {
+    const groups = {};
+
+    for (const item of purchaseHistory) {
+      const date = dayjs(item.purchasedAt).format("YYYY-MM-DD");
+      const key = `${item.listName}__${date}`;
+
+      if (!groups[key]) {
+        groups[key] = {
+          listName: item.listName,
+          store: item.store || "—",
+          date,
+          items: [],
+        };
+      }
+      groups[key].items.push(item);
+    }
+
+    // Convertir en array
+    let listArray = Object.values(groups);
+
+    //
+    // 🔍 FILTRAR POR BUSQUEDA
+    //
+    if (search.trim().length > 0) {
+      const q = search.toLowerCase();
+
+      listArray = listArray.filter((l) => {
+        const matchesListName = l.listName.toLowerCase().includes(q);
+        const matchesStore = l.store?.toLowerCase().includes(q);
+        const matchesDate = dayjs(l.date)
+          .format("D MMM YYYY")
+          .toLowerCase()
+          .includes(q);
+
+        const matchesItems = l.items.some((it) =>
+          it.name?.toLowerCase().includes(q)
+        );
+
+        return matchesListName || matchesStore || matchesDate || matchesItems;
+      });
+    }
+
+    //
+    // 📅 ORDENAR: más recientes primero
+    //
+    listArray.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+
+    return listArray;
+  }, [purchaseHistory, search]);
 
   //
-  // 🔄 RECARGAR AL ENTRAR
+  // 📦 CARD DE UNA LISTA ARCHIVADA
   //
-  useEffect(() => {
-    fetchLists();
-  }, []);
+  const renderCard = ({ item }) => {
+    const total = item.items
+      .reduce((acc, x) => acc + (parseFloat(x.price) || 0), 0)
+      .toFixed(2);
 
-  //
-  // ⭐ Solo listas archivadas
-  //
-  const archivedLists = lists
-    .filter((l) => l.archived)
-    .sort((a, b) => b.archivedAt - a.archivedAt);
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          navigation.navigate("ArchivedListDetail", {
+            listName: item.listName,
+            store: item.store,
+            date: item.date,
+            items: item.items,
+            total,
+          })
+        }
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={styles.listName}>{item.listName}</Text>
 
-  //
-  // 🚪 ABRIR LISTA ARCHIVADA (solo lectura)
-  //
-  const handleOpenList = (list) => {
-    navigation.navigate("ShoppingList", { listId: list.id });
+          <Text style={styles.info}>🏪 {item.store}</Text>
+
+          <Text style={styles.info}>
+            📅 {dayjs(item.date).format("D MMM YYYY")}
+          </Text>
+
+          <Text style={styles.info}>📦 {item.items.length} productos</Text>
+
+          <Text style={styles.total}>💶 Total: {total} €</Text>
+        </View>
+
+        {/* ➤ CHEVRON */}
+        <Ionicons name="chevron-forward" size={28} color="#555" />
+      </TouchableOpacity>
+    );
   };
 
   //
-  // 🗑 BORRAR LISTA ARCHIVADA (long press)
-  //
-  const handleDeleteList = (list) => {
-    safeAlert("Eliminar lista", `¿Seguro que deseas eliminar "${list.name}"?`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          await deleteList(list.id);
-          await fetchLists();
-        },
-      },
-    ]);
-  };
-
-  //
-  // 🎨 RENDER ITEM
-  //
-  const renderItem = ({ item }) => (
-    <Pressable
-      style={[styles.card, { opacity: 0.55 }]}
-      onPress={() => handleOpenList(item)}
-      onLongPress={() => handleDeleteList(item)}
-      delayLongPress={350}
-    >
-      <Text style={styles.name}>{item.name}</Text>
-
-      <Text style={styles.date}>
-        Archivada el{" "}
-        {item.archivedAt
-          ? new Date(item.archivedAt).toLocaleDateString("es-ES")
-          : "—"}
-      </Text>
-
-      <Text style={styles.count}>{item.items?.length || 0} productos</Text>
-
-      {/* Icono de candado */}
-      <View style={styles.lock}>
-        <Ionicons name="lock-closed" size={20} color="#B00020" />
-      </View>
-    </Pressable>
-  );
-
-  //
-  // 🖥 RENDER PRINCIPAL
+  // 🖥 RENDER
   //
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Text style={styles.title}>Listas Archivadas</Text>
 
+      {/* 🔍 Barra de búsqueda */}
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Buscar por lista, tienda, fecha o producto..."
+        placeholderTextColor="#888"
+        value={search}
+        onChangeText={setSearch}
+      />
+
       <FlatList
-        data={archivedLists}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No hay listas archivadas</Text>
-        }
-        contentContainerStyle={{ paddingBottom: 50 }}
+        data={groupedLists}
+        keyExtractor={(item, idx) => idx.toString()}
+        renderItem={renderCard}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        ListEmptyComponent={<Text style={styles.empty}>No hay resultados</Text>}
       />
     </SafeAreaView>
   );
@@ -125,55 +150,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: "#F3F4F6",
   },
 
   title: {
     fontSize: 26,
-    fontWeight: "bold",
+    fontWeight: "800",
     textAlign: "center",
     marginBottom: 15,
   },
 
+  // 🔍 Buscador
+  searchBar: {
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginBottom: 15,
+    fontSize: 16,
+  },
+
   empty: {
+    marginTop: 40,
+    fontSize: 16,
     textAlign: "center",
-    color: "#777",
-    marginTop: 20,
+    color: "#999",
   },
 
   card: {
+    flexDirection: "row",
     backgroundColor: "#fff",
     padding: 16,
     borderRadius: 12,
-    marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#FFCDD2",
-
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 1,
+    borderColor: "#DDE3FF",
+    marginBottom: 12,
+    alignItems: "center",
   },
 
-  name: {
+  listName: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+
+  info: { fontSize: 14, color: "#555" },
+
+  total: {
+    marginTop: 8,
     fontSize: 16,
-    fontWeight: "bold",
-  },
-
-  date: {
-    color: "#666",
-    fontSize: 12,
-  },
-
-  count: {
-    color: "#888",
-    marginTop: 4,
-  },
-
-  lock: {
-    position: "absolute",
-    top: 10,
-    right: 10,
+    fontWeight: "700",
+    color: "#0A6",
   },
 });

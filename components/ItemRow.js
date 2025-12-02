@@ -1,6 +1,7 @@
-/* ItemRow.js (versión estable iOS) */
+/* ItemRow.js (actualizado con chevron) */
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ItemRow({ item, onToggle, onEdit }) {
   const handleToggle = () => onToggle(item.id);
@@ -38,7 +39,7 @@ export default function ItemRow({ item, onToggle, onEdit }) {
         </Text>
       </View>
 
-      {/* 💰 Precio (Pressable en lugar de TouchableOpacity) */}
+      {/* Precio */}
       <Pressable
         onPress={handleEdit}
         style={styles.priceContainer}
@@ -51,6 +52,11 @@ export default function ItemRow({ item, onToggle, onEdit }) {
             ({item.priceInfo.qty} × {item.priceInfo.unitPrice.toFixed(2)} €)
           </Text>
         )}
+      </Pressable>
+
+      {/* ➤ CHEVRON */}
+      <Pressable onPress={handleEdit} hitSlop={10}>
+        <Ionicons name="chevron-forward" size={22} color="#555" />
       </Pressable>
     </View>
   );
@@ -90,15 +96,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  nameContainer: {
-    flex: 1,
-  },
+  nameContainer: { flex: 1 },
 
-  name: {
-    fontSize: 16,
-    color: "#111",
-    fontWeight: "500",
-  },
+  name: { fontSize: 16, color: "#111", fontWeight: "500" },
 
   priceContainer: {
     minWidth: 80,
@@ -107,11 +107,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
 
-  priceText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111",
-  },
+  priceText: { fontSize: 15, fontWeight: "600", color: "#111" },
   multiUnitText: {
     fontSize: 11,
     color: "#777",

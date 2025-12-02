@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +19,9 @@ dayjs.locale("es");
 
 export default function PurchaseHistoryScreen({ navigation }) {
   const { purchaseHistory, fetchLists } = useStore();
+
+  // 🔍 ESTADO DEL BUSCADOR
+  const [search, setSearch] = useState("");
 
   //
   // 🍔 MENÚ HAMBURGUESA
@@ -43,9 +47,23 @@ export default function PurchaseHistoryScreen({ navigation }) {
   }, []);
 
   //
+  // 🔍 APLICAR FILTRO ANTES DE AGRUPAR
+  //
+  const filtered = purchaseHistory.filter((item) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      item.name?.toLowerCase().includes(q) ||
+      item.barcode?.toLowerCase().includes(q) ||
+      item.store?.toLowerCase().includes(q) ||
+      item.listName?.toLowerCase().includes(q)
+    );
+  });
+
+  //
   // 🗂 AGRUPAR POR FECHA
   //
-  const grouped = purchaseHistory.reduce((acc, item) => {
+  const grouped = filtered.reduce((acc, item) => {
     const date = dayjs(item.purchasedAt).format("YYYY-MM-DD");
     if (!acc[date]) acc[date] = [];
     acc[date].push(item);
@@ -95,11 +113,20 @@ export default function PurchaseHistoryScreen({ navigation }) {
   // 🖥 RENDER
   //
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Text style={styles.title}>Historial de Compras</Text>
 
+      {/* 🔍 BARRA DE BÚSQUEDA */}
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Buscar producto, código, tienda..."
+        placeholderTextColor="#888"
+        value={search}
+        onChangeText={setSearch}
+      />
+
       {sortedSections.length === 0 ? (
-        <Text style={styles.empty}>Todavía no tienes compras archivadas</Text>
+        <Text style={styles.empty}>No hay resultados</Text>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
           {sortedSections.map((section) => (
@@ -133,8 +160,20 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 10,
   },
+
+  // 🔍 BUSCADOR
+  searchBar: {
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    marginBottom: 20,
+    fontSize: 16,
+  },
+
   empty: {
     marginTop: 40,
     fontSize: 16,

@@ -158,7 +158,7 @@ export default function ScannedHistoryScreen({ navigation }) {
   // 🖥 RENDER PRINCIPAL
   //
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Text style={styles.title}>Historial de Escaneos</Text>
 
       {/* 🔎 Barra de búsqueda */}

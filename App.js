@@ -21,6 +21,7 @@ import MenuScreen from "./screens/MenuScreen";
 import ScannerTab from "./screens/ScannerTab";
 import EditScannedItemScreen from "./screens/EditScannedItemScreen";
 import ArchivedListsScreen from "./screens/ArchivedListsScreen";
+import ArchivedListDetailScreen from "./screens/ArchivedListDetailScreen";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -66,6 +67,12 @@ function ShoppingStack() {
         name="ArchivedLists"
         component={ArchivedListsScreen}
         options={{ title: "Listas Archivadas" }}
+      />
+
+      <Stack.Screen
+        name="ArchivedListDetail"
+        component={ArchivedListDetailScreen}
+        options={{ title: "Detalle", headerTitleAlign: "center" }}
       />
       <Stack.Screen
         name="PurchaseHistory"

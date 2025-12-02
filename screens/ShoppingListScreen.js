@@ -258,12 +258,6 @@ export default function ShoppingListScreen({ route, navigation }) {
                       {
                         text: "Sí, pagar",
                         onPress: async () => {
-                          await addItemsToHistory(
-                            list.items.map((i) => ({
-                              ...i,
-                              listName: list.name,
-                            }))
-                          );
                           await archiveList(list.id);
                           navigation.navigate("ShoppingLists");
                         },
