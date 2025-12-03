@@ -1,9 +1,9 @@
-// StoreContext.js — versión FINAL con limpieza selectiva, explosión de items, historial separado
+// StoreContext.js — VERSIÓN FINAL SIN NANOID
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// 🔹 Helpers de listas
+// Helpers de listas
 import {
   loadLists,
   saveLists,
@@ -12,7 +12,7 @@ import {
   updateList,
 } from "../utils/storage/listStorage";
 
-// 🔹 Helpers de historial de compras
+// Helpers de historial
 import {
   loadHistory,
   saveHistory,
@@ -24,94 +24,136 @@ export function StoreProvider({ children }) {
   const [lists, setLists] = useState([]);
   const [purchaseHistory, setPurchaseHistory] = useState([]);
 
-  // ------------------------------------------------------
-  // 🔄 CARGA INICIAL
-  // ------------------------------------------------------
+  // ────────────────────────────────────────────────
+  // CARGA INICIAL
+  // ────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       const listData = await loadLists();
-      setLists(listData);
+      const sorted = [...listData].sort((a, b) => {
+        const A = new Date(a.createdAt || 0).getTime();
+        const B = new Date(b.createdAt || 0).getTime();
+        return B - A;
+      });
+      setLists(sorted);
 
       const historyData = await loadHistory();
       setPurchaseHistory(historyData);
     })();
   }, []);
 
-  // ------------------------------------------------------
-  // ➕ AÑADIR LISTA
-  // ------------------------------------------------------
+  // ────────────────────────────────────────────────
+  // LISTAS DERIVADAS
+  // ────────────────────────────────────────────────
+  const archivedLists = lists.filter((l) => l.archived);
+  const activeLists = lists.filter((l) => !l.archived);
+
+  // ────────────────────────────────────────────────
+  // AÑADIR LISTA
+  // ────────────────────────────────────────────────
   const addList = async (newList) => {
     await storageAddList(newList);
     const updated = await loadLists();
-    setLists(updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    const sorted = [...updated].sort((a, b) => {
+      const A = new Date(a.createdAt || 0).getTime();
+      const B = new Date(b.createdAt || 0).getTime();
+      return B - A;
+    });
+    setLists(sorted);
   };
 
-  // ------------------------------------------------------
-  // ✏️ RENOMBRAR LISTA
-  // ------------------------------------------------------
+  // ────────────────────────────────────────────────
+  // RENOMBRAR LISTA
+  // ────────────────────────────────────────────────
   const updateListName = async (id, newName) => {
     await updateList(id, (base) => ({ ...base, name: newName }));
     const updated = await loadLists();
     setLists(updated);
   };
 
-  // ------------------------------------------------------
-  // 🗑 ELIMINAR LISTA
-  // ------------------------------------------------------
+  // ────────────────────────────────────────────────
+  // ELIMINAR LISTA
+  // ────────────────────────────────────────────────
   const deleteList = async (id) => {
     await storageDeleteList(id);
     const updated = await loadLists();
-    setLists(updated.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    const sorted = [...updated].sort((a, b) => {
+      const A = new Date(a.createdAt || 0).getTime();
+      const B = new Date(b.createdAt || 0).getTime();
+      return B - A;
+    });
+    setLists(sorted);
   };
 
-  // ------------------------------------------------------
-  // 📦 ARCHIVAR LISTA → Explota items al historial de compras
-  // ------------------------------------------------------
+  // ────────────────────────────────────────────────
+  // ARCHIVAR LISTA
+  // (Normaliza items + crea historial + guarda lista archivada limpia)
+  // ────────────────────────────────────────────────
   const archiveList = async (id) => {
     const allLists = await loadLists();
     const target = allLists.find((l) => l.id === id);
     if (!target) return;
 
-    // 1️⃣ Preparar items para historial
+    // Normalización de tienda
     const normalizeStore = (storeObj) => {
       if (!storeObj) return null;
       if (typeof storeObj === "string") return storeObj;
       if (storeObj.name) return storeObj.name;
-      return JSON.stringify(storeObj); // fallback
+      return null;
     };
 
+    // Normalización de item
+    const normalizeItem = (i) => {
+      const quantity =
+        Number(i.quantity) || Number(i.qty) || Number(i.priceInfo?.qty) || 1;
+
+      const price = Number(i.price) || Number(i.priceInfo?.total) || 0;
+
+      return {
+        id: i.id,
+        name: i.name,
+        barcode: i.barcode ?? null,
+        quantity,
+        price,
+      };
+    };
+
+    // 1️⃣ Items volcados al historial
     const itemsToAdd = (target.items || []).map((i) => ({
-      ...i,
+      ...normalizeItem(i),
       listName: target.name,
-      barcode: i.barcode ?? null,
-      qty: i.priceInfo?.qty ?? 1,
-      price: i.priceInfo?.total ?? 0,
       store: normalizeStore(target.store),
       purchasedAt: new Date().toISOString(),
     }));
 
-    // 2️⃣ Añadir al historial de compras
-    const existing = await loadHistory();
-    const updatedHistory = [...existing, ...itemsToAdd];
+    const existingHistory = await loadHistory();
+    const updatedHistory = [...existingHistory, ...itemsToAdd];
 
     await saveHistory(updatedHistory);
     setPurchaseHistory(updatedHistory);
 
-    // 3️⃣ Marcar lista como archivada
+    // 2️⃣ Lista archivada con items ya normalizados
     await updateList(id, (base) => ({
       ...base,
       archived: true,
-      archivedAt: Date.now(),
+      archivedAt: new Date().toISOString(),
+      store: base.store ? normalizeStore(base.store) : null,
+      items: (base.items || []).map(normalizeItem),
     }));
 
-    // 4️⃣ Refrescar listas
+    // 3️⃣ Recargar listas
     const refreshed = await loadLists();
-    setLists(refreshed.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    const sorted = [...refreshed].sort((a, b) => {
+      const A = new Date(a.createdAt || 0).getTime();
+      const B = new Date(b.createdAt || 0).getTime();
+      return B - A;
+    });
+    setLists(sorted);
   };
 
-  // ------------------------------------------------------
-  // 🧾 Añadir items al historial (desde botón pagar)
-  // ------------------------------------------------------
+  // ────────────────────────────────────────────────
+  // AÑADIR ITEMS AL HISTORIAL DESDE "PAGAR"
+  // ────────────────────────────────────────────────
   const addItemsToHistory = async (items) => {
     const base = await loadHistory();
     const stamped = items.map((i) => ({
@@ -124,45 +166,41 @@ export function StoreProvider({ children }) {
     setPurchaseHistory(updated);
   };
 
-  // ------------------------------------------------------
-  // 🔄 REFRESCAR LISTAS
-  // ------------------------------------------------------
+  // ────────────────────────────────────────────────
+  // RECARGAR LISTAS
+  // ────────────────────────────────────────────────
   const fetchLists = async () => {
     const loaded = await loadLists();
-    const sorted = loaded.sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt)
-    );
+    const sorted = [...loaded].sort((a, b) => {
+      const A = new Date(a.createdAt || 0).getTime();
+      const B = new Date(b.createdAt || 0).getTime();
+      return B - A;
+    });
     setLists(sorted);
     return sorted;
   };
 
-  // ------------------------------------------------------
-  // 🧹 BORRADO SELECTIVO
-  // ------------------------------------------------------
-
-  // 1️⃣ Borrar listas activas
+  // ────────────────────────────────────────────────
+  // BORRADOS SELECTIVOS
+  // ────────────────────────────────────────────────
   const clearActiveLists = async () => {
     const remaining = lists.filter((l) => l.archived);
     await saveLists(remaining);
     setLists(remaining);
   };
 
-  // 2️⃣ Borrar listas archivadas
   const clearArchivedLists = async () => {
     try {
-      // 1️⃣ Leer listas reales desde el almacenamiento
       const all = await loadLists();
-
-      // 2️⃣ Eliminar las archivadas
       const remaining = all.filter((l) => !l.archived);
 
-      // 3️⃣ Guardar nuevas listas (solo activas)
       await saveLists(remaining);
 
-      // 4️⃣ Ordenar y actualizar estado directamente (sin segunda lectura)
-      const sorted = [...remaining].sort((a, b) =>
-        (b.createdAt ?? "").localeCompare(a.createdAt ?? "")
-      );
+      const sorted = [...remaining].sort((a, b) => {
+        const A = new Date(a.createdAt || 0).getTime();
+        const B = new Date(b.createdAt || 0).getTime();
+        return B - A;
+      });
 
       setLists(sorted);
     } catch (err) {
@@ -170,11 +208,11 @@ export function StoreProvider({ children }) {
     }
   };
 
-  // 3️⃣ Borrar historial de compras
   const clearPurchaseHistory = async () => {
     await saveHistory([]);
     setPurchaseHistory([]);
   };
+
   const clearScannedHistory = async () => {
     await AsyncStorage.setItem(
       "@expo-shop/scanned-history",
@@ -182,12 +220,16 @@ export function StoreProvider({ children }) {
     );
   };
 
-  // ------------------------------------------------------
-
+  // ────────────────────────────────────────────────
+  // PROVEEDOR
+  // ────────────────────────────────────────────────
   return (
     <StoreContext.Provider
       value={{
         lists,
+        archivedLists,
+        activeLists,
+
         purchaseHistory,
 
         addList,

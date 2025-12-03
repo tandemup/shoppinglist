@@ -1,128 +1,197 @@
 import React from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Image,
-  ScrollView,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import dayjs from "dayjs";
+import { View, Text, StyleSheet, FlatList, ScrollView } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { formatStore } from "../utils/formatStore";
+import BarcodeLink from "../components/BarcodeLink";
 
 export default function ArchivedListDetailScreen({ route }) {
-  const { listName, store, date, items, total } = route.params;
+  const { list } = route.params;
 
-  //
-  // 🔍 RENDER ITEM
-  //
+  const items = list.items || [];
+
+  // Total de la lista archivada
+  const total = items.reduce(
+    (sum, it) => sum + (it.price || 0) * (it.quantity || 1),
+    0
+  );
+
+  // Render para cada producto
   const renderItem = ({ item }) => {
-    const qty = item.qty ?? 1;
-    const unitPrice = qty > 0 ? (item.price / qty).toFixed(2) : "0.00";
+    const qty = item.quantity ?? item.qty ?? 1;
+    const unitPrice = item.price ?? 0;
+    const subtotal = qty * unitPrice;
 
     return (
-      <View style={styles.itemCard}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.itemName}>{item.name}</Text>
+      <View style={styles.itemContainer}>
+        <View style={styles.itemLeft}>
+          <Text style={styles.itemTitle}>{item.name}</Text>
 
+          {/* Cantidad + precio */}
+          <Text style={styles.itemSubtext}>
+            Cantidad: {qty} × {unitPrice.toFixed(2)} €
+          </Text>
+
+          {/* Código de barras con enlace */}
           {item.barcode ? (
-            <Text style={styles.itemField}>Código: {item.barcode}</Text>
+            <View style={{ marginTop: 4 }}>
+              <BarcodeLink barcode={item.barcode} label="Buscar por código" />
+            </View>
           ) : null}
-
-          <Text style={styles.itemField}>Cantidad: {qty}</Text>
-
-          <Text style={styles.itemField}>Precio unit.: {unitPrice} €</Text>
-
-          <Text style={styles.itemTotal}>Total: {item.price} €</Text>
         </View>
 
-        {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.itemImage} />
-        ) : null}
+        <Text style={styles.itemPrice}>{subtotal.toFixed(2)} €</Text>
       </View>
     );
   };
 
-  //
-  // 🧾 RENDER PRINCIPAL
-  //
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Nombre */}
-        <Text style={styles.title}>{listName}</Text>
+    <ScrollView style={styles.container}>
+      {/* TÍTULO */}
+      <Text style={styles.title}>{list.name}</Text>
 
-        {/* Datos generales */}
-        <View style={styles.headerBox}>
-          <Text style={styles.headerText}>🏪 {store}</Text>
-          <Text style={styles.headerText}>
-            📅 {dayjs(date).format("D MMM YYYY")}
-          </Text>
-          <Text style={styles.headerTotal}>💶 Total: {total} €</Text>
+      {/* FECHA */}
+      <View style={styles.row}>
+        <Ionicons name="calendar-outline" size={18} color="#555" />
+        <Text style={styles.rowText}>
+          {new Date(list.archivedAt || list.createdAt).toLocaleDateString(
+            "es-ES",
+            {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            }
+          )}
+        </Text>
+      </View>
+
+      {/* TIENDA */}
+      {list.store ? (
+        <View style={styles.row}>
+          <Ionicons name="location-outline" size={18} color="#555" />
+          <Text style={styles.rowText}>{formatStore(list.store)}</Text>
         </View>
+      ) : null}
 
-        {/* Items */}
-        <FlatList
-          scrollEnabled={false}
-          data={items}
-          keyExtractor={(item, idx) => idx.toString()}
-          renderItem={renderItem}
-        />
-      </ScrollView>
-    </SafeAreaView>
+      {/* TOTAL */}
+      <View style={styles.totalBox}>
+        <Text style={styles.totalLabel}>Total</Text>
+        <Text style={styles.totalValue}>{total.toFixed(2)} €</Text>
+      </View>
+
+      {/* ITEMS */}
+      <Text style={styles.sectionTitle}>Productos</Text>
+
+      <FlatList
+        data={items}
+        keyExtractor={(item, index) => item.id || index.toString()}
+        renderItem={renderItem}
+        scrollEnabled={false}
+        ItemSeparatorComponent={() => (
+          <View style={{ height: 1, backgroundColor: "#e5e5e5" }} />
+        )}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      />
+    </ScrollView>
   );
 }
 
-//
-// 🎨 ESTILOS
-//
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#F9FAFB" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f8f8",
+    padding: 16,
+  },
 
   title: {
     fontSize: 24,
-    fontWeight: "800",
+    fontWeight: "700",
+    marginBottom: 16,
     textAlign: "center",
-    marginBottom: 20,
   },
 
-  headerBox: {
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: "#EEF5FF",
-    marginBottom: 20,
-  },
-  headerText: { fontSize: 16, marginBottom: 4 },
-  headerTotal: {
-    marginTop: 6,
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#0A6",
-  },
-
-  itemCard: {
+  row: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#DDE3FF",
-    marginBottom: 10,
+    alignItems: "center",
+    marginBottom: 6,
+    gap: 8,
   },
 
-  itemName: { fontSize: 16, fontWeight: "700" },
-  itemField: { fontSize: 14, color: "#555", marginTop: 2 },
-  itemTotal: {
-    marginTop: 6,
+  rowText: {
     fontSize: 15,
-    fontWeight: "700",
-    color: "#0A6",
+    color: "#444",
+    flexShrink: 1,
   },
 
-  itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginLeft: 10,
+  totalBox: {
+    marginTop: 18,
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  totalLabel: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+
+  totalValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#16a34a",
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+    marginTop: 10,
+  },
+
+  itemContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+  },
+
+  itemLeft: {
+    flex: 1,
+    paddingRight: 12,
+  },
+
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+
+  itemSubtext: {
+    fontSize: 13,
+    color: "#666",
+  },
+
+  itemPrice: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111",
+  },
+  barcodeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+    gap: 6,
+  },
+
+  barcodeText: {
+    fontSize: 12,
+    color: "#444",
   },
 });

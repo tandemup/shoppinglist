@@ -1,206 +1,166 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
-  FlatList,
-  TouchableOpacity,
   StyleSheet,
-  TextInput,
+  TouchableOpacity,
+  FlatList,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import dayjs from "dayjs";
-import "dayjs/locale/es";
 import { useStore } from "../context/StoreContext";
-
-dayjs.locale("es");
+import { Ionicons } from "@expo/vector-icons";
+import { formatStore } from "../utils/formatStore";
 
 export default function ArchivedListsScreen({ navigation }) {
-  const { purchaseHistory } = useStore();
-
-  // 🔍 Estado del buscador
+  const { archivedLists } = useStore();
   const [search, setSearch] = useState("");
 
-  //
-  // 🧠 AGRUPAR ITEMS POR LISTA (listName + fecha archivada)
-  //
-  const groupedLists = useMemo(() => {
-    const groups = {};
+  // -------- FILTRO + ORDEN --------
+  const filtered = archivedLists
+    .filter(
+      (l) =>
+        l.name?.toLowerCase().includes(search.toLowerCase()) ||
+        formatStore(l.store)?.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
 
-    for (const item of purchaseHistory) {
-      const date = dayjs(item.purchasedAt).format("YYYY-MM-DD");
-      const key = `${item.listName}__${date}`;
+  const openDetails = (list) => {
+    navigation.navigate("ArchivedListDetail", { list });
+  };
 
-      if (!groups[key]) {
-        groups[key] = {
-          listName: item.listName,
-          store: item.store || "—",
-          date,
-          items: [],
-        };
-      }
-      groups[key].items.push(item);
-    }
+  // -------- ITEM DEL LISTADO --------
+  const renderItem = ({ item }) => {
+    const items = item.items || [];
 
-    // Convertir en array
-    let listArray = Object.values(groups);
-
-    //
-    // 🔍 FILTRAR POR BUSQUEDA
-    //
-    if (search.trim().length > 0) {
-      const q = search.toLowerCase();
-
-      listArray = listArray.filter((l) => {
-        const matchesListName = l.listName.toLowerCase().includes(q);
-        const matchesStore = l.store?.toLowerCase().includes(q);
-        const matchesDate = dayjs(l.date)
-          .format("D MMM YYYY")
-          .toLowerCase()
-          .includes(q);
-
-        const matchesItems = l.items.some((it) =>
-          it.name?.toLowerCase().includes(q)
-        );
-
-        return matchesListName || matchesStore || matchesDate || matchesItems;
-      });
-    }
-
-    //
-    // 📅 ORDENAR: más recientes primero
-    //
-    listArray.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
-
-    return listArray;
-  }, [purchaseHistory, search]);
-
-  //
-  // 📦 CARD DE UNA LISTA ARCHIVADA
-  //
-  const renderCard = ({ item }) => {
-    const total = item.items
-      .reduce((acc, x) => acc + (parseFloat(x.price) || 0), 0)
-      .toFixed(2);
+    const total = items.reduce(
+      (sum, it) => sum + (it.price || 0) * (it.quantity || 1),
+      0
+    );
 
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() =>
-          navigation.navigate("ArchivedListDetail", {
-            listName: item.listName,
-            store: item.store,
-            date: item.date,
-            items: item.items,
-            total,
-          })
-        }
+        onPress={() => openDetails(item)}
+        activeOpacity={0.7}
       >
-        <View style={{ flex: 1 }}>
-          <Text style={styles.listName}>{item.listName}</Text>
+        <View style={styles.cardLeft}>
+          <Text style={styles.cardTitle}>{item.name}</Text>
 
-          <Text style={styles.info}>🏪 {item.store}</Text>
+          {/* Fecha */}
+          <View style={styles.row}>
+            <Ionicons name="calendar-outline" size={16} color="#555" />
+            <Text style={styles.cardText}>
+              {new Date(item.archivedAt || item.createdAt).toLocaleDateString(
+                "es-ES",
+                {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                }
+              )}
+            </Text>
+          </View>
 
-          <Text style={styles.info}>
-            📅 {dayjs(item.date).format("D MMM YYYY")}
-          </Text>
+          {/* Tienda */}
+          {item.store ? (
+            <View style={styles.row}>
+              <Ionicons name="location-outline" size={16} color="#555" />
+              <Text style={styles.cardText}>{formatStore(item.store)}</Text>
+            </View>
+          ) : null}
 
-          <Text style={styles.info}>📦 {item.items.length} productos</Text>
+          {/* Nº productos */}
+          <View style={styles.row}>
+            <Ionicons name="cart-outline" size={16} color="#555" />
+            <Text style={styles.cardText}>{items.length} productos</Text>
+          </View>
 
-          <Text style={styles.total}>💶 Total: {total} €</Text>
+          {/* Total */}
+          <View style={styles.row}>
+            <Ionicons name="cash-outline" size={16} color="#16a34a" />
+            <Text style={styles.total}>{total.toFixed(2)} €</Text>
+          </View>
         </View>
 
-        {/* ➤ CHEVRON */}
-        <Ionicons name="chevron-forward" size={28} color="#555" />
+        {/* Chevron */}
+        <Ionicons name="chevron-forward" size={22} color="#888" />
       </TouchableOpacity>
     );
   };
 
-  //
-  // 🖥 RENDER
-  //
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <View style={styles.container}>
       <Text style={styles.title}>Listas Archivadas</Text>
 
-      {/* 🔍 Barra de búsqueda */}
-      <TextInput
-        style={styles.searchBar}
-        placeholder="Buscar por lista, tienda, fecha o producto..."
-        placeholderTextColor="#888"
-        value={search}
-        onChangeText={setSearch}
-      />
+      {/* 
+      Aquí puedes colocar tu barra de búsqueda si la tienes:
+      <SearchBar value={search} onChangeText={setSearch} />
+      */}
 
       <FlatList
-        data={groupedLists}
-        keyExtractor={(item, idx) => idx.toString()}
-        renderItem={renderCard}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        ListEmptyComponent={<Text style={styles.empty}>No hay resultados</Text>}
+        data={filtered}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 60 }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
-//
-// 🎨 ESTILOS
-//
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#F3F4F6",
+    padding: 16,
+    backgroundColor: "#f5f5f5",
   },
 
   title: {
-    fontSize: 26,
-    fontWeight: "800",
+    fontSize: 22,
+    fontWeight: "700",
     textAlign: "center",
-    marginBottom: 15,
-  },
-
-  // 🔍 Buscador
-  searchBar: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    marginBottom: 15,
-    fontSize: 16,
-  },
-
-  empty: {
-    marginTop: 40,
-    fontSize: 16,
-    textAlign: "center",
-    color: "#999",
+    marginBottom: 12,
   },
 
   card: {
     flexDirection: "row",
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#DDE3FF",
-    marginBottom: 12,
+    justifyContent: "space-between",
     alignItems: "center",
+    padding: 16,
+    backgroundColor: "white",
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
-  listName: {
+  cardLeft: {
+    flex: 1,
+  },
+
+  cardTitle: {
     fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 4,
+    fontWeight: "600",
+    marginBottom: 6,
   },
 
-  info: { fontSize: 14, color: "#555" },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 6,
+  },
+
+  cardText: {
+    fontSize: 14,
+    color: "#555",
+    flexShrink: 1,
+  },
 
   total: {
-    marginTop: 8,
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0A6",
+    fontSize: 15,
+    color: "#16a34a",
+    fontWeight: "600",
   },
 });

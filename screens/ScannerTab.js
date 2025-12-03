@@ -163,7 +163,7 @@ export default function ScannerTab({ navigation }) {
         }}
         onCancel={() => {
           abortController.current?.abort();
-          navigation.goBack();
+          navigation.navigate("Listas");
         }}
       />
 

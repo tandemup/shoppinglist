@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
+import BarcodeLink from "../components/BarcodeLink";
 
 import {
   getScannedHistory,
@@ -126,9 +127,10 @@ export default function ScannedHistoryScreen({ navigation }) {
             {item.isBook ? "📚 " : ""}
             {item.name}
           </Text>
-
           {item.barcode && (
-            <Text style={styles.barcode}>Código: {item.barcode}</Text>
+            <View style={{ marginTop: 4 }}>
+              <BarcodeLink barcode={item.barcode} label="Buscar código" />
+            </View>
           )}
 
           {item.scanCount > 1 && (
