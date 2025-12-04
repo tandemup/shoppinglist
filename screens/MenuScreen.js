@@ -1,4 +1,5 @@
-// screens/MenuScreen.js
+// screens/MenuScreen.js — Versión final con selección de motores de búsqueda
+
 import React, { useState } from "react";
 import {
   View,
@@ -19,10 +20,16 @@ export default function MenuScreen({ navigation }) {
     clearArchivedLists,
     clearPurchaseHistory,
     clearScannedHistory,
+    config,
+    setGeneralEngine,
+    setBookEngine,
   } = useStore();
 
-  const [maintenanceOpen, setMaintenanceOpen] = useState(false); // ⭐ ACORDEÓN
+  const [maintenanceOpen, setMaintenanceOpen] = useState(false);
 
+  //
+  // REUSABLE ROWS
+  //
   const Row = ({ icon, label, color = "#007bff", onPress }) => (
     <TouchableOpacity style={styles.row} onPress={onPress}>
       <Ionicons name={icon} size={22} color={color} style={styles.rowIcon} />
@@ -44,12 +51,65 @@ export default function MenuScreen({ navigation }) {
     </TouchableOpacity>
   );
 
+  //
+  // Motores (GENERAL)
+  //
+  const generalEngines = [
+    { id: "google", label: "Google", icon: "logo-google" },
+    { id: "duckduckgo", label: "DuckDuckGo", icon: "search-outline" },
+    { id: "bing", label: "Bing", icon: "search" },
+    { id: "idealo", label: "Idealo", icon: "pricetag-outline" },
+    { id: "carrefour", label: "Carrefour", icon: "basket-outline" },
+    { id: "barcodeLookup", label: "BarcodeLookup", icon: "barcode-outline" },
+  ];
+
+  //
+  // Motores (LIBROS)
+  //
+  const bookEngines = [
+    { id: "googleBooks", label: "Google Books", icon: "book-outline" },
+    { id: "openLibrary", label: "OpenLibrary", icon: "book-outline" },
+    { id: "amazon", label: "Amazon Books", icon: "cart-outline" },
+  ];
+
+  //
+  // RENDER OPTION
+  //
+  const renderEngineOption = (engine, selectedId, onSelect) => {
+    const selected = selectedId === engine.id;
+
+    return (
+      <TouchableOpacity
+        key={engine.id}
+        style={styles.configRow}
+        onPress={() => onSelect(engine.id)}
+      >
+        <View style={styles.configLeft}>
+          <Ionicons
+            name={engine.icon}
+            size={20}
+            color={selected ? "#2563EB" : "#666"}
+            style={{ marginRight: 12 }}
+          />
+          <Text style={styles.configLabel}>{engine.label}</Text>
+        </View>
+
+        <View style={[styles.radio, selected && styles.radioSelected]}>
+          {selected && <View style={styles.radioInner} />}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  //
+  // UI
+  //
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>Menú</Text>
 
-        {/* 📋 NAVEGACIÓN */}
+        {/* NAV */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📋 Navegación</Text>
 
@@ -58,34 +118,48 @@ export default function MenuScreen({ navigation }) {
             label="Mis listas"
             onPress={() => navigation.navigate("ShoppingLists")}
           />
-
           <Row
             icon="archive"
             label="Listas archivadas"
             onPress={() => navigation.navigate("ArchivedLists")}
           />
-
           <Row
             icon="receipt"
             label="Historial de compras"
             onPress={() => navigation.navigate("PurchaseHistory")}
           />
-
           <Row
             icon="barcode"
             label="Historial de escaneos"
             onPress={() => navigation.navigate("ScannedHistory")}
           />
-
-          <Row
-            icon="settings"
-            label="Configuración (próximamente)"
-            color="#777"
-            onPress={() => safeAlert("Configuración próximamente")}
-          />
         </View>
 
-        {/* ⚠️ ACORDEÓN DE MANTENIMIENTO */}
+        {/* GENERAL ENGINE */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>⚙️ Motor de búsqueda general</Text>
+
+          {generalEngines.map((opt) =>
+            renderEngineOption(
+              opt,
+              config.search?.generalEngine,
+              setGeneralEngine
+            )
+          )}
+        </View>
+
+        {/* BOOK ENGINE */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            📚 Motor de búsqueda para libros
+          </Text>
+
+          {bookEngines.map((opt) =>
+            renderEngineOption(opt, config.search?.bookEngine, setBookEngine)
+          )}
+        </View>
+
+        {/* MAINTENANCE */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.accordionHeader}
@@ -201,7 +275,7 @@ export default function MenuScreen({ navigation }) {
 }
 
 //
-// 🎨 Estilos
+// STYLES
 //
 const styles = StyleSheet.create({
   container: {
@@ -228,12 +302,7 @@ const styles = StyleSheet.create({
     color: "#666",
     fontWeight: "700",
     paddingLeft: 16,
-  },
-  accordionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingRight: 16,
-    alignItems: "center",
+    marginBottom: 6,
   },
   row: {
     flexDirection: "row",
@@ -243,13 +312,57 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f3f3f3",
   },
-  rowIcon: {
-    marginRight: 12,
-  },
+  rowIcon: { marginRight: 12 },
   rowText: {
     flex: 1,
     fontSize: 16,
     color: "#222",
     fontWeight: "500",
+  },
+
+  // CONFIG
+  configRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f3f3",
+  },
+  configLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  configLabel: {
+    fontSize: 16,
+    color: "#222",
+  },
+
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#aaa",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioSelected: {
+    borderColor: "#2563EB",
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#2563EB",
+    borderRadius: 6,
+  },
+
+  // ACCORDION
+  accordionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingRight: 16,
+    alignItems: "center",
   },
 });

@@ -34,7 +34,7 @@ export default function ArchivedListDetailScreen({ route }) {
           {/* Código de barras con enlace */}
           {item.barcode ? (
             <View style={{ marginTop: 4 }}>
-              <BarcodeLink barcode={item.barcode} label="Buscar por código" />
+              <BarcodeLink barcode={item.barcode} label="barcode" />
             </View>
           ) : null}
         </View>

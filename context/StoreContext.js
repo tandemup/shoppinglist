@@ -1,4 +1,4 @@
-// StoreContext.js — VERSIÓN FINAL SIN NANOID
+// StoreContext.js — Versión final optimizada (con motores de búsqueda + precio unitario correcto)
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,102 +24,159 @@ export function StoreProvider({ children }) {
   const [lists, setLists] = useState([]);
   const [purchaseHistory, setPurchaseHistory] = useState([]);
 
-  // ────────────────────────────────────────────────
+  //
+  // CONFIGURACIÓN (Motores de búsqueda)
+  //
+  const [config, setConfig] = useState({
+    search: {
+      generalEngine: "google",
+      bookEngine: "googleBooks",
+    },
+  });
+
+  //
+  // CARGA DE CONFIG DESDE STORAGE
+  //
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem("@expo-shop/config");
+        if (stored) setConfig(JSON.parse(stored));
+      } catch (e) {
+        console.log("Error cargando configuración:", e);
+      }
+    })();
+  }, []);
+
+  //
+  // GUARDADO AUTOMÁTICO DE CONFIG
+  //
+  useEffect(() => {
+    AsyncStorage.setItem("@expo-shop/config", JSON.stringify(config));
+  }, [config]);
+
+  //
   // CARGA INICIAL
-  // ────────────────────────────────────────────────
+  //
   useEffect(() => {
     (async () => {
       const listData = await loadLists();
-      const sorted = [...listData].sort((a, b) => {
+
+      const sortedLists = [...listData].sort((a, b) => {
         const A = new Date(a.createdAt || 0).getTime();
         const B = new Date(b.createdAt || 0).getTime();
         return B - A;
       });
-      setLists(sorted);
+
+      setLists(sortedLists);
 
       const historyData = await loadHistory();
       setPurchaseHistory(historyData);
     })();
   }, []);
 
-  // ────────────────────────────────────────────────
-  // LISTAS DERIVADAS
-  // ────────────────────────────────────────────────
+  //
+  // DERIVADOS
+  //
   const archivedLists = lists.filter((l) => l.archived);
   const activeLists = lists.filter((l) => !l.archived);
 
-  // ────────────────────────────────────────────────
-  // AÑADIR LISTA
-  // ────────────────────────────────────────────────
+  //
+  // SETTERS Motores de búsqueda
+  //
+  const setGeneralEngine = (engine) => {
+    setConfig((prev) => ({
+      ...prev,
+      search: { ...prev.search, generalEngine: engine },
+    }));
+  };
+
+  const setBookEngine = (engine) => {
+    setConfig((prev) => ({
+      ...prev,
+      search: { ...prev.search, bookEngine: engine },
+    }));
+  };
+
+  //
+  // CRUD LISTAS
+  //
   const addList = async (newList) => {
     await storageAddList(newList);
     const updated = await loadLists();
-    const sorted = [...updated].sort((a, b) => {
-      const A = new Date(a.createdAt || 0).getTime();
-      const B = new Date(b.createdAt || 0).getTime();
-      return B - A;
-    });
+    const sorted = [...updated].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
     setLists(sorted);
   };
 
-  // ────────────────────────────────────────────────
-  // RENOMBRAR LISTA
-  // ────────────────────────────────────────────────
   const updateListName = async (id, newName) => {
     await updateList(id, (base) => ({ ...base, name: newName }));
     const updated = await loadLists();
     setLists(updated);
   };
 
-  // ────────────────────────────────────────────────
-  // ELIMINAR LISTA
-  // ────────────────────────────────────────────────
   const deleteList = async (id) => {
     await storageDeleteList(id);
     const updated = await loadLists();
-    const sorted = [...updated].sort((a, b) => {
-      const A = new Date(a.createdAt || 0).getTime();
-      const B = new Date(b.createdAt || 0).getTime();
-      return B - A;
-    });
+    const sorted = [...updated].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
     setLists(sorted);
   };
 
-  // ────────────────────────────────────────────────
+  //
+  // NORMALIZACIÓN DE ITEMS (CORREGIDA)
+  //
+  const normalizeItem = (i) => {
+    const quantity =
+      Number(i.quantity) || Number(i.qty) || Number(i.priceInfo?.qty) || 1;
+
+    // Precio total — se intenta obtener desde múltiples estructuras
+    const totalPrice =
+      Number(i.priceInfo?.total) ||
+      Number(i.total) ||
+      Number(i.priceTotal) ||
+      Number(i.price) ||
+      0;
+
+    // Precio unitario — ahora SIEMPRE correcto
+    const unitPrice =
+      Number(i.price) > 0
+        ? Number(i.price)
+        : quantity > 0
+        ? totalPrice / quantity
+        : 0;
+
+    return {
+      id: i.id,
+      name: i.name,
+      barcode: i.barcode ?? null,
+      quantity,
+      price: unitPrice,
+    };
+  };
+
+  //
+  // NORMALIZACIÓN DE TIENDA
+  //
+  const normalizeStore = (storeObj) => {
+    if (!storeObj) return null;
+    if (typeof storeObj === "string") return storeObj;
+    if (storeObj.name) return storeObj.name;
+    return null;
+  };
+
+  //
   // ARCHIVAR LISTA
-  // (Normaliza items + crea historial + guarda lista archivada limpia)
-  // ────────────────────────────────────────────────
+  //
   const archiveList = async (id) => {
     const allLists = await loadLists();
     const target = allLists.find((l) => l.id === id);
     if (!target) return;
 
-    // Normalización de tienda
-    const normalizeStore = (storeObj) => {
-      if (!storeObj) return null;
-      if (typeof storeObj === "string") return storeObj;
-      if (storeObj.name) return storeObj.name;
-      return null;
-    };
-
-    // Normalización de item
-    const normalizeItem = (i) => {
-      const quantity =
-        Number(i.quantity) || Number(i.qty) || Number(i.priceInfo?.qty) || 1;
-
-      const price = Number(i.price) || Number(i.priceInfo?.total) || 0;
-
-      return {
-        id: i.id,
-        name: i.name,
-        barcode: i.barcode ?? null,
-        quantity,
-        price,
-      };
-    };
-
-    // 1️⃣ Items volcados al historial
-    const itemsToAdd = (target.items || []).map((i) => ({
+    // 1️⃣ Items hacia Historial (normalizados correctamente)
+    const itemsToHistory = (target.items || []).map((i) => ({
       ...normalizeItem(i),
       listName: target.name,
       store: normalizeStore(target.store),
@@ -127,62 +184,56 @@ export function StoreProvider({ children }) {
     }));
 
     const existingHistory = await loadHistory();
-    const updatedHistory = [...existingHistory, ...itemsToAdd];
-
+    const updatedHistory = [...existingHistory, ...itemsToHistory];
     await saveHistory(updatedHistory);
     setPurchaseHistory(updatedHistory);
 
-    // 2️⃣ Lista archivada con items ya normalizados
+    // 2️⃣ Actualizar la lista archivada
     await updateList(id, (base) => ({
       ...base,
       archived: true,
       archivedAt: new Date().toISOString(),
-      store: base.store ? normalizeStore(base.store) : null,
+      store: normalizeStore(base.store),
       items: (base.items || []).map(normalizeItem),
     }));
 
-    // 3️⃣ Recargar listas
+    // 3️⃣ Recargar listas ordenadas
     const refreshed = await loadLists();
-    const sorted = [...refreshed].sort((a, b) => {
-      const A = new Date(a.createdAt || 0).getTime();
-      const B = new Date(b.createdAt || 0).getTime();
-      return B - A;
-    });
+    const sorted = [...refreshed].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
     setLists(sorted);
   };
 
-  // ────────────────────────────────────────────────
-  // AÑADIR ITEMS AL HISTORIAL DESDE "PAGAR"
-  // ────────────────────────────────────────────────
+  //
+  // AÑADIR ITEMS AL HISTORIAL DESDE PAGO
+  //
   const addItemsToHistory = async (items) => {
     const base = await loadHistory();
     const stamped = items.map((i) => ({
       ...i,
       purchasedAt: new Date().toISOString(),
     }));
-
     const updated = [...base, ...stamped];
     await saveHistory(updated);
     setPurchaseHistory(updated);
   };
 
-  // ────────────────────────────────────────────────
+  //
   // RECARGAR LISTAS
-  // ────────────────────────────────────────────────
+  //
   const fetchLists = async () => {
     const loaded = await loadLists();
-    const sorted = [...loaded].sort((a, b) => {
-      const A = new Date(a.createdAt || 0).getTime();
-      const B = new Date(b.createdAt || 0).getTime();
-      return B - A;
-    });
+    const sorted = [...loaded].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
     setLists(sorted);
     return sorted;
   };
 
-  // ────────────────────────────────────────────────
+  //
   // BORRADOS SELECTIVOS
-  // ────────────────────────────────────────────────
+  //
   const clearActiveLists = async () => {
     const remaining = lists.filter((l) => l.archived);
     await saveLists(remaining);
@@ -190,22 +241,10 @@ export function StoreProvider({ children }) {
   };
 
   const clearArchivedLists = async () => {
-    try {
-      const all = await loadLists();
-      const remaining = all.filter((l) => !l.archived);
-
-      await saveLists(remaining);
-
-      const sorted = [...remaining].sort((a, b) => {
-        const A = new Date(a.createdAt || 0).getTime();
-        const B = new Date(b.createdAt || 0).getTime();
-        return B - A;
-      });
-
-      setLists(sorted);
-    } catch (err) {
-      console.log("❌ Error clearing archived lists:", err);
-    }
+    const all = await loadLists();
+    const remaining = all.filter((l) => !l.archived);
+    await saveLists(remaining);
+    setLists(remaining);
   };
 
   const clearPurchaseHistory = async () => {
@@ -220,9 +259,9 @@ export function StoreProvider({ children }) {
     );
   };
 
-  // ────────────────────────────────────────────────
-  // PROVEEDOR
-  // ────────────────────────────────────────────────
+  //
+  // EXPORTACIÓN DEL CONTEXTO
+  //
   return (
     <StoreContext.Provider
       value={{
@@ -230,8 +269,11 @@ export function StoreProvider({ children }) {
         archivedLists,
         activeLists,
 
-        purchaseHistory,
+        config,
+        setGeneralEngine,
+        setBookEngine,
 
+        purchaseHistory,
         addList,
         deleteList,
         updateListName,

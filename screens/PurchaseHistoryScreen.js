@@ -6,11 +6,12 @@ import {
   StyleSheet,
   Image,
   ScrollView,
-  TouchableOpacity,
   TextInput,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import BarcodeLink from "../components/BarcodeLink";
 import { useStore } from "../context/StoreContext";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
@@ -19,35 +20,33 @@ dayjs.locale("es");
 
 export default function PurchaseHistoryScreen({ navigation }) {
   const { purchaseHistory, fetchLists } = useStore();
-
-  // 🔍 ESTADO DEL BUSCADOR
   const [search, setSearch] = useState("");
 
   //
-  // 🍔 MENÚ HAMBURGUESA
+  // 🍔 MENÚ HAMBURGUESA (PRESSABLE → evita <a> en Web)
   //
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
+        <Pressable
           onPress={() => navigation.navigate("Menu")}
           style={{ marginRight: 15 }}
         >
           <Ionicons name="menu" size={26} color="black" />
-        </TouchableOpacity>
+        </Pressable>
       ),
     });
   }, [navigation]);
 
   //
-  // 🔄 Refrescar historial cuando se entra aquí
+  // 🔄 Recargar historial al entrar
   //
   useEffect(() => {
     fetchLists();
   }, []);
 
   //
-  // 🔍 APLICAR FILTRO ANTES DE AGRUPAR
+  // 🔍 Filtro de búsqueda
   //
   const filtered = purchaseHistory.filter((item) => {
     if (!search.trim()) return true;
@@ -61,7 +60,7 @@ export default function PurchaseHistoryScreen({ navigation }) {
   });
 
   //
-  // 🗂 AGRUPAR POR FECHA
+  // 🗂 Agrupar por fecha
   //
   const grouped = filtered.reduce((acc, item) => {
     const date = dayjs(item.purchasedAt).format("YYYY-MM-DD");
@@ -81,16 +80,14 @@ export default function PurchaseHistoryScreen({ navigation }) {
     }));
 
   //
-  // 🎨 CARD DEL ITEM
+  // 🎨 Card del item
   //
-  const renderItem = ({ item }) => (
+  const renderItem1 = ({ item }) => (
     <View style={styles.card}>
       <View style={{ flex: 1 }}>
         <Text style={styles.name}>{item.name}</Text>
 
-        {item.barcode && (
-          <Text style={styles.barcode}>Código: {item.barcode}</Text>
-        )}
+        {item.barcode && <BarcodeLink barcode={item.barcode} label="Código:" />}
 
         <Text style={styles.price}>
           💶 {item.price} € · Cant: {item.qty ?? 1}
@@ -108,15 +105,44 @@ export default function PurchaseHistoryScreen({ navigation }) {
       ) : null}
     </View>
   );
+  const renderItem = ({ item }) => (
+    <View style={styles.card}>
+      {/* IZQUIERDA: Información del producto */}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.name}>{item.name}</Text>
+
+        {item.barcode && <BarcodeLink barcode={item.barcode} label="Código:" />}
+
+        {item.store && (
+          <Text style={styles.store}>🏪 Tienda: {String(item.store)}</Text>
+        )}
+
+        <Text style={styles.fromList}>De la lista: {item.listName}</Text>
+      </View>
+
+      {/* DERECHA: Precios y cantidad */}
+      <View style={styles.priceBlock}>
+        <Text style={styles.priceTotal}>
+          {Number(item.price || item.priceInfo?.total || 0).toFixed(2)} €
+        </Text>
+
+        <Text style={styles.priceUnit}>
+          {(item.priceInfo?.unitPrice || item.unitPrice || 0).toFixed(2)} €/u
+        </Text>
+
+        <Text style={styles.qty}>Cant: {item.qty ?? item.quantity ?? 1}</Text>
+      </View>
+    </View>
+  );
 
   //
-  // 🖥 RENDER
+  // 🖥 Render
   //
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Text style={styles.title}>Historial de Compras</Text>
 
-      {/* 🔍 BARRA DE BÚSQUEDA */}
+      {/* 🔍 Barra de búsqueda */}
       <TextInput
         style={styles.searchBar}
         placeholder="Buscar producto, código, tienda..."
@@ -148,7 +174,7 @@ export default function PurchaseHistoryScreen({ navigation }) {
 }
 
 //
-// 🎨 ESTILOS
+// 🎨 Estilos
 //
 const styles = StyleSheet.create({
   container: {
@@ -162,8 +188,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
   },
-
-  // 🔍 BUSCADOR
   searchBar: {
     backgroundColor: "#fff",
     padding: 12,
@@ -173,14 +197,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 16,
   },
-
   empty: {
     marginTop: 40,
     fontSize: 16,
     textAlign: "center",
     color: "#888",
   },
-
   section: {
     marginBottom: 25,
   },
@@ -190,7 +212,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: "#444",
   },
-
   card: {
     flexDirection: "row",
     backgroundColor: "#fff",
@@ -205,14 +226,12 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-
   image: {
     width: 60,
     height: 60,
     borderRadius: 8,
     marginLeft: 10,
   },
-
   name: {
     fontSize: 16,
     fontWeight: "600",
@@ -237,5 +256,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#A33",
     fontStyle: "italic",
+  },
+  priceBlock: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    minWidth: 90,
+  },
+
+  priceTotal: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0A4",
+    marginBottom: 4,
+  },
+
+  priceUnit: {
+    fontSize: 13,
+    color: "#555",
+  },
+
+  qty: {
+    fontSize: 13,
+    color: "#777",
+    marginTop: 2,
   },
 });
