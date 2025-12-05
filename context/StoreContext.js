@@ -1,4 +1,5 @@
-// StoreContext.js — Versión final optimizada (con motores de búsqueda + precio unitario correcto)
+// StoreContext.js — Versión final con estructura correcta (Opción A)
+// Mantiene qty, unitPrice y price total exactamente como el usuario los introduce
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -12,7 +13,7 @@ import {
   updateList,
 } from "../utils/storage/listStorage";
 
-// Helpers de historial
+// Helpers del historial
 import {
   loadHistory,
   saveHistory,
@@ -24,9 +25,10 @@ export function StoreProvider({ children }) {
   const [lists, setLists] = useState([]);
   const [purchaseHistory, setPurchaseHistory] = useState([]);
 
-  //
+  // -----------------------------------------------------------
   // CONFIGURACIÓN (Motores de búsqueda)
-  //
+  // -----------------------------------------------------------
+
   const [config, setConfig] = useState({
     search: {
       generalEngine: "google",
@@ -34,9 +36,6 @@ export function StoreProvider({ children }) {
     },
   });
 
-  //
-  // CARGA DE CONFIG DESDE STORAGE
-  //
   useEffect(() => {
     (async () => {
       try {
@@ -48,25 +47,35 @@ export function StoreProvider({ children }) {
     })();
   }, []);
 
-  //
-  // GUARDADO AUTOMÁTICO DE CONFIG
-  //
   useEffect(() => {
     AsyncStorage.setItem("@expo-shop/config", JSON.stringify(config));
   }, [config]);
 
-  //
-  // CARGA INICIAL
-  //
+  const setGeneralEngine = (engine) =>
+    setConfig((prev) => ({
+      ...prev,
+      search: { ...prev.search, generalEngine: engine },
+    }));
+
+  const setBookEngine = (engine) =>
+    setConfig((prev) => ({
+      ...prev,
+      search: { ...prev.search, bookEngine: engine },
+    }));
+
+  // -----------------------------------------------------------
+  // CARGA INICIAL DE LISTAS + HISTORIAL
+  // -----------------------------------------------------------
+
   useEffect(() => {
     (async () => {
       const listData = await loadLists();
 
-      const sortedLists = [...listData].sort((a, b) => {
-        const A = new Date(a.createdAt || 0).getTime();
-        const B = new Date(b.createdAt || 0).getTime();
-        return B - A;
-      });
+      const sortedLists = [...listData].sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime()
+      );
 
       setLists(sortedLists);
 
@@ -75,32 +84,53 @@ export function StoreProvider({ children }) {
     })();
   }, []);
 
-  //
-  // DERIVADOS
-  //
-  const archivedLists = lists.filter((l) => l.archived);
-  const activeLists = lists.filter((l) => !l.archived);
+  // -----------------------------------------------------------
+  // NORMALIZACIÓN (Compatibilidad con datos antiguos)
+  // -----------------------------------------------------------
 
-  //
-  // SETTERS Motores de búsqueda
-  //
-  const setGeneralEngine = (engine) => {
-    setConfig((prev) => ({
-      ...prev,
-      search: { ...prev.search, generalEngine: engine },
-    }));
+  const normalizeItem = (i) => {
+    // Cantidad real
+    const quantity =
+      Number(i.qty) || Number(i.quantity) || Number(i.priceInfo?.qty) || 1;
+
+    // Precio total REAL introducido por el usuario
+    const totalPrice =
+      Number(i.price) ||
+      Number(i.total) ||
+      Number(i.priceTotal) ||
+      Number(i.priceInfo?.total) ||
+      0;
+
+    // Precio unitario REAL introducido por el usuario (si existe)
+    const unitPrice =
+      Number(i.unitPrice) || Number(i.priceInfo?.unitPrice) || null; // si no existe, lo dejamos en null sin inventarlo
+
+    return {
+      id: i.id,
+      name: i.name,
+      barcode: i.barcode ?? null,
+
+      qty: quantity,
+      quantity,
+
+      price: totalPrice,
+      unitPrice: unitPrice,
+
+      image: i.image ?? null,
+    };
   };
 
-  const setBookEngine = (engine) => {
-    setConfig((prev) => ({
-      ...prev,
-      search: { ...prev.search, bookEngine: engine },
-    }));
+  const normalizeStore = (storeObj) => {
+    if (!storeObj) return null;
+    if (typeof storeObj === "string") return storeObj;
+    if (storeObj.name) return storeObj.name;
+    return null;
   };
 
-  //
+  // -----------------------------------------------------------
   // CRUD LISTAS
-  //
+  // -----------------------------------------------------------
+
   const addList = async (newList) => {
     await storageAddList(newList);
     const updated = await loadLists();
@@ -125,79 +155,42 @@ export function StoreProvider({ children }) {
     setLists(sorted);
   };
 
-  //
-  // NORMALIZACIÓN DE ITEMS (CORREGIDA)
-  //
-  const normalizeItem = (i) => {
-    const quantity =
-      Number(i.quantity) || Number(i.qty) || Number(i.priceInfo?.qty) || 1;
+  // -----------------------------------------------------------
+  // ARCHIVAR LISTA (Se respeta precio total, unitario y cantidad)
+  // -----------------------------------------------------------
 
-    // Precio total — se intenta obtener desde múltiples estructuras
-    const totalPrice =
-      Number(i.priceInfo?.total) ||
-      Number(i.total) ||
-      Number(i.priceTotal) ||
-      Number(i.price) ||
-      0;
-
-    // Precio unitario — ahora SIEMPRE correcto
-    const unitPrice =
-      Number(i.price) > 0
-        ? Number(i.price)
-        : quantity > 0
-        ? totalPrice / quantity
-        : 0;
-
-    return {
-      id: i.id,
-      name: i.name,
-      barcode: i.barcode ?? null,
-      quantity,
-      price: unitPrice,
-    };
-  };
-
-  //
-  // NORMALIZACIÓN DE TIENDA
-  //
-  const normalizeStore = (storeObj) => {
-    if (!storeObj) return null;
-    if (typeof storeObj === "string") return storeObj;
-    if (storeObj.name) return storeObj.name;
-    return null;
-  };
-
-  //
-  // ARCHIVAR LISTA
-  //
   const archiveList = async (id) => {
     const allLists = await loadLists();
     const target = allLists.find((l) => l.id === id);
     if (!target) return;
 
-    // 1️⃣ Items hacia Historial (normalizados correctamente)
     const itemsToHistory = (target.items || []).map((i) => ({
       ...normalizeItem(i),
+
       listName: target.name,
       store: normalizeStore(target.store),
+
       purchasedAt: new Date().toISOString(),
     }));
 
     const existingHistory = await loadHistory();
     const updatedHistory = [...existingHistory, ...itemsToHistory];
+
     await saveHistory(updatedHistory);
     setPurchaseHistory(updatedHistory);
 
-    // 2️⃣ Actualizar la lista archivada
+    // Marcamos la lista como archivada sin destruir precios
     await updateList(id, (base) => ({
       ...base,
       archived: true,
       archivedAt: new Date().toISOString(),
       store: normalizeStore(base.store),
+
+      // También normalizamos items dentro de la lista archivada
       items: (base.items || []).map(normalizeItem),
     }));
 
-    // 3️⃣ Recargar listas ordenadas
+    // Recargar listas
     const refreshed = await loadLists();
     const sorted = [...refreshed].sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -205,9 +198,10 @@ export function StoreProvider({ children }) {
     setLists(sorted);
   };
 
-  //
-  // AÑADIR ITEMS AL HISTORIAL DESDE PAGO
-  //
+  // -----------------------------------------------------------
+  // AÑADIR ITEMS AL HISTORIAL (otros flujos)
+  // -----------------------------------------------------------
+
   const addItemsToHistory = async (items) => {
     const base = await loadHistory();
     const stamped = items.map((i) => ({
@@ -219,9 +213,10 @@ export function StoreProvider({ children }) {
     setPurchaseHistory(updated);
   };
 
-  //
+  // -----------------------------------------------------------
   // RECARGAR LISTAS
-  //
+  // -----------------------------------------------------------
+
   const fetchLists = async () => {
     const loaded = await loadLists();
     const sorted = [...loaded].sort(
@@ -231,9 +226,10 @@ export function StoreProvider({ children }) {
     return sorted;
   };
 
-  //
+  // -----------------------------------------------------------
   // BORRADOS SELECTIVOS
-  //
+  // -----------------------------------------------------------
+
   const clearActiveLists = async () => {
     const remaining = lists.filter((l) => l.archived);
     await saveLists(remaining);
@@ -259,21 +255,23 @@ export function StoreProvider({ children }) {
     );
   };
 
-  //
+  // -----------------------------------------------------------
   // EXPORTACIÓN DEL CONTEXTO
-  //
+  // -----------------------------------------------------------
+
   return (
     <StoreContext.Provider
       value={{
         lists,
-        archivedLists,
-        activeLists,
+        archivedLists: lists.filter((l) => l.archived),
+        activeLists: lists.filter((l) => !l.archived),
 
         config,
         setGeneralEngine,
         setBookEngine,
 
         purchaseHistory,
+
         addList,
         deleteList,
         updateListName,

@@ -31,13 +31,13 @@ export const PROMOTIONS = {
   },
 
   discount10: {
-    label: "10% descuento",
+    label: "10%",
     isApplicable: () => true,
     apply: (price, qty) => price * qty * 0.9,
   },
 
   discount20: {
-    label: "20% descuento",
+    label: "20%",
     isApplicable: () => true,
     apply: (price, qty) => price * qty * 0.8,
   },

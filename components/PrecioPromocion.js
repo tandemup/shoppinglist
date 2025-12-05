@@ -49,6 +49,23 @@ export default function PrecioPromocion({ value = {}, onChange }) {
 
   const { total, summary, warning } = computeTotals();
 
+  // Sincronizar promo externa → estado interno
+  useEffect(() => {
+    setLocalPromo(value.promo ?? "none");
+  }, [value.promo]);
+
+  useEffect(() => {
+    setLocalUnit(value.unitType ?? "u");
+  }, [value.unitType]);
+
+  useEffect(() => {
+    setLocalQty(String(value.qty ?? "1"));
+  }, [value.qty]);
+
+  useEffect(() => {
+    setLocalPrice(String(value.unitPrice ?? ""));
+  }, [value.unitPrice]);
+
   // -----------------------------
   // Propagar cambios al padre
   // -----------------------------

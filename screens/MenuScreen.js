@@ -26,6 +26,8 @@ export default function MenuScreen({ navigation }) {
   } = useStore();
 
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+  const [generalOpen, setGeneralOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
 
   //
   // REUSABLE ROWS
@@ -37,12 +39,8 @@ export default function MenuScreen({ navigation }) {
       <Ionicons name="chevron-forward" size={20} color="#bbb" />
     </TouchableOpacity>
   );
-
   const DangerRow = ({ icon, label, onPress }) => (
-    <TouchableOpacity
-      style={[styles.row, { backgroundColor: "#fee2e2" }]}
-      onPress={onPress}
-    >
+    <TouchableOpacity style={styles.dangerRow} onPress={onPress}>
       <Ionicons name={icon} size={22} color="#b91c1c" style={styles.rowIcon} />
       <Text style={[styles.rowText, { color: "#b91c1c", fontWeight: "700" }]}>
         {label}
@@ -137,25 +135,59 @@ export default function MenuScreen({ navigation }) {
 
         {/* GENERAL ENGINE */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚙️ Motor de búsqueda general</Text>
+          <TouchableOpacity
+            style={styles.accordionHeader}
+            onPress={() => setGeneralOpen((prev) => !prev)}
+          >
+            <Text style={styles.sectionTitle}>
+              ⚙️ Motor de búsqueda general
+            </Text>
+            <Ionicons
+              name={generalOpen ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#666"
+            />
+          </TouchableOpacity>
 
-          {generalEngines.map((opt) =>
-            renderEngineOption(
-              opt,
-              config.search?.generalEngine,
-              setGeneralEngine
-            )
+          {generalOpen && (
+            <View style={styles.dropdownContent}>
+              {generalEngines.map((opt) =>
+                renderEngineOption(
+                  opt,
+                  config.search?.generalEngine,
+                  setGeneralEngine
+                )
+              )}
+            </View>
           )}
         </View>
 
         {/* BOOK ENGINE */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            📚 Motor de búsqueda para libros
-          </Text>
+          <TouchableOpacity
+            style={styles.accordionHeader}
+            onPress={() => setBookOpen((prev) => !prev)}
+          >
+            <Text style={styles.sectionTitle}>
+              📚 Motor de búsqueda para libros
+            </Text>
+            <Ionicons
+              name={bookOpen ? "chevron-up" : "chevron-down"}
+              size={20}
+              color="#666"
+            />
+          </TouchableOpacity>
 
-          {bookEngines.map((opt) =>
-            renderEngineOption(opt, config.search?.bookEngine, setBookEngine)
+          {bookOpen && (
+            <View style={styles.dropdownContent}>
+              {bookEngines.map((opt) =>
+                renderEngineOption(
+                  opt,
+                  config.search?.bookEngine,
+                  setBookEngine
+                )
+              )}
+            </View>
           )}
         </View>
 
@@ -277,7 +309,129 @@ export default function MenuScreen({ navigation }) {
 //
 // STYLES
 //
+
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#f2f4f7",
+  },
+
+  title: {
+    fontSize: 30,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 24,
+    color: "#1f2937",
+  },
+
+  // CARD SECTIONS
+  section: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    paddingVertical: 12,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+
+  sectionTitle: {
+    fontSize: 15,
+    color: "#6b7280",
+    fontWeight: "700",
+    paddingLeft: 18,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+
+  // NORMAL ROW
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+  },
+  rowIcon: { marginRight: 14 },
+  rowText: {
+    flex: 1,
+    fontSize: 17,
+    color: "#111827",
+    fontWeight: "500",
+  },
+
+  // CONFIG ROWS (radios)
+  configRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderTopWidth: 1,
+    borderTopColor: "#f1f5f9",
+  },
+  configLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  configLabel: {
+    fontSize: 16,
+    color: "#1f2937",
+  },
+
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#9ca3af",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioSelected: {
+    borderColor: "#2563EB",
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    backgroundColor: "#2563EB",
+    borderRadius: 6,
+  },
+
+  // MAINTENANCE ACCORDION
+  dropdownContent: {
+    backgroundColor: "#fafafa",
+    paddingBottom: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  accordionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignItems: "center",
+  },
+
+  // DANGER ROWS
+  dangerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderTopWidth: 1,
+    borderTopColor: "#ffe4e6",
+    backgroundColor: "#fff1f2",
+  },
+});
+
+const styles1 = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,

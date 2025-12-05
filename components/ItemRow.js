@@ -1,71 +1,90 @@
-/* ItemRow.js (actualizado con chevron) */
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function ItemRow({ item, onToggle, onEdit }) {
-  const handleToggle = () => onToggle(item.id);
-  const handleEdit = () => onEdit(item);
+  const unit_logo = { u: "🧩", kg: "⚖️", l: "🧃" };
 
-  const totalPrice =
-    item.priceInfo?.total != null
-      ? Number(item.priceInfo.total).toFixed(2)
-      : "0.00";
+  const qty = item?.priceInfo?.qty ?? 1;
+  const unit = item?.priceInfo?.unit ?? "u";
+  const unitPrice = item?.priceInfo?.unitPrice ?? 0;
+  const total = item?.priceInfo?.total ?? qty * unitPrice;
+
+  const promo = item?.priceInfo?.promo;
+  const summary = item?.priceInfo?.summary;
+  console.log("promo", promo);
+  // Mostrar icono y summary solo si la promo es distinta de "none"
+  const hasPromo = promo && promo !== "none";
+  const iconUnidad = unit_logo[unit] || "🧩";
 
   return (
     <View style={styles.item}>
-      {/* ☑️ Checkbox */}
+      {/* CHECKBOX -> único lugar donde se lanza toggle */}
       <Pressable
-        onPress={handleToggle}
+        onPress={() => onToggle(item.id)}
         style={[styles.checkbox, item.checked && styles.checkboxChecked]}
         hitSlop={14}
       >
         {item.checked && <Text style={styles.checkboxMark}>✓</Text>}
       </Pressable>
 
-      {/* Nombre */}
-      <View style={styles.nameContainer}>
-        <Text
-          style={[
-            styles.name,
-            item.checked === false &&
-              item.priceInfo?.total > 0 && {
-                textDecorationLine: "line-through",
-                color: "#aaa",
-              },
-          ]}
-        >
-          {item.name}
+      {/* CONTENIDO CENTRAL — sin Pressable */}
+      <View style={styles.leftBlock}>
+        {/* NOMBRE + ICONO PROMO */}
+        <View style={styles.nameRow}>
+          <Text
+            style={[
+              styles.name,
+              !item.checked &&
+                total > 0 && {
+                  textDecorationLine: "line-through",
+                  color: "#aaa",
+                },
+            ]}
+          >
+            {item.name}
+          </Text>
+
+          {hasPromo && (
+            <Text style={styles.summaryText}>
+              <Ionicons
+                name="pricetag"
+                size={16}
+                color="#16a34a"
+                style={{ marginLeft: 6 }}
+              />
+              {promo}
+            </Text>
+          )}
+        </View>
+
+        {/* CANTIDAD + ICONO + PRECIO UNITARIO */}
+        <Text style={styles.detailText}>
+          {qty}
+          {unit} × {unitPrice.toFixed(2)} €/{unit}
         </Text>
       </View>
 
-      {/* Precio */}
-      <Pressable
-        onPress={handleEdit}
-        style={styles.priceContainer}
-        hitSlop={14}
-      >
-        <Text style={styles.priceText}>{totalPrice} €</Text>
+      {/* PRECIO TOTAL — sin Pressable */}
+      <View style={styles.rightBlock}>
+        <Text style={styles.priceText}>{total.toFixed(2)} €</Text>
+      </View>
 
-        {item.priceInfo?.qty > 1 && item.priceInfo?.unitPrice > 0 && (
-          <Text style={styles.multiUnitText}>
-            ({item.priceInfo.qty} × {item.priceInfo.unitPrice.toFixed(2)} €)
-          </Text>
-        )}
-      </Pressable>
-
-      {/* ➤ CHEVRON */}
-      <Pressable onPress={handleEdit} hitSlop={10}>
+      {/* CHEVRON — único lugar donde se abre ItemDetail */}
+      <Pressable onPress={() => onEdit(item)} hitSlop={10}>
         <Ionicons name="chevron-forward" size={22} color="#555" />
       </Pressable>
     </View>
   );
 }
 
+//
+// ESTILOS
+//
 const styles = StyleSheet.create({
   item: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 12,
@@ -85,6 +104,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10,
+    marginTop: 4,
   },
   checkboxChecked: {
     borderColor: "#4CAF50",
@@ -96,21 +116,46 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  nameContainer: { flex: 1 },
+  leftBlock: {
+    flex: 1,
+    marginRight: 10,
+  },
 
-  name: { fontSize: 16, color: "#111", fontWeight: "500" },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
-  priceContainer: {
+  name: {
+    fontSize: 16,
+    color: "#111",
+    fontWeight: "500",
+    marginBottom: 2,
+  },
+
+  detailText: {
+    fontSize: 13,
+    color: "#555",
+    marginTop: 2,
+  },
+
+  summaryText: {
+    fontSize: 12,
+    color: "#16a34a",
+    marginTop: 2,
+    fontWeight: "500",
+  },
+
+  rightBlock: {
     minWidth: 80,
     alignItems: "flex-end",
     justifyContent: "center",
-    paddingHorizontal: 8,
+    marginRight: 6,
   },
 
-  priceText: { fontSize: 15, fontWeight: "600", color: "#111" },
-  multiUnitText: {
-    fontSize: 11,
-    color: "#777",
-    marginTop: 2,
+  priceText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111",
   },
 });

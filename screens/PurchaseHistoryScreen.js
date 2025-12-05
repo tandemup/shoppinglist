@@ -1,13 +1,14 @@
+// PurchaseHistoryScreen.js — versión limpia y final
+
 import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   FlatList,
-  StyleSheet,
-  Image,
   ScrollView,
   TextInput,
   Pressable,
+  StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,9 +23,7 @@ export default function PurchaseHistoryScreen({ navigation }) {
   const { purchaseHistory, fetchLists } = useStore();
   const [search, setSearch] = useState("");
 
-  //
-  // 🍔 MENÚ HAMBURGUESA (PRESSABLE → evita <a> en Web)
-  //
+  // Header con menú
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -38,16 +37,12 @@ export default function PurchaseHistoryScreen({ navigation }) {
     });
   }, [navigation]);
 
-  //
-  // 🔄 Recargar historial al entrar
-  //
+  // Recargar historial al entrar
   useEffect(() => {
     fetchLists();
   }, []);
 
-  //
-  // 🔍 Filtro de búsqueda
-  //
+  // Filtro
   const filtered = purchaseHistory.filter((item) => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -59,13 +54,10 @@ export default function PurchaseHistoryScreen({ navigation }) {
     );
   });
 
-  //
-  // 🗂 Agrupar por fecha
-  //
+  // Agrupar por fecha
   const grouped = filtered.reduce((acc, item) => {
     const date = dayjs(item.purchasedAt).format("YYYY-MM-DD");
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(item);
+    (acc[date] = acc[date] || []).push(item);
     return acc;
   }, {});
 
@@ -73,76 +65,72 @@ export default function PurchaseHistoryScreen({ navigation }) {
     .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())
     .map((date) => ({
       title: dayjs(date).format("D MMM YYYY"),
-      data: grouped[date].sort(
-        (a, b) =>
-          dayjs(b.purchasedAt).valueOf() - dayjs(a.purchasedAt).valueOf()
-      ),
+      data: grouped[date],
     }));
 
-  //
-  // 🎨 Card del item
-  //
-  const renderItem1 = ({ item }) => (
-    <View style={styles.card}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.name}>{item.name}</Text>
-
-        {item.barcode && <BarcodeLink barcode={item.barcode} label="Código:" />}
-
-        <Text style={styles.price}>
-          💶 {item.price} € · Cant: {item.qty ?? 1}
-        </Text>
-
-        {item.store ? (
-          <Text style={styles.store}>🏪 Tienda: {String(item.store)}</Text>
-        ) : null}
-
-        <Text style={styles.fromList}>De la lista: {item.listName}</Text>
-      </View>
-
-      {item.image ? (
-        <Image source={{ uri: item.image }} style={styles.image} />
-      ) : null}
-    </View>
-  );
+  // CARD limpia
   const renderItem = ({ item }) => (
     <View style={styles.card}>
-      {/* IZQUIERDA: Información del producto */}
-      <View style={{ flex: 1 }}>
-        <Text style={styles.name}>{item.name}</Text>
-
-        {item.barcode && <BarcodeLink barcode={item.barcode} label="Código:" />}
-
-        {item.store && (
-          <Text style={styles.store}>🏪 Tienda: {String(item.store)}</Text>
-        )}
-
-        <Text style={styles.fromList}>De la lista: {item.listName}</Text>
+      {/* Fila 1: nombre + chevron */}
+      <View style={styles.rowTop}>
+        <Text style={styles.itemName}>{item.name}</Text>
+        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
       </View>
 
-      {/* DERECHA: Precios y cantidad */}
-      <View style={styles.priceBlock}>
-        <Text style={styles.priceTotal}>
-          {Number(item.price || item.priceInfo?.total || 0).toFixed(2)} €
-        </Text>
+      {/* Fila 2: fecha + tienda */}
+      <View style={styles.rowMid}>
+        <View style={styles.rowInline}>
+          <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+          <Text style={styles.metaText}>
+            {dayjs(item.purchasedAt).format("D MMM YYYY")}
+          </Text>
+        </View>
 
-        <Text style={styles.priceUnit}>
-          {(item.priceInfo?.unitPrice || item.unitPrice || 0).toFixed(2)} €/u
-        </Text>
+        {item.store && (
+          <>
+            <Text style={styles.dot}>•</Text>
+            <View style={styles.rowInline}>
+              <Ionicons name="location-outline" size={14} color="#6B7280" />
+              <Text style={styles.metaText}>{String(item.store)}</Text>
+            </View>
+          </>
+        )}
+      </View>
 
-        <Text style={styles.qty}>Cant: {item.qty ?? item.quantity ?? 1}</Text>
+      {/* Fila 3: Código de barras */}
+      {item.barcode && (
+        <View style={styles.rowBarcode}>
+          <BarcodeLink barcode={item.barcode} label="Código:" />
+        </View>
+      )}
+
+      {/* Fila 4: cantidad + unitario */}
+      <View style={styles.rowQtyUnit}>
+        <View style={styles.rowInline}>
+          <Ionicons name="cart-outline" size={16} color="#4B5563" />
+          <Text style={styles.detailText}>
+            {item.qty ?? item.quantity ?? 1} unidades
+          </Text>
+        </View>
+
+        <Text style={styles.detailText}>
+          {item.unitPrice != null
+            ? `${Number(item.unitPrice).toFixed(2)} €/u`
+            : "— €/u"}
+        </Text>
+      </View>
+
+      {/* Fila 5: total */}
+      <View style={styles.rowTotal}>
+        <Text style={styles.totalText}>{(item.price ?? 0).toFixed(2)} €</Text>
       </View>
     </View>
   );
 
-  //
-  // 🖥 Render
-  //
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Text style={styles.title}>Historial de Compras</Text>
 
-      {/* 🔍 Barra de búsqueda */}
       <TextInput
         style={styles.searchBar}
         placeholder="Buscar producto, código, tienda..."
@@ -162,7 +150,7 @@ export default function PurchaseHistoryScreen({ navigation }) {
               <FlatList
                 data={section.data}
                 renderItem={renderItem}
-                keyExtractor={(item, idx) => item.id + "-" + idx}
+                keyExtractor={(item, index) => item.id + "-" + index}
                 scrollEnabled={false}
               />
             </View>
@@ -173,21 +161,22 @@ export default function PurchaseHistoryScreen({ navigation }) {
   );
 }
 
-//
-// 🎨 Estilos
-//
+/* ----------------- ESTILOS LIMPIOS ----------------- */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: "#FAFAFA",
   },
+
   title: {
     fontSize: 26,
     fontWeight: "800",
     textAlign: "center",
     marginBottom: 10,
   },
+
   searchBar: {
     backgroundColor: "#fff",
     padding: 12,
@@ -197,12 +186,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontSize: 16,
   },
+
   empty: {
     marginTop: 40,
     fontSize: 16,
     textAlign: "center",
     color: "#888",
   },
+
   section: {
     marginBottom: 25,
   },
@@ -212,72 +203,83 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: "#444",
   },
+
+  /* CARD nueva */
   card: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 10,
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 18,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#E0E7FF",
+    borderColor: "#E5E7EB",
     shadowColor: "#000",
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.03,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 2,
+    shadowRadius: 4,
     elevation: 1,
   },
-  image: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginLeft: 10,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  barcode: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 2,
-  },
-  price: {
-    marginTop: 4,
-    fontWeight: "700",
-    color: "#0066CC",
-  },
-  store: {
-    marginTop: 2,
-    fontSize: 13,
-    color: "#777",
-  },
-  fromList: {
-    marginTop: 4,
-    fontSize: 11,
-    color: "#A33",
-    fontStyle: "italic",
-  },
-  priceBlock: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-    minWidth: 90,
-  },
 
-  priceTotal: {
+  /* Fila 1 */
+  rowTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  itemName: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#0A4",
-    marginBottom: 4,
+    color: "#111827",
   },
 
-  priceUnit: {
-    fontSize: 13,
-    color: "#555",
+  /* Fila 2 */
+  rowMid: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+  },
+  rowInline: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  metaText: {
+    marginLeft: 4,
+    color: "#6B7280",
+    fontSize: 14,
+  },
+  dot: {
+    marginHorizontal: 6,
+    color: "#9CA3AF",
   },
 
-  qty: {
-    fontSize: 13,
-    color: "#777",
-    marginTop: 2,
+  /* Fila 3 */
+  rowBarcode: {
+    marginTop: 8,
+  },
+
+  /* Fila 4 */
+  rowQtyUnit: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  detailText: {
+    marginLeft: 6,
+    fontSize: 15,
+    color: "#4B5563",
+  },
+
+  /* Fila 5 */
+  rowTotal: {
+    marginTop: 10,
+    alignItems: "flex-end",
+  },
+  totalText: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#059669",
   },
 });
