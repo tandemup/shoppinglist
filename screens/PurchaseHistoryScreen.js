@@ -1,4 +1,4 @@
-// PurchaseHistoryScreen.js — versión limpia y final
+// PurchaseHistoryScreen.js — Variante B limpia y final
 
 import React, { useEffect, useState } from "react";
 import {
@@ -68,64 +68,82 @@ export default function PurchaseHistoryScreen({ navigation }) {
       data: grouped[date],
     }));
 
-  // CARD limpia
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      {/* Fila 1: nombre + chevron */}
-      <View style={styles.rowTop}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-      </View>
+  // CARD limpia — Variante B
+  const renderItem = ({ item }) => {
+    const qty = item.qty ?? item.quantity ?? 1;
+    const unit = item.unit ?? "u";
+    const unitPrice =
+      item.unitPrice != null ? Number(item.unitPrice).toFixed(2) : null;
 
-      {/* Fila 2: fecha + tienda */}
-      <View style={styles.rowMid}>
-        <View style={styles.rowInline}>
-          <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-          <Text style={styles.metaText}>
-            {dayjs(item.purchasedAt).format("D MMM YYYY")}
-          </Text>
+    const summary = item.priceInfo?.summary;
+
+    return (
+      <View style={styles.card}>
+        {/* Fila 1: nombre + chevron */}
+        <View style={styles.rowTop}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
         </View>
 
-        {item.store && (
-          <>
-            <Text style={styles.dot}>•</Text>
-            <View style={styles.rowInline}>
+        {/* Fila 2: fecha + tienda */}
+        <View style={styles.rowMid}>
+          <View style={styles.rowInline}>
+            <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+            <Text style={styles.metaText}>
+              {dayjs(item.purchasedAt).format("D MMM YYYY")}
+            </Text>
+          </View>
+
+          {item.store && (
+            <View style={[styles.rowInline, { marginLeft: 8 }]}>
+              <Text style={styles.dot}>•</Text>
               <Ionicons name="location-outline" size={14} color="#6B7280" />
               <Text style={styles.metaText}>{String(item.store)}</Text>
             </View>
-          </>
+          )}
+        </View>
+
+        {/* Fila 3: código de barras */}
+        {item.barcode && (
+          <View style={styles.rowBarcode}>
+            <BarcodeLink barcode={item.barcode} label="Código:" />
+          </View>
         )}
-      </View>
 
-      {/* Fila 3: Código de barras */}
-      {item.barcode && (
-        <View style={styles.rowBarcode}>
-          <BarcodeLink barcode={item.barcode} label="Código:" />
+        {/* Fila 4 — VARIANTE B: Info izquierda + Total derecha */}
+        <View style={styles.rowVariantB}>
+          {/* Bloque izquierdo */}
+          <View style={{ flex: 1 }}>
+            {/* Cantidad */}
+            <View style={styles.rowInline}>
+              <Ionicons name="cart-outline" size={16} color="#4B5563" />
+              <Text style={styles.detailText}>
+                {qty} {unit}
+              </Text>
+            </View>
+
+            {/* Precio unitario */}
+            {unitPrice && (
+              <Text style={styles.detailIndented}>
+                {unitPrice} €/ {unit}
+              </Text>
+            )}
+
+            {/* Promoción */}
+            {summary && <Text style={styles.offerText}>{summary}</Text>}
+          </View>
+
+          {/* Bloque derecho: Total */}
+          <View style={styles.totalBlock}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalText}>
+              {(item.price ?? 0).toFixed(2)} €
+            </Text>
+          </View>
         </View>
-      )}
-
-      {/* Fila 4: cantidad + unitario */}
-      <View style={styles.rowQtyUnit}>
-        <View style={styles.rowInline}>
-          <Ionicons name="cart-outline" size={16} color="#4B5563" />
-          <Text style={styles.detailText}>
-            {item.qty ?? item.quantity ?? 1} unidades
-          </Text>
-        </View>
-
-        <Text style={styles.detailText}>
-          {item.unitPrice != null
-            ? `${Number(item.unitPrice).toFixed(2)} €/u`
-            : "— €/u"}
-        </Text>
       </View>
-
-      {/* Fila 5: total */}
-      <View style={styles.rowTotal}>
-        <Text style={styles.totalText}>{(item.price ?? 0).toFixed(2)} €</Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
@@ -161,7 +179,7 @@ export default function PurchaseHistoryScreen({ navigation }) {
   );
 }
 
-/* ----------------- ESTILOS LIMPIOS ----------------- */
+/* ----------------- ESTILOS ----------------- */
 
 const styles = StyleSheet.create({
   container: {
@@ -256,27 +274,48 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
-  /* Fila 4 */
-  rowQtyUnit: {
+  /* VARIANTE B */
+  rowVariantB: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
     borderColor: "#F3F4F6",
   },
+
   detailText: {
     marginLeft: 6,
     fontSize: 15,
     color: "#4B5563",
   },
 
-  /* Fila 5 */
-  rowTotal: {
-    marginTop: 10,
-    alignItems: "flex-end",
+  detailIndented: {
+    marginLeft: 22,
+    fontSize: 15,
+    color: "#4B5563",
   },
+
+  offerText: {
+    marginLeft: 22,
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#059669",
+  },
+
+  totalBlock: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+
+  totalLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 2,
+  },
+
   totalText: {
     fontSize: 20,
     fontWeight: "800",
