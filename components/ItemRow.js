@@ -3,23 +3,47 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function ItemRow({ item, onToggle, onEdit }) {
-  const unit_logo = { u: "🧩", kg: "⚖️", l: "🧃" };
+  //
+  // ICONOS PARA CADA UNIDAD
+  //
+  const unit_logo = {
+    u: "🧩",
+    kg: "⚖️",
+    g: "⚖️",
+    l: "🧃",
+  };
 
+  //
+  // DATOS DEL ITEM
+  //
   const qty = item?.priceInfo?.qty ?? 1;
-  const unit = item?.priceInfo?.unit ?? "u";
+
+  // ← LA UNIDAD REAL AHORA SE LEE CORRECTAMENTE
+  const unitType = item?.priceInfo?.unitType ?? "u";
+
   const unitPrice = item?.priceInfo?.unitPrice ?? 0;
+
+  // UNIDAD VISIBLE
+  const visibleUnits = { u: "u", kg: "kg", g: "g", l: "l" };
+  const displayUnit = visibleUnits[unitType] ?? unitType;
+
   const total = item?.priceInfo?.total ?? qty * unitPrice;
 
+  //
+  // PROMOCIÓN
+  //
   const promo = item?.priceInfo?.promo;
   const summary = item?.priceInfo?.summary;
-  console.log("promo", promo);
-  // Mostrar icono y summary solo si la promo es distinta de "none"
   const hasPromo = promo && promo !== "none";
-  const iconUnidad = unit_logo[unit] || "🧩";
+
+  //
+  // ICONO DE UNIDAD
+  //
+  const iconUnidad = unit_logo[unitType] || "🧩";
 
   return (
     <View style={styles.item}>
-      {/* CHECKBOX -> único lugar donde se lanza toggle */}
+      {/* CHECKBOX */}
       <Pressable
         onPress={() => onToggle(item.id)}
         style={[styles.checkbox, item.checked && styles.checkboxChecked]}
@@ -28,49 +52,49 @@ export default function ItemRow({ item, onToggle, onEdit }) {
         {item.checked && <Text style={styles.checkboxMark}>✓</Text>}
       </Pressable>
 
-      {/* CONTENIDO CENTRAL — sin Pressable */}
+      {/* BLOQUE IZQUIERDO */}
       <View style={styles.leftBlock}>
         {/* NOMBRE + ICONO PROMO */}
         <View style={styles.nameRow}>
           <Text
             style={[
               styles.name,
-              !item.checked &&
-                total > 0 && {
-                  textDecorationLine: "line-through",
-                  color: "#aaa",
-                },
+              !item.checked && {
+                textDecorationLine: "line-through",
+                color: "#aaa",
+              },
             ]}
           >
             {item.name}
           </Text>
 
           {hasPromo && (
-            <Text style={styles.summaryText}>
+            <View style={styles.promoRow}>
               <Ionicons
                 name="pricetag"
                 size={16}
                 color="#16a34a"
-                style={{ marginLeft: 6 }}
+                style={{ marginRight: 4 }}
               />
-              {promo}
-            </Text>
+              <Text style={styles.summaryText}>{promo}</Text>
+            </View>
           )}
         </View>
 
         {/* CANTIDAD + ICONO + PRECIO UNITARIO */}
         <Text style={styles.detailText}>
-          {qty}
-          {unit} × {unitPrice.toFixed(2)} €/{unit}
+          {qty} {displayUnit} × {unitPrice.toFixed(2)} €/{displayUnit}
         </Text>
+
+        {/* EJEMPLO: 0.3 kg × 5.00 €/kg */}
       </View>
 
-      {/* PRECIO TOTAL — sin Pressable */}
+      {/* PRECIO TOTAL */}
       <View style={styles.rightBlock}>
         <Text style={styles.priceText}>{total.toFixed(2)} €</Text>
       </View>
 
-      {/* CHEVRON — único lugar donde se abre ItemDetail */}
+      {/* CHEVRON PARA EDITAR */}
       <Pressable onPress={() => onEdit(item)} hitSlop={10}>
         <Ionicons name="chevron-forward" size={22} color="#555" />
       </Pressable>
@@ -106,10 +130,12 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginTop: 4,
   },
+
   checkboxChecked: {
     borderColor: "#4CAF50",
     backgroundColor: "#4CAF50",
   },
+
   checkboxMark: {
     color: "white",
     fontSize: 17,
@@ -131,6 +157,12 @@ const styles = StyleSheet.create({
     color: "#111",
     fontWeight: "500",
     marginBottom: 2,
+  },
+
+  promoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
   },
 
   detailText: {

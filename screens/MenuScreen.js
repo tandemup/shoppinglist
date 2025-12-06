@@ -1,4 +1,5 @@
-// screens/MenuScreen.js — Versión final con selección de motores de búsqueda
+// MenuScreen.js — versión simplificada y scroll corregido
+// Basado en la versión original del usuario :contentReference[oaicite:1]{index=1}
 
 import React, { useState } from "react";
 import {
@@ -30,27 +31,26 @@ export default function MenuScreen({ navigation }) {
   const [bookOpen, setBookOpen] = useState(false);
 
   //
-  // REUSABLE ROWS
+  // ROW COMPONENTS (limpios y reutilizables)
   //
-  const Row = ({ icon, label, color = "#007bff", onPress }) => (
+  const Row = ({ icon, label, color = "#2563eb", onPress }) => (
     <TouchableOpacity style={styles.row} onPress={onPress}>
-      <Ionicons name={icon} size={22} color={color} style={styles.rowIcon} />
+      <Ionicons name={icon} size={20} color={color} style={styles.rowIcon} />
       <Text style={styles.rowText}>{label}</Text>
-      <Ionicons name="chevron-forward" size={20} color="#bbb" />
+      <Ionicons name="chevron-forward" size={20} color="#999" />
     </TouchableOpacity>
   );
+
   const DangerRow = ({ icon, label, onPress }) => (
     <TouchableOpacity style={styles.dangerRow} onPress={onPress}>
-      <Ionicons name={icon} size={22} color="#b91c1c" style={styles.rowIcon} />
-      <Text style={[styles.rowText, { color: "#b91c1c", fontWeight: "700" }]}>
-        {label}
-      </Text>
+      <Ionicons name={icon} size={20} color="#b91c1c" style={styles.rowIcon} />
+      <Text style={styles.dangerText}>{label}</Text>
       <Ionicons name="warning" size={20} color="#b91c1c" />
     </TouchableOpacity>
   );
 
   //
-  // Motores (GENERAL)
+  // Motores de búsqueda
   //
   const generalEngines = [
     { id: "google", label: "Google", icon: "logo-google" },
@@ -61,18 +61,12 @@ export default function MenuScreen({ navigation }) {
     { id: "barcodeLookup", label: "BarcodeLookup", icon: "barcode-outline" },
   ];
 
-  //
-  // Motores (LIBROS)
-  //
   const bookEngines = [
     { id: "googleBooks", label: "Google Books", icon: "book-outline" },
     { id: "openLibrary", label: "OpenLibrary", icon: "book-outline" },
     { id: "amazon", label: "Amazon Books", icon: "cart-outline" },
   ];
 
-  //
-  // RENDER OPTION
-  //
   const renderEngineOption = (engine, selectedId, onSelect) => {
     const selected = selectedId === engine.id;
 
@@ -86,8 +80,8 @@ export default function MenuScreen({ navigation }) {
           <Ionicons
             name={engine.icon}
             size={20}
-            color={selected ? "#2563EB" : "#666"}
-            style={{ marginRight: 12 }}
+            color={selected ? "#2563eb" : "#666"}
+            style={{ marginRight: 10 }}
           />
           <Text style={styles.configLabel}>{engine.label}</Text>
         </View>
@@ -103,13 +97,16 @@ export default function MenuScreen({ navigation }) {
   // UI
   //
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         <Text style={styles.title}>Menú</Text>
 
-        {/* NAV */}
+        {/* Navegación */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📋 Navegación</Text>
+          <Text style={styles.sectionTitle}>Navegación</Text>
 
           <Row
             icon="list"
@@ -133,15 +130,13 @@ export default function MenuScreen({ navigation }) {
           />
         </View>
 
-        {/* GENERAL ENGINE */}
+        {/* Motor general */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.accordionHeader}
-            onPress={() => setGeneralOpen((prev) => !prev)}
+            onPress={() => setGeneralOpen(!generalOpen)}
           >
-            <Text style={styles.sectionTitle}>
-              ⚙️ Motor de búsqueda general
-            </Text>
+            <Text style={styles.sectionTitle}>Motor de búsqueda general</Text>
             <Ionicons
               name={generalOpen ? "chevron-up" : "chevron-down"}
               size={20}
@@ -151,9 +146,9 @@ export default function MenuScreen({ navigation }) {
 
           {generalOpen && (
             <View style={styles.dropdownContent}>
-              {generalEngines.map((opt) =>
+              {generalEngines.map((e) =>
                 renderEngineOption(
-                  opt,
+                  e,
                   config.search?.generalEngine,
                   setGeneralEngine
                 )
@@ -162,15 +157,13 @@ export default function MenuScreen({ navigation }) {
           )}
         </View>
 
-        {/* BOOK ENGINE */}
+        {/* Motor de libros */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.accordionHeader}
-            onPress={() => setBookOpen((prev) => !prev)}
+            onPress={() => setBookOpen(!bookOpen)}
           >
-            <Text style={styles.sectionTitle}>
-              📚 Motor de búsqueda para libros
-            </Text>
+            <Text style={styles.sectionTitle}>Motor para libros</Text>
             <Ionicons
               name={bookOpen ? "chevron-up" : "chevron-down"}
               size={20}
@@ -180,24 +173,20 @@ export default function MenuScreen({ navigation }) {
 
           {bookOpen && (
             <View style={styles.dropdownContent}>
-              {bookEngines.map((opt) =>
-                renderEngineOption(
-                  opt,
-                  config.search?.bookEngine,
-                  setBookEngine
-                )
+              {bookEngines.map((e) =>
+                renderEngineOption(e, config.search?.bookEngine, setBookEngine)
               )}
             </View>
           )}
         </View>
 
-        {/* MAINTENANCE */}
+        {/* Mantenimiento */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.accordionHeader}
-            onPress={() => setMaintenanceOpen((prev) => !prev)}
+            onPress={() => setMaintenanceOpen(!maintenanceOpen)}
           >
-            <Text style={styles.sectionTitle}>⚠️ Mantenimiento</Text>
+            <Text style={styles.sectionTitle}>Mantenimiento</Text>
             <Ionicons
               name={maintenanceOpen ? "chevron-up" : "chevron-down"}
               size={20}
@@ -206,23 +195,19 @@ export default function MenuScreen({ navigation }) {
           </TouchableOpacity>
 
           {maintenanceOpen && (
-            <View>
+            <View style={{ marginBottom: 6 }}>
               <DangerRow
                 icon="trash"
                 label="Borrar listas activas"
                 onPress={() =>
-                  safeAlert(
-                    "Borrar listas activas",
-                    "¿Seguro que quieres borrar TODAS las listas activas?",
-                    [
-                      { text: "Cancelar", style: "cancel" },
-                      {
-                        text: "Borrar",
-                        style: "destructive",
-                        onPress: () => clearActiveLists(),
-                      },
-                    ]
-                  )
+                  safeAlert("Borrar listas activas", "¿Seguro?", [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Borrar",
+                      style: "destructive",
+                      onPress: () => clearActiveLists(),
+                    },
+                  ])
                 }
               />
 
@@ -230,18 +215,14 @@ export default function MenuScreen({ navigation }) {
                 icon="trash-bin"
                 label="Borrar listas archivadas"
                 onPress={() =>
-                  safeAlert(
-                    "Borrar listas archivadas",
-                    "¿Seguro que quieres borrar TODAS las listas archivadas?",
-                    [
-                      { text: "Cancelar", style: "cancel" },
-                      {
-                        text: "Borrar",
-                        style: "destructive",
-                        onPress: () => clearArchivedLists(),
-                      },
-                    ]
-                  )
+                  safeAlert("Borrar listas archivadas", "¿Seguro?", [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Borrar",
+                      style: "destructive",
+                      onPress: () => clearArchivedLists(),
+                    },
+                  ])
                 }
               />
 
@@ -249,18 +230,14 @@ export default function MenuScreen({ navigation }) {
                 icon="documents"
                 label="Borrar historial de compras"
                 onPress={() =>
-                  safeAlert(
-                    "Borrar historial de compras",
-                    "¿Seguro que quieres borrar TODO el historial de compras?",
-                    [
-                      { text: "Cancelar", style: "cancel" },
-                      {
-                        text: "Borrar",
-                        style: "destructive",
-                        onPress: () => clearPurchaseHistory(),
-                      },
-                    ]
-                  )
+                  safeAlert("Borrar historial", "¿Seguro?", [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Borrar",
+                      style: "destructive",
+                      onPress: () => clearPurchaseHistory(),
+                    },
+                  ])
                 }
               />
 
@@ -268,34 +245,26 @@ export default function MenuScreen({ navigation }) {
                 icon="trash-outline"
                 label="Borrar historial de escaneos"
                 onPress={() =>
-                  safeAlert(
-                    "Borrar historial de escaneos",
-                    "¿Seguro que quieres borrar TODO el historial de escaneos?",
-                    [
-                      { text: "Cancelar", style: "cancel" },
-                      {
-                        text: "Borrar",
-                        style: "destructive",
-                        onPress: () => clearScannedHistory(),
-                      },
-                    ]
-                  )
+                  safeAlert("Borrar historial", "¿Seguro?", [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Borrar",
+                      style: "destructive",
+                      onPress: () => clearScannedHistory(),
+                    },
+                  ])
                 }
               />
 
               <DangerRow
-                icon="remove-circle"
+                icon="close-circle"
                 label="Borrar almacenamiento completo"
                 onPress={async () => {
-                  try {
-                    await clearStorage();
-                    navigation.reset({
-                      index: 0,
-                      routes: [{ name: "ShoppingLists" }],
-                    });
-                  } catch (e) {
-                    console.log("Error limpiando almacenamiento:", e);
-                  }
+                  await clearStorage();
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "ShoppingLists" }],
+                  });
                 }}
               />
             </View>
@@ -307,157 +276,39 @@ export default function MenuScreen({ navigation }) {
 }
 
 //
-// STYLES
+// ESTILOS SIMPLIFICADOS
 //
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#f2f4f7",
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 24,
-    color: "#1f2937",
-  },
-
-  // CARD SECTIONS
-  section: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    paddingVertical: 12,
-    marginBottom: 30,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-
-  sectionTitle: {
-    fontSize: 15,
-    color: "#6b7280",
-    fontWeight: "700",
-    paddingLeft: 18,
-    marginBottom: 8,
-    marginTop: 4,
-  },
-
-  // NORMAL ROW
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
-  },
-  rowIcon: { marginRight: 14 },
-  rowText: {
-    flex: 1,
-    fontSize: 17,
-    color: "#111827",
-    fontWeight: "500",
-  },
-
-  // CONFIG ROWS (radios)
-  configRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderTopWidth: 1,
-    borderTopColor: "#f1f5f9",
-  },
-  configLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  configLabel: {
-    fontSize: 16,
-    color: "#1f2937",
-  },
-
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: "#9ca3af",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  radioSelected: {
-    borderColor: "#2563EB",
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    backgroundColor: "#2563EB",
-    borderRadius: 6,
-  },
-
-  // MAINTENANCE ACCORDION
-  dropdownContent: {
     backgroundColor: "#fafafa",
-    paddingBottom: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-  },
-  accordionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignItems: "center",
+    paddingHorizontal: 16,
   },
 
-  // DANGER ROWS
-  dangerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderTopWidth: 1,
-    borderTopColor: "#ffe4e6",
-    backgroundColor: "#fff1f2",
-  },
-});
-
-const styles1 = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#fafafa",
-  },
   title: {
     fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: 20,
+    marginVertical: 20,
   },
+
   section: {
     backgroundColor: "#fff",
     borderRadius: 14,
     paddingVertical: 10,
-    marginBottom: 25,
+    marginBottom: 22,
     borderWidth: 1,
-    borderColor: "#eee",
+    borderColor: "#e5e7eb",
   },
+
   sectionTitle: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 15,
     fontWeight: "700",
+    color: "#555",
     paddingLeft: 16,
-    marginBottom: 6,
+    marginBottom: 8,
   },
+
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -474,7 +325,22 @@ const styles1 = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // CONFIG
+  dangerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff1f2",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#ffe4e6",
+  },
+  dangerText: {
+    flex: 1,
+    fontSize: 16,
+    color: "#b91c1c",
+    fontWeight: "700",
+  },
+
   configRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -502,21 +368,23 @@ const styles1 = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  radioSelected: {
-    borderColor: "#2563EB",
-  },
+  radioSelected: { borderColor: "#2563eb" },
   radioInner: {
     width: 12,
     height: 12,
-    backgroundColor: "#2563EB",
+    backgroundColor: "#2563eb",
     borderRadius: 6,
   },
 
-  // ACCORDION
   accordionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingRight: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: "center",
+  },
+
+  dropdownContent: {
+    backgroundColor: "#fafafa",
   },
 });

@@ -203,6 +203,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: "#BBDEFB",
+    elevation: 1,
+  },
+  card1: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#BBDEFB",
 
     shadowColor: "#000",
     shadowOpacity: 0.05,

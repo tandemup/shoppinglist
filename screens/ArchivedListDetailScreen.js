@@ -1,197 +1,224 @@
+// ArchivedListDetailScreen.js — Versión C (bloques suaves estilo dashboard)
+
 import React from "react";
-import { View, Text, StyleSheet, FlatList, ScrollView } from "react-native";
+import { View, Text, FlatList, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { formatStore } from "../utils/formatStore";
+import dayjs from "dayjs";
 import BarcodeLink from "../components/BarcodeLink";
 
 export default function ArchivedListDetailScreen({ route }) {
   const { list } = route.params;
 
-  const items = list.items || [];
+  const date = dayjs(list.createdAt).format("D MMMM YYYY");
 
-  // Total de la lista archivada
-  const total = items.reduce(
-    (sum, it) => sum + (it.price || 0) * (it.quantity || 1),
+  const total = list.items.reduce(
+    (acc, i) => acc + (i.priceInfo?.total ?? 0),
     0
   );
 
-  // Render para cada producto
   const renderItem = ({ item }) => {
-    const qty = item.quantity ?? item.qty ?? 1;
-    const unitPrice = item.price ?? 0;
-    const subtotal = qty * unitPrice;
+    const qty = item.priceInfo?.qty ?? 1;
+    const unit = item.priceInfo?.unitType ?? "u";
+    const unitPrice = item.priceInfo?.unitPrice ?? null;
+    const summary = item.priceInfo?.summary;
+    const hasPromo = item.priceInfo?.promo !== "none";
 
     return (
-      <View style={styles.itemContainer}>
-        <View style={styles.itemLeft}>
-          <Text style={styles.itemTitle}>{item.name}</Text>
+      <View style={styles.card}>
+        <View style={{ flex: 1 }}>
+          {/* Nombre */}
+          <Text style={styles.name}>{item.name}</Text>
 
-          {/* Cantidad + precio */}
-          <Text style={styles.itemSubtext}>
-            Cantidad: {qty} × {unitPrice.toFixed(2)} €
-          </Text>
+          {/* Info compacta */}
+          <View style={styles.inline}>
+            <Ionicons name="cart-outline" size={14} color="#6B7280" />
+            <Text style={styles.qty}>
+              {qty} {unit}
+            </Text>
+          </View>
 
-          {/* Código de barras con enlace */}
-          {item.barcode ? (
+          {/* Precio unitario */}
+          {unitPrice !== null && (
+            <Text style={styles.unitPrice}>
+              {unitPrice.toFixed(2)} € / {unit}
+            </Text>
+          )}
+
+          {/* Promoción */}
+          {hasPromo && summary && <Text style={styles.promo}>{summary}</Text>}
+
+          {/* Barcode */}
+          {item.barcode && (
             <View style={{ marginTop: 4 }}>
-              <BarcodeLink barcode={item.barcode} label="barcode" />
+              <BarcodeLink
+                barcode={item.barcode}
+                label="Código:"
+                styleType="subtle"
+              />
             </View>
-          ) : null}
+          )}
         </View>
 
-        <Text style={styles.itemPrice}>{subtotal.toFixed(2)} €</Text>
+        {/* Total */}
+        <View style={styles.totalBox}>
+          <Text style={styles.totalText}>
+            {(item.priceInfo?.total ?? 0).toFixed(2)} €
+          </Text>
+        </View>
       </View>
     );
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* TÍTULO */}
-      <Text style={styles.title}>{list.name}</Text>
+    <View style={styles.screen}>
+      {/* CABECERA */}
+      <View style={styles.headerCard}>
+        <Text style={styles.title}>{list.title}</Text>
 
-      {/* FECHA */}
-      <View style={styles.row}>
-        <Ionicons name="calendar-outline" size={18} color="#555" />
-        <Text style={styles.rowText}>
-          {new Date(list.archivedAt || list.createdAt).toLocaleDateString(
-            "es-ES",
-            {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            }
+        <View style={styles.inline}>
+          <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+          <Text style={styles.meta}>{date}</Text>
+
+          {list.store && (
+            <View style={styles.inline}>
+              <Text style={styles.dot}>•</Text>
+              <Ionicons name="location-outline" size={14} color="#6B7280" />
+              <Text style={styles.meta}>{list.store}</Text>
+            </View>
           )}
-        </Text>
-      </View>
-
-      {/* TIENDA */}
-      {list.store ? (
-        <View style={styles.row}>
-          <Ionicons name="location-outline" size={18} color="#555" />
-          <Text style={styles.rowText}>{formatStore(list.store)}</Text>
         </View>
-      ) : null}
 
-      {/* TOTAL */}
-      <View style={styles.totalBox}>
-        <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>{total.toFixed(2)} €</Text>
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalValue}>{total.toFixed(2)} €</Text>
+        </View>
       </View>
 
-      {/* ITEMS */}
-      <Text style={styles.sectionTitle}>Productos</Text>
-
+      {/* LISTA DE PRODUCTOS */}
       <FlatList
-        data={items}
-        keyExtractor={(item, index) => item.id || index.toString()}
+        data={list.items}
+        keyExtractor={(i) => i.id}
         renderItem={renderItem}
-        scrollEnabled={false}
-        ItemSeparatorComponent={() => (
-          <View style={{ height: 1, backgroundColor: "#e5e5e5" }} />
-        )}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 50 }}
       />
-    </ScrollView>
+    </View>
   );
 }
 
+//
+// ESTILOS — VERSIÓN C (dashboard suave con bloques grises)
+//
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
     padding: 16,
+    backgroundColor: "#F3F4F6",
+  },
+
+  //
+  // CABECERA BLOQUE
+  //
+  headerCard: {
+    backgroundColor: "#FFFFFF",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
 
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
-    marginBottom: 16,
-    textAlign: "center",
+    marginBottom: 6,
   },
 
-  row: {
+  inline: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
-    gap: 8,
+    marginTop: 2,
   },
 
-  rowText: {
-    fontSize: 15,
-    color: "#444",
-    flexShrink: 1,
+  meta: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: "#6B7280",
   },
 
-  totalBox: {
-    marginTop: 18,
-    marginBottom: 24,
-    padding: 16,
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+  dot: {
+    marginHorizontal: 8,
+    color: "#6B7280",
+  },
+
+  totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
   },
 
   totalLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
   },
 
   totalValue: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#16a34a",
+    fontWeight: "800",
+    color: "#059669",
   },
 
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+  //
+  // CARDS DE PRODUCTOS
+  //
+  card: {
+    backgroundColor: "#FFFFFF",
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
     marginBottom: 12,
-    marginTop: 10,
-  },
-
-  itemContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 14,
-    paddingHorizontal: 6,
   },
 
-  itemLeft: {
-    flex: 1,
-    paddingRight: 12,
-  },
-
-  itemTitle: {
+  name: {
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 4,
   },
 
-  itemSubtext: {
-    fontSize: 13,
-    color: "#666",
+  qty: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: "#4B5563",
   },
 
-  itemPrice: {
+  unitPrice: {
+    marginLeft: 18,
+    marginTop: 2,
+    fontSize: 13,
+    color: "#6B7280",
+  },
+
+  promo: {
+    marginLeft: 18,
+    marginTop: 4,
+    fontSize: 13,
+    color: "#16a34a",
+    fontWeight: "600",
+  },
+
+  totalBox: {
+    justifyContent: "center",
+    alignItems: "flex-end",
+    width: 90,
+  },
+
+  totalText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111",
-  },
-  barcodeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-    gap: 6,
-  },
-
-  barcodeText: {
-    fontSize: 12,
-    color: "#444",
+    color: "#059669",
   },
 });

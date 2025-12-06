@@ -1,323 +1,262 @@
-// PurchaseHistoryScreen.js — Variante B limpia y final
+// PurchaseHistoryScreen.js — versión final 100% compatible con Web
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   FlatList,
-  ScrollView,
+  StyleSheet,
   TextInput,
   Pressable,
-  StyleSheet,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import BarcodeLink from "../components/BarcodeLink";
-import { useStore } from "../context/StoreContext";
 import dayjs from "dayjs";
-import "dayjs/locale/es";
+import { useStore } from "../context/StoreContext";
 
-dayjs.locale("es");
+import BarcodeLink from "../components/BarcodeLink";
 
 export default function PurchaseHistoryScreen({ navigation }) {
-  const { purchaseHistory, fetchLists } = useStore();
+  const [lists, setLists] = useState([]);
   const [search, setSearch] = useState("");
+  const { fetchLists } = useStore();
 
-  // Header con menú
   useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable
-          onPress={() => navigation.navigate("Menu")}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="menu" size={26} color="black" />
-        </Pressable>
-      ),
-    });
-  }, [navigation]);
-
-  // Recargar historial al entrar
-  useEffect(() => {
-    fetchLists();
+    load();
   }, []);
 
-  // Filtro
-  const filtered = purchaseHistory.filter((item) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      item.name?.toLowerCase().includes(q) ||
-      item.barcode?.toLowerCase().includes(q) ||
-      item.store?.toLowerCase().includes(q) ||
-      item.listName?.toLowerCase().includes(q)
+  const load = async () => {
+    const allLists = await fetchLists();
+
+    const archived = allLists.filter((l) => l.archived === true);
+
+    const sorted = archived.sort((a, b) =>
+      (b.createdAt ?? "").localeCompare(a.createdAt ?? "")
     );
-  });
 
-  // Agrupar por fecha
-  const grouped = filtered.reduce((acc, item) => {
-    const date = dayjs(item.purchasedAt).format("YYYY-MM-DD");
-    (acc[date] = acc[date] || []).push(item);
-    return acc;
-  }, {});
+    setLists(sorted);
+  };
 
-  const sortedSections = Object.keys(grouped)
-    .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())
-    .map((date) => ({
-      title: dayjs(date).format("D MMM YYYY"),
-      data: grouped[date],
-    }));
+  const filterItems = (text) => {
+    const t = text.toLowerCase();
+    return lists
+      .map((l) => ({
+        ...l,
+        items: l.items.filter((i) =>
+          `${i.name} ${i.store ?? ""} ${i.barcode ?? ""}`
+            .toLowerCase()
+            .includes(t)
+        ),
+      }))
+      .filter((l) => l.items.length > 0);
+  };
 
-  // CARD limpia — Variante B
+  const visible = search.trim() ? filterItems(search) : lists;
+
+  const openDetail = (list) => {
+    navigation.navigate("ArchivedListDetailScreen", { list });
+  };
+
   const renderItem = ({ item }) => {
-    const qty = item.qty ?? item.quantity ?? 1;
-    const unit = item.unit ?? "u";
-    const unitPrice =
-      item.unitPrice != null ? Number(item.unitPrice).toFixed(2) : null;
+    const date = dayjs(item.createdAt).format("D MMM YYYY");
 
-    const summary = item.priceInfo?.summary;
+    const total = item.items.reduce(
+      (acc, it) => acc + (it.priceInfo?.total ?? 0),
+      0
+    );
 
     return (
-      <View style={styles.card}>
-        {/* Fila 1: nombre + chevron */}
+      <Pressable style={styles.card} onPress={() => openDetail(item)}>
+        {/* Fecha (sin chevron) */}
         <View style={styles.rowTop}>
-          <Text style={styles.itemName}>{item.name}</Text>
-          <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          <Text style={styles.dateText}>{date}</Text>
         </View>
 
-        {/* Fila 2: fecha + tienda */}
-        <View style={styles.rowMid}>
-          <View style={styles.rowInline}>
-            <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-            <Text style={styles.metaText}>
-              {dayjs(item.purchasedAt).format("D MMM YYYY")}
-            </Text>
-          </View>
+        {/* Productos */}
+        {item.items.slice(0, 3).map((prod, idx) => {
+          const qty = prod.priceInfo?.qty ?? 1;
+          const unit = prod.priceInfo?.unitType ?? "u";
+          const unitPrice = prod.priceInfo?.unitPrice ?? null;
+          const summary = prod.priceInfo?.summary;
+          const hasPromo =
+            prod.priceInfo?.promo && prod.priceInfo.promo !== "none";
 
-          {item.store && (
-            <View style={[styles.rowInline, { marginLeft: 8 }]}>
-              <Text style={styles.dot}>•</Text>
-              <Ionicons name="location-outline" size={14} color="#6B7280" />
-              <Text style={styles.metaText}>{String(item.store)}</Text>
+          return (
+            <View key={idx} style={styles.itemRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.itemName}>{prod.name}</Text>
+
+                <View style={styles.rowInline}>
+                  <Ionicons name="cart-outline" size={14} color="#6B7280" />
+                  <Text style={styles.qtyText}>
+                    {qty} {unit}
+                  </Text>
+                </View>
+
+                {unitPrice !== null && (
+                  <Text style={styles.unitText}>
+                    {unitPrice.toFixed(2)} € / {unit}
+                  </Text>
+                )}
+
+                {hasPromo && summary && (
+                  <Text style={styles.offerText}>{summary}</Text>
+                )}
+
+                {prod.barcode && (
+                  <View style={{ marginTop: 2 }}>
+                    <BarcodeLink
+                      barcode={prod.barcode}
+                      label="Código:"
+                      styleType="subtle"
+                    />
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.totalBlock}>
+                <Text style={styles.totalProdText}>
+                  {(prod.priceInfo?.total ?? 0).toFixed(2)} €
+                </Text>
+              </View>
             </View>
-          )}
+          );
+        })}
+
+        {/* Total de la lista */}
+        <View style={styles.listTotalRow}>
+          <Text style={styles.listTotalLabel}>Total</Text>
+          <Text style={styles.listTotalValue}>{total.toFixed(2)} €</Text>
         </View>
-
-        {/* Fila 3: código de barras */}
-        {item.barcode && (
-          <View style={styles.rowBarcode}>
-            <BarcodeLink barcode={item.barcode} label="Código:" />
-          </View>
-        )}
-
-        {/* Fila 4 — VARIANTE B: Info izquierda + Total derecha */}
-        <View style={styles.rowVariantB}>
-          {/* Bloque izquierdo */}
-          <View style={{ flex: 1 }}>
-            {/* Cantidad */}
-            <View style={styles.rowInline}>
-              <Ionicons name="cart-outline" size={16} color="#4B5563" />
-              <Text style={styles.detailText}>
-                {qty} {unit}
-              </Text>
-            </View>
-
-            {/* Precio unitario */}
-            {unitPrice && (
-              <Text style={styles.detailIndented}>
-                {unitPrice} €/ {unit}
-              </Text>
-            )}
-
-            {/* Promoción */}
-            {summary && <Text style={styles.offerText}>{summary}</Text>}
-          </View>
-
-          {/* Bloque derecho: Total */}
-          <View style={styles.totalBlock}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalText}>
-              {(item.price ?? 0).toFixed(2)} €
-            </Text>
-          </View>
-        </View>
-      </View>
+      </Pressable>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <Text style={styles.title}>Historial de Compras</Text>
+    <View style={styles.container}>
+      <Text style={styles.header}>Historial de Compras</Text>
 
       <TextInput
-        style={styles.searchBar}
-        placeholder="Buscar producto, código, tienda..."
-        placeholderTextColor="#888"
+        placeholder="Buscar producto, código, tienda…"
+        placeholderTextColor="#999"
         value={search}
         onChangeText={setSearch}
+        style={styles.searchInput}
       />
 
-      {sortedSections.length === 0 ? (
-        <Text style={styles.empty}>No hay resultados</Text>
-      ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
-          {sortedSections.map((section) => (
-            <View key={section.title} style={styles.section}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-
-              <FlatList
-                data={section.data}
-                renderItem={renderItem}
-                keyExtractor={(item, index) => item.id + "-" + index}
-                scrollEnabled={false}
-              />
-            </View>
-          ))}
-        </ScrollView>
-      )}
-    </SafeAreaView>
+      <FlatList
+        data={visible}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingVertical: 10 }}
+      />
+    </View>
   );
 }
 
-/* ----------------- ESTILOS ----------------- */
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#FAFAFA",
-  },
-
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-
-  searchBar: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    marginBottom: 20,
-    fontSize: 16,
-  },
-
-  empty: {
-    marginTop: 40,
-    fontSize: 16,
-    textAlign: "center",
-    color: "#888",
-  },
-
-  section: {
-    marginBottom: 25,
-  },
-  sectionTitle: {
-    fontSize: 18,
+  container: { flex: 1, padding: 16 },
+  header: {
+    fontSize: 22,
     fontWeight: "700",
     marginBottom: 10,
-    color: "#444",
   },
-
-  /* CARD nueva */
-  card: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 18,
-    marginBottom: 14,
+  input: {
+    flex: 1,
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: "#ddd",
+  },
+  searchInput: {
+    backgroundColor: "#F3F4F6",
+    backgroundColor: "#fff",
+
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 12,
   },
 
-  /* Fila 1 */
+  card: {
+    backgroundColor: "#fff",
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
   rowTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
-  itemName: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
+    marginBottom: 10,
   },
 
-  /* Fila 2 */
-  rowMid: {
+  dateText: { fontSize: 15, color: "#6B7280" },
+
+  itemRow: {
     flexDirection: "row",
-    alignItems: "center",
-    marginTop: 6,
+    marginBottom: 16,
   },
+
+  itemName: { fontSize: 15, fontWeight: "600", marginBottom: 2 },
+
   rowInline: {
     flexDirection: "row",
     alignItems: "center",
+    marginTop: 2,
   },
-  metaText: {
+
+  qtyText: {
     marginLeft: 4,
+    fontSize: 13,
+    color: "#4B5563",
+  },
+
+  unitText: {
+    fontSize: 13,
     color: "#6B7280",
-    fontSize: 14,
-  },
-  dot: {
-    marginHorizontal: 6,
-    color: "#9CA3AF",
-  },
-
-  /* Fila 3 */
-  rowBarcode: {
-    marginTop: 8,
-  },
-
-  /* VARIANTE B */
-  rowVariantB: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-
-  detailText: {
-    marginLeft: 6,
-    fontSize: 15,
-    color: "#4B5563",
-  },
-
-  detailIndented: {
-    marginLeft: 22,
-    fontSize: 15,
-    color: "#4B5563",
+    marginLeft: 18,
+    marginTop: 1,
   },
 
   offerText: {
-    marginLeft: 22,
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#059669",
+    marginTop: 2,
+    marginLeft: 18,
+    color: "#16a34a",
+    fontSize: 13,
+    fontWeight: "500",
   },
 
   totalBlock: {
-    alignItems: "flex-end",
     justifyContent: "center",
+    alignItems: "flex-end",
+    width: 80,
   },
 
-  totalLabel: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 2,
+  totalProdText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#059669",
   },
 
-  totalText: {
-    fontSize: 20,
+  listTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+
+  listTotalLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  listTotalValue: {
+    fontSize: 17,
     fontWeight: "800",
     color: "#059669",
   },

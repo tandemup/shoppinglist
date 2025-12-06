@@ -1,4 +1,4 @@
-// components/PrecioPromocion.js
+// PrecioPromocion.js — UI Antigua reintegrada + Fixes completos
 
 import React, { useEffect, useState, useRef } from "react";
 import {
@@ -11,9 +11,11 @@ import {
   Platform,
   UIManager,
 } from "react-native";
+
 import { parseReal, normalizeReal } from "../utils/number.js";
 import { PROMOTIONS, calcularPromoTotal } from "../utils/promoCalculator.js";
 
+// Necesario para animaciones en Android
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -24,6 +26,9 @@ if (
 const UNIT_TYPES = ["u", "kg", "l"];
 
 export default function PrecioPromocion({ value = {}, onChange }) {
+  // -----------------------------
+  // Estado interno
+  // -----------------------------
   const [localUnit, setLocalUnit] = useState(value.unitType ?? "u");
   const [localQty, setLocalQty] = useState(String(value.qty ?? "1"));
   const [localPrice, setLocalPrice] = useState(String(value.unitPrice ?? ""));
@@ -32,13 +37,44 @@ export default function PrecioPromocion({ value = {}, onChange }) {
 
   const lastSent = useRef(null);
 
+  //
+  // -----------------------------
+  // FIX: Sincronización condicional desde el padre
+  // -----------------------------
+  //
+
+  useEffect(() => {
+    const incoming = value.promo ?? "none";
+    if (incoming !== localPromo) setLocalPromo(incoming);
+  }, [value.promo]);
+
+  useEffect(() => {
+    const incoming = value.unitType ?? "u";
+    if (incoming !== localUnit) setLocalUnit(incoming);
+  }, [value.unitType]);
+
+  useEffect(() => {
+    const incoming = String(value.qty ?? "1");
+    if (incoming !== localQty) setLocalQty(incoming);
+  }, [value.qty]);
+
+  useEffect(() => {
+    const incoming = String(value.unitPrice ?? "");
+    if (incoming !== localPrice) setLocalPrice(incoming);
+  }, [value.unitPrice]);
+
+  //
+  // -----------------------------
+  // Cálculo de totales
+  // -----------------------------
+  //
   const computeTotals = () => {
     const p = parseReal(localPrice);
     const q = parseReal(localQty);
-
     if (isNaN(p) || isNaN(q)) return { total: 0, summary: "", warning: null };
 
     const { total, warning, label } = calcularPromoTotal(localPromo, p, q);
+
     const promoLabel = localPromo !== "none" ? ` (${label})` : "";
     const summary = `${q} × ${p.toFixed(2)} €${promoLabel} = ${total.toFixed(
       2
@@ -49,30 +85,14 @@ export default function PrecioPromocion({ value = {}, onChange }) {
 
   const { total, summary, warning } = computeTotals();
 
-  // Sincronizar promo externa → estado interno
-  useEffect(() => {
-    setLocalPromo(value.promo ?? "none");
-  }, [value.promo]);
-
-  useEffect(() => {
-    setLocalUnit(value.unitType ?? "u");
-  }, [value.unitType]);
-
-  useEffect(() => {
-    setLocalQty(String(value.qty ?? "1"));
-  }, [value.qty]);
-
-  useEffect(() => {
-    setLocalPrice(String(value.unitPrice ?? ""));
-  }, [value.unitPrice]);
-
+  //
   // -----------------------------
-  // Propagar cambios al padre
+  // Notificar cambios al padre
   // -----------------------------
+  //
   useEffect(() => {
     const p = parseReal(localPrice);
     const q = parseReal(localQty);
-
     if (isNaN(p) || isNaN(q)) return;
 
     const newValue = {
@@ -90,9 +110,14 @@ export default function PrecioPromocion({ value = {}, onChange }) {
     }
   }, [localUnit, localQty, localPrice, localPromo, total]);
 
+  //
+  // -----------------------------
+  // UI — Interfaz Antigua restaurada
+  // -----------------------------
+  //
   return (
     <View style={styles.container}>
-      {/* UNIDAD */}
+      {/* --- Selección de Unidad --- */}
       <View style={{ marginBottom: 10 }}>
         <Text style={styles.label}>Unidad</Text>
 
@@ -120,22 +145,21 @@ export default function PrecioPromocion({ value = {}, onChange }) {
           })}
         </View>
 
-        <Text style={styles.unitHint}>🧩 unidad ⚖️ kilo 🧃 litro</Text>
+        <Text style={styles.unitHint}>🧩 unidad ⚖️ kilo 🧃 litro</Text>
       </View>
 
-      {/* CANTIDAD & PRECIO */}
+      {/* --- Cantidad + Precio Unitario --- */}
       <View style={styles.row}>
         <View style={styles.halfBox}>
           <Text style={styles.label}>Cantidad ({localUnit})</Text>
-
           <TextInput
             style={[styles.input, styles.bigInput]}
             keyboardType="decimal-pad"
             value={localQty}
             onChangeText={(t) => setLocalQty(normalizeReal(t))}
             onBlur={() => {
-              const val = parseReal(localQty);
-              if (!isNaN(val)) setLocalQty(val.toString());
+              const v = parseReal(localQty);
+              if (!isNaN(v)) setLocalQty(v.toString());
             }}
             placeholder="0"
           />
@@ -149,15 +173,15 @@ export default function PrecioPromocion({ value = {}, onChange }) {
             value={localPrice}
             onChangeText={(t) => setLocalPrice(normalizeReal(t))}
             onBlur={() => {
-              const val = parseReal(localPrice);
-              if (!isNaN(val)) setLocalPrice(val.toFixed(2));
+              const v = parseReal(localPrice);
+              if (!isNaN(v)) setLocalPrice(v.toFixed(2));
             }}
             placeholder="0.00"
           />
         </View>
       </View>
 
-      {/* OFERTAS */}
+      {/* --- Sección Ofertas (plegable) --- */}
       <Pressable
         onPress={() => {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -207,7 +231,7 @@ export default function PrecioPromocion({ value = {}, onChange }) {
         </View>
       )}
 
-      {/* TOTAL */}
+      {/* --- Total --- */}
       <View style={styles.totalBox}>
         <Text style={styles.totalLabel}>Total: {total.toFixed(2)} €</Text>
         {summary ? <Text style={styles.totalDetail}>{summary}</Text> : null}
@@ -217,16 +241,24 @@ export default function PrecioPromocion({ value = {}, onChange }) {
   );
 }
 
+//
+// -----------------------------
+// ESTILOS — Los originales
+// -----------------------------
+//
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
+
   row: { flexDirection: "row", justifyContent: "space-between" },
   halfBox: { flex: 1 },
+
   label: {
     fontSize: 14,
     fontWeight: "600",
     color: "#333",
     marginBottom: 4,
   },
+
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -236,6 +268,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   bigInput: { fontSize: 18 },
+
   selectorRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -251,7 +284,9 @@ const styles = StyleSheet.create({
   selectorBtnActive: { backgroundColor: "#2563EB" },
   selectorText: { color: "#475569", fontWeight: "600" },
   selectorTextActive: { color: "#fff" },
+
   unitHint: { fontSize: 12, textAlign: "center", marginTop: 4 },
+
   offerHeader: {
     marginTop: 14,
     flexDirection: "row",
@@ -259,8 +294,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 16, fontWeight: "700" },
   chevron: { fontSize: 14 },
+
   activePromoText: { fontSize: 13, marginTop: 2, marginBottom: 6 },
+
   sectionHint: { fontSize: 13, marginBottom: 8 },
+
   totalBox: {
     marginTop: 10,
     padding: 10,
@@ -269,6 +307,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E3F2FD",
     borderColor: "#BBDEFB",
   },
+
   totalLabel: { fontSize: 16, fontWeight: "700" },
   totalDetail: { marginTop: 4, fontSize: 13 },
   totalWarning: { marginTop: 6, color: "#b91c1c", fontSize: 13 },

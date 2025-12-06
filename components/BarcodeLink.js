@@ -1,66 +1,55 @@
-// components/BarcodeLink.js
+// BarcodeLink.js
 import React from "react";
-import { Text, StyleSheet, View } from "react-native";
-import * as Linking from "expo-linking";
-import { useStore } from "../context/StoreContext";
+import { Text, View, Pressable, Linking, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-export default function BarcodeLink({ barcode, label }) {
-  const { config } = useStore();
-
+export default function BarcodeLink({
+  barcode,
+  styleType = "default",
+  iconColor = "#6b7280",
+  underline = true,
+  style = {},
+}) {
   if (!barcode) return null;
 
-  // Construir URL según config global
-  const buildSearchURL = () => {
-    const code = encodeURIComponent(barcode);
+  const url = `https://www.google.com/search?q=${barcode}`;
 
-    switch (config?.searchEngine) {
-      case "amazon":
-        return `https://www.amazon.es/s?k=${code}`;
-
-      case "idealo":
-        return `https://www.idealo.es/search?q=${code}`;
-
-      case "carrefour":
-        return `https://www.carrefour.es/?q=${code}`;
-
-      case "barcodeLookup":
-        return `https://www.barcodelookup.com/${code}`;
-
-      case "google":
-      default:
-        return `https://www.google.com/search?q=${code}`;
+  const onPress = async (event) => {
+    event.stopPropagation();
+    try {
+      await Linking.openURL(url);
+    } catch (err) {
+      console.warn("No se pudo abrir el enlace:", err);
     }
   };
 
-  const openBrowser = () => {
-    Linking.openURL(buildSearchURL());
+  const baseStyles = {
+    default: { fontSize: 14, color: "#1d4ed8", fontWeight: "500" },
+    subtle: { fontSize: 12, color: "#6b7280", fontWeight: "400" },
+    icon: { fontSize: 12, color: "#6b7280", fontWeight: "400" },
+  };
+
+  const textStyle = {
+    ...baseStyles[styleType],
+    textDecorationLine: underline ? "underline" : "none",
+    ...style,
   };
 
   return (
-    <View style={styles.container}>
-      {/*
-      {label && (label !== "") & <Text style={styles.labelText}>{label}</Text>}
- */}
-      <Text style={styles.linkText} onPress={openBrowser}>
-        {barcode}
-      </Text>
-    </View>
+    <Pressable
+      onPress={onPress}
+      // 👇 ESTA LÍNEA ES LA CLAVE EN WEB: limita el área clicable al contenido
+      style={Platform.OS === "web" ? { display: "inline-flex" } : undefined}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Ionicons
+          name="barcode-outline"
+          size={14}
+          color={iconColor}
+          style={{ marginRight: 4 }}
+        />
+        <Text style={textStyle}>{barcode}</Text>
+      </View>
+    </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { marginTop: 4 },
-  labelText: { fontSize: 12, color: "#555", marginBottom: 2 },
-  linkText1: {
-    fontSize: 15,
-    color: "#1E40AF",
-    textDecorationLine: "underline",
-    fontWeight: "600",
-  },
-  linkText: {
-    fontSize: 12,
-    color: "#3b82f6",
-    textDecorationLine: "underline",
-    fontWeight: "600",
-  },
-});
