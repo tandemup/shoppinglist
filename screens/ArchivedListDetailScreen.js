@@ -1,113 +1,160 @@
-// ArchivedListDetailScreen.js — Versión C (bloques suaves estilo dashboard)
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useStore } from "../context/StoreContext";
+
 import dayjs from "dayjs";
 import BarcodeLink from "../components/BarcodeLink";
 
-export default function ArchivedListDetailScreen({ route }) {
+// ============================================================
+// COMPONENTE: ENCABEZADO
+// ============================================================
+function HeaderCard({ list, date, total, styles }) {
+  return (
+    <View style={styles.headerCard}>
+      <Text style={styles.title}>{list.title}</Text>
+
+      <View style={styles.inline}>
+        <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+        <Text style={styles.meta}>{date}</Text>
+
+        {list.store && (
+          <View style={styles.inline}>
+            <Text style={styles.dot}>•</Text>
+            <Ionicons name="location-outline" size={14} color="#6B7280" />
+            <Text style={styles.meta}>{list.store}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.totalRow}>
+        <Text style={styles.totalLabel}>Total</Text>
+        <Text style={styles.totalValue}>{total.toFixed(2)} €</Text>
+      </View>
+    </View>
+  );
+}
+
+// ============================================================
+// COMPONENTE: ITEM DE LISTA
+// ============================================================
+function ItemName({ name, styles }) {
+  return <Text style={styles.name}>{name}</Text>;
+}
+
+function ItemQty({ qty, unit, styles }) {
+  return (
+    <View style={styles.inline}>
+      <Ionicons name="cart-outline" size={14} color="#6B7280" />
+      <Text style={styles.qty}>
+        {qty} {unit}
+      </Text>
+    </View>
+  );
+}
+
+function ItemUnitPrice({ unitPrice, unit, styles }) {
+  if (unitPrice == null) return null;
+
+  return (
+    <Text style={styles.unitPrice}>
+      {unitPrice.toFixed(2)} € / {unit}
+    </Text>
+  );
+}
+
+function ItemPromo({ summary, hasPromo, styles }) {
+  if (!hasPromo || !summary) return null;
+
+  return <Text style={styles.promo}>{summary}</Text>;
+}
+
+function ItemBarcode({ barcode }) {
+  if (!barcode) return null;
+
+  return (
+    <View style={{ marginTop: 4 }}>
+      <BarcodeLink
+        barcode={barcode}
+        label={<Text style={{ color: "#6B7280" }}>Código:</Text>}
+        styleType="subtle"
+      />
+    </View>
+  );
+}
+
+function ItemTotal({ total, styles }) {
+  return (
+    <View style={styles.totalBox}>
+      <Text style={styles.totalText}>{total.toFixed(2)} €</Text>
+    </View>
+  );
+}
+
+function ItemCard({ item, styles }) {
+  const qty = item.priceInfo?.qty ?? 1;
+  const unit = item.priceInfo?.unitType ?? "u";
+  const unitPrice = item.priceInfo?.unitPrice ?? null;
+  const summary = item.priceInfo?.summary;
+  const hasPromo = item.priceInfo?.promo !== "none";
+  const total = item.priceInfo?.total ?? 0;
+
+  return (
+    <View style={styles.card}>
+      <View style={{ flex: 1 }}>
+        <ItemName name={item.name} styles={styles} />
+
+        <ItemQty qty={qty} unit={unit} styles={styles} />
+
+        <ItemUnitPrice unitPrice={unitPrice} unit={unit} styles={styles} />
+
+        <ItemPromo summary={summary} hasPromo={hasPromo} styles={styles} />
+
+        <ItemBarcode barcode={item.barcode} />
+      </View>
+
+      <ItemTotal total={total} styles={styles} />
+    </View>
+  );
+}
+
+// ============================================================
+// PANTALLA PRINCIPAL
+// ============================================================
+
+export default function ArchivedListDetailScreen({ route, navigation }) {
   const { list } = route.params;
-
   const date = dayjs(list.createdAt).format("D MMMM YYYY");
-
   const total = list.items.reduce(
     (acc, i) => acc + (i.priceInfo?.total ?? 0),
     0
   );
+  const { reload } = useStore();
 
-  const renderItem = ({ item }) => {
-    const qty = item.priceInfo?.qty ?? 1;
-    const unit = item.priceInfo?.unitType ?? "u";
-    const unitPrice = item.priceInfo?.unitPrice ?? null;
-    const summary = item.priceInfo?.summary;
-    const hasPromo = item.priceInfo?.promo !== "none";
+  useEffect(() => {
+    reload();
 
-    return (
-      <View style={styles.card}>
-        <View style={{ flex: 1 }}>
-          {/* Nombre */}
-          <Text style={styles.name}>{item.name}</Text>
-
-          {/* Info compacta */}
-          <View style={styles.inline}>
-            <Ionicons name="cart-outline" size={14} color="#6B7280" />
-            <Text style={styles.qty}>
-              {qty} {unit}
-            </Text>
-          </View>
-
-          {/* Precio unitario */}
-          {unitPrice !== null && (
-            <Text style={styles.unitPrice}>
-              {unitPrice.toFixed(2)} € / {unit}
-            </Text>
-          )}
-
-          {/* Promoción */}
-          {hasPromo && summary && <Text style={styles.promo}>{summary}</Text>}
-
-          {/* Barcode */}
-          {item.barcode && (
-            <View style={{ marginTop: 4 }}>
-              <BarcodeLink
-                barcode={item.barcode}
-                label="Código:"
-                styleType="subtle"
-              />
-            </View>
-          )}
-        </View>
-
-        {/* Total */}
-        <View style={styles.totalBox}>
-          <Text style={styles.totalText}>
-            {(item.priceInfo?.total ?? 0).toFixed(2)} €
-          </Text>
-        </View>
-      </View>
-    );
-  };
+    const unsub = navigation.addListener("focus", reload);
+    return unsub;
+  }, [navigation]);
 
   return (
     <View style={styles.screen}>
-      {/* CABECERA */}
-      <View style={styles.headerCard}>
-        <Text style={styles.title}>{list.title}</Text>
+      <HeaderCard list={list} date={date} total={total} styles={styles} />
 
-        <View style={styles.inline}>
-          <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-          <Text style={styles.meta}>{date}</Text>
-
-          {list.store && (
-            <View style={styles.inline}>
-              <Text style={styles.dot}>•</Text>
-              <Ionicons name="location-outline" size={14} color="#6B7280" />
-              <Text style={styles.meta}>{list.store}</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{total.toFixed(2)} €</Text>
-        </View>
-      </View>
-
-      {/* LISTA DE PRODUCTOS */}
       <FlatList
         data={list.items}
         keyExtractor={(i) => i.id}
-        renderItem={renderItem}
+        renderItem={({ item }) => <ItemCard item={item} styles={styles} />}
         contentContainerStyle={{ paddingBottom: 50 }}
       />
     </View>
   );
 }
 
-//
-// ESTILOS — VERSIÓN C (dashboard suave con bloques grises)
-//
+// ============================================================
+// ESTILOS
+// ============================================================
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -115,9 +162,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
   },
 
-  //
-  // CABECERA BLOQUE
-  //
+  // HEADER
   headerCard: {
     backgroundColor: "#FFFFFF",
     padding: 16,
@@ -170,9 +215,7 @@ const styles = StyleSheet.create({
     color: "#059669",
   },
 
-  //
-  // CARDS DE PRODUCTOS
-  //
+  // ITEM
   card: {
     backgroundColor: "#FFFFFF",
     padding: 14,

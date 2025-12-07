@@ -1,6 +1,3 @@
-// MenuScreen.js — versión simplificada y scroll corregido
-// Basado en la versión original del usuario :contentReference[oaicite:1]{index=1}
-
 import React, { useState } from "react";
 import {
   View,
@@ -12,27 +9,24 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
+
+import {
+  clearStorage,
+  clearActiveLists,
+  clearArchivedLists,
+  clearPurchaseHistory,
+  clearScannedHistory,
+} from "../utils/storage";
+
 import { useStore } from "../context/StoreContext";
-import { clearStorage } from "../utils/storage/clearStorage";
 
 export default function MenuScreen({ navigation }) {
-  const {
-    clearActiveLists,
-    clearArchivedLists,
-    clearPurchaseHistory,
-    clearScannedHistory,
-    config,
-    setGeneralEngine,
-    setBookEngine,
-  } = useStore();
+  const { config, setGeneralEngine, setBookEngine } = useStore();
 
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [generalOpen, setGeneralOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
 
-  //
-  // ROW COMPONENTS (limpios y reutilizables)
-  //
   const Row = ({ icon, label, color = "#2563eb", onPress }) => (
     <TouchableOpacity style={styles.row} onPress={onPress}>
       <Ionicons name={icon} size={20} color={color} style={styles.rowIcon} />
@@ -49,9 +43,6 @@ export default function MenuScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  //
-  // Motores de búsqueda
-  //
   const generalEngines = [
     { id: "google", label: "Google", icon: "logo-google" },
     { id: "duckduckgo", label: "DuckDuckGo", icon: "search-outline" },
@@ -93,9 +84,6 @@ export default function MenuScreen({ navigation }) {
     );
   };
 
-  //
-  // UI
-  //
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -104,7 +92,7 @@ export default function MenuScreen({ navigation }) {
       >
         <Text style={styles.title}>Menú</Text>
 
-        {/* Navegación */}
+        {/* NAVEGACIÓN */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Navegación</Text>
 
@@ -130,7 +118,7 @@ export default function MenuScreen({ navigation }) {
           />
         </View>
 
-        {/* Motor general */}
+        {/* MOTOR GENERAL */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.accordionHeader}
@@ -157,7 +145,7 @@ export default function MenuScreen({ navigation }) {
           )}
         </View>
 
-        {/* Motor de libros */}
+        {/* MOTOR LIBROS */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.accordionHeader}
@@ -180,7 +168,7 @@ export default function MenuScreen({ navigation }) {
           )}
         </View>
 
-        {/* Mantenimiento */}
+        {/* MANTENIMIENTO */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.accordionHeader}
@@ -275,23 +263,18 @@ export default function MenuScreen({ navigation }) {
   );
 }
 
-//
-// ESTILOS SIMPLIFICADOS
-//
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fafafa",
     paddingHorizontal: 16,
   },
-
   title: {
     fontSize: 28,
     fontWeight: "800",
     textAlign: "center",
     marginVertical: 20,
   },
-
   section: {
     backgroundColor: "#fff",
     borderRadius: 14,
@@ -300,7 +283,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-
   sectionTitle: {
     fontSize: 15,
     fontWeight: "700",
@@ -308,7 +290,6 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     marginBottom: 8,
   },
-
   row: {
     flexDirection: "row",
     alignItems: "center",
@@ -324,7 +305,6 @@ const styles = StyleSheet.create({
     color: "#222",
     fontWeight: "500",
   },
-
   dangerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -358,7 +338,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#222",
   },
-
   radio: {
     width: 22,
     height: 22,

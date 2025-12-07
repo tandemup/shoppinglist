@@ -1,6 +1,6 @@
-// ArchivedListsScreen.js — Versión corregida
+// ArchivedListsScreen.js
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,8 +13,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { formatStore } from "../utils/formatStore";
 
 export default function ArchivedListsScreen({ navigation }) {
-  const { archivedLists } = useStore();
+  const { archivedLists, reload } = useStore();
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    reload();
+
+    const unsub = navigation.addListener("focus", () => {
+      reload();
+    });
+
+    return unsub;
+  }, [navigation]);
 
   const filtered = archivedLists
     .filter((l) => {
@@ -30,56 +40,78 @@ export default function ArchivedListsScreen({ navigation }) {
     navigation.navigate("ArchivedListDetail", { list });
   };
 
-  const renderItem = ({ item }) => {
-    const items = item.items || [];
+  // ────────────────────────────────────────────────
+  // COMPONENTES INTERNOS
+  // ────────────────────────────────────────────────
 
-    // TOTAL CORREGIDO
+  const HeaderRow = ({ title }) => (
+    <View style={styles.topRow}>
+      <Text style={styles.itemname}>{title}</Text>
+      <Ionicons name="chevron-forward" size={22} color="#B0B0B0" />
+    </View>
+  );
+
+  const InfoRow = ({ archivedAt, store }) => (
+    <View style={styles.iconRow}>
+      <Ionicons name="calendar-outline" size={16} color="#777" />
+      <Text style={styles.subInfo}>
+        {new Date(archivedAt).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}
+      </Text>
+
+      <Text style={styles.dot}>•</Text>
+
+      <Ionicons name="location-outline" size={16} color="#777" />
+      <Text style={styles.subInfo}>
+        {store ? formatStore(store) : "Sin tienda"}
+      </Text>
+    </View>
+  );
+
+  const ProductsAndTotalRow = ({ count, total }) => (
+    <View style={styles.bottomRow}>
+      <View style={styles.iconRow}>
+        <Ionicons name="cart-outline" size={17} color="#777" />
+        <Text style={styles.productsText}>{count} productos</Text>
+      </View>
+
+      <Text style={styles.price}>{total.toFixed(2)} €</Text>
+    </View>
+  );
+
+  const ArchivedListCard = ({ list }) => {
+    const items = list.items || [];
+
     const total = items.reduce(
-      (sum, it) => sum + (it.priceInfo?.total ?? it.price ?? 0), // precio total real del item archivado
+      (sum, it) => sum + (it.priceInfo?.total ?? it.price ?? 0),
       0
     );
 
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => openDetails(item)}
+        onPress={() => openDetails(list)}
         activeOpacity={0.7}
       >
-        <View style={styles.topRow}>
-          <Text style={styles.itemname}>{item.name}</Text>
-          <Ionicons name="chevron-forward" size={22} color="#B0B0B0" />
-        </View>
+        <HeaderRow title={list.name} />
 
-        <View style={styles.iconRow}>
-          <Ionicons name="calendar-outline" size={16} color="#777" />
-          <Text style={styles.subInfo}>
-            {new Date(item.archivedAt || item.createdAt).toLocaleDateString(
-              "es-ES",
-              { day: "numeric", month: "short", year: "numeric" }
-            )}
-          </Text>
-
-          <Text style={styles.dot}>•</Text>
-
-          <Ionicons name="location-outline" size={16} color="#777" />
-          <Text style={styles.subInfo}>
-            {item.store ? formatStore(item.store) : "Sin tienda"}
-          </Text>
-        </View>
+        <InfoRow
+          archivedAt={list.archivedAt || list.createdAt}
+          store={list.store}
+        />
 
         <View style={styles.separator} />
 
-        <View style={styles.bottomRow}>
-          <View style={styles.iconRow}>
-            <Ionicons name="cart-outline" size={17} color="#777" />
-            <Text style={styles.productsText}>{items.length} productos</Text>
-          </View>
-
-          <Text style={styles.price}>{total.toFixed(2)} €</Text>
-        </View>
+        <ProductsAndTotalRow count={items.length} total={total} />
       </TouchableOpacity>
     );
   };
+
+  // RENDER ITEM AHORA ES SÚPER LIMPIO
+  const renderItem = ({ item }) => <ArchivedListCard list={item} />;
 
   return (
     <View style={styles.container}>

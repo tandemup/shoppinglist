@@ -12,6 +12,7 @@ import PrecioPromocion from "../components/PrecioPromocion";
 import { defaultItem } from "../utils/defaultItem";
 import { safeAlert } from "../utils/safeAlert";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { defaultPriceInfo } from "../utils/defaultItem";
 
 export default function ItemDetailScreen({ route, navigation }) {
   const { item, onSave, onDelete } = route.params;
@@ -57,15 +58,26 @@ export default function ItemDetailScreen({ route, navigation }) {
   //
   // 💾 Guardar
   //
+
   const handleSave = async () => {
     if (!itemData.name.trim()) {
       safeAlert("Nombre vacío", "Introduce un nombre para el producto.");
       return;
     }
 
+    // ⭐ Unificar y reparar priceInfo
+    const fixedPriceInfo = {
+      ...defaultPriceInfo(),
+      ...itemData.priceInfo,
+      total: parseFloat(itemData.priceInfo?.total) || 0,
+      qty: parseFloat(itemData.priceInfo?.qty) || 1,
+      unitPrice: parseFloat(itemData.priceInfo?.unitPrice) || 0,
+    };
+
     const updatedItem = {
       ...itemData,
       id: originalId,
+      priceInfo: fixedPriceInfo, // 👈 Aquí aplicamos el fix
     };
 
     try {
@@ -129,15 +141,7 @@ export default function ItemDetailScreen({ route, navigation }) {
       <PrecioPromocion
         value={itemData.priceInfo}
         onChange={(info) =>
-          setItemData((prev) => ({
-            ...prev,
-            priceInfo: {
-              ...info,
-              total: parseFloat(info.total) || 0,
-              qty: parseFloat(info.qty) || 1,
-              unitPrice: parseFloat(info.unitPrice) || 0,
-            },
-          }))
+          setItemData((prev) => ({ ...prev, priceInfo: info }))
         }
       />
 

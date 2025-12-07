@@ -2,11 +2,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as listStorage from "./listStorage";
 import * as settingsStorage from "./settingsStorage";
+import { clearScannedHistory as clearScanHistoryModule } from "./scannerHistory";
 
 const storage = {
-  //
-  // 📦 Métodos RAW (útiles para debug y operaciones genéricas)
-  //
   raw: {
     get: async (key) => {
       try {
@@ -43,20 +41,55 @@ const storage = {
     },
   },
 
-  //
-  // 📂 Módulos especializados
-  //
   lists: {
     getAll: listStorage.loadLists,
     add: listStorage.addList,
     remove: listStorage.deleteList,
-    update: listStorage.updateList, // si quieres implementarlo después
+    update: listStorage.updateList,
   },
 
   settings: {
     get: settingsStorage.getSetting,
     set: settingsStorage.setSetting,
   },
+};
+
+// -----------------------------
+// FUNCIONES DE BORRADO EXTERNAS
+// -----------------------------
+
+async function clearAllLists() {
+  await listStorage.clearActiveLists();
+  await listStorage.clearArchivedLists();
+}
+
+async function clearActiveLists() {
+  await listStorage.clearActiveLists();
+}
+
+async function clearArchivedLists() {
+  await listStorage.clearArchivedLists();
+}
+
+async function clearPurchaseHistory() {
+  await listStorage.clearPurchaseHistory();
+}
+
+async function clearScannedHistory() {
+  await clearScanHistoryModule();
+}
+
+async function clearStorage() {
+  await AsyncStorage.clear();
+}
+
+export {
+  clearStorage,
+  clearAllLists,
+  clearActiveLists,
+  clearArchivedLists,
+  clearPurchaseHistory,
+  clearScannedHistory,
 };
 
 export default storage;

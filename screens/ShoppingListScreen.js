@@ -1,6 +1,4 @@
-// ShoppingListScreen.js — versión completa y corregida
-
-import { generateId } from "../utils/generateId";
+// ShoppingListScreen.js — VERSIÓN FINAL COMPATIBLE CON STORECONTEXT
 
 import React, { useEffect, useState, useCallback } from "react";
 import {
@@ -13,89 +11,66 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { getList, updateList } from "../utils/storage/listStorage";
-import { defaultItem } from "../utils/defaultItem";
+import { defaultItem, defaultPriceInfo } from "../utils/defaultItem";
+import { generateId } from "../utils/generateId";
+import { safeAlert } from "../utils/safeAlert";
 
 import StoreSelector from "../components/StoreSelector";
 import SearchCombinedBar from "../components/SearchCombinedBar";
 import ItemRow from "../components/ItemRow";
-import { safeAlert } from "../utils/safeAlert";
 
-import { useStore } from "../context/StoreContext"; // IMPORTANTE
+import { useStore } from "../context/StoreContext";
 
 export default function ShoppingListScreen({ route, navigation }) {
   const { listId } = route.params;
 
-  const { archiveList, addItemsToHistory } = useStore();
+  const { lists, updateListData, archiveList, reload } = useStore();
 
   const [list, setList] = useState(null);
   const [nuevoItem, setNuevoItem] = useState("");
 
-  //
-  // HAMBURGUESA
-  //
+  // ------------------------------------------------------
+  // Cargar lista desde StoreContext
+  // ------------------------------------------------------
+  const load = useCallback(() => {
+    const found = lists.find((l) => l.id === listId);
+
+    if (found) {
+      setList({
+        ...found,
+        items: Array.isArray(found.items) ? found.items : [],
+      });
+
+      navigation.setOptions({ title: found.name });
+    }
+  }, [lists, listId]);
+
+  // ------------------------------------------------------
+  // Recargar datos globales al entrar en la pantalla
+  // ------------------------------------------------------
   useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Menu")}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="menu" size={26} color="black" />
-        </TouchableOpacity>
-      ),
+    reload(); // carga inicial del contexto
+
+    const unsub = navigation.addListener("focus", () => {
+      reload(); // recargar al volver
     });
+
+    return unsub;
   }, [navigation]);
 
-  //
-  // CARGAR LISTA
-  //
-  const loadList = useCallback(async () => {
-    const data = await getList(listId);
-
-    if (!data) {
-      const empty = { id: listId, name: "Nueva lista", items: [], store: null };
-      await updateList(listId, () => empty);
-      setList(empty);
-      navigation.setOptions({ title: empty.name });
-      return;
-    }
-
-    setList({
-      ...data,
-      store: data.store ?? null, // ⭐ tienda propia por lista
-      items: Array.isArray(data.items) ? data.items : [],
-    });
-
-    navigation.setOptions({ title: data.name });
-  }, [listId]);
-
+  // ------------------------------------------------------
+  // 🚀 FIX IMPORTANTE:
+  // Cuando cambian las listas globales → cargar esta lista
+  // ------------------------------------------------------
   useEffect(() => {
-    loadList();
-    const unsub = navigation.addListener("focus", loadList);
-    return unsub;
-  }, [navigation, loadList]);
+    load();
+  }, [lists, load]);
 
-  //
-  // PROTECCIÓN PARA prev NULL
-  //
-  const ensurePrev = (prev) => {
-    if (prev && typeof prev === "object") {
-      return {
-        ...prev,
-        store: prev.store ?? null,
-        items: Array.isArray(prev.items) ? prev.items : [],
-      };
-    }
-    return { id: listId, name: "Nueva lista", items: [], store: null };
-  };
-
-  //
-  // AÑADIR ITEM MANUAL — al principio
-  //
+  // ------------------------------------------------------
+  // Añadir item manual
+  // ------------------------------------------------------
   const addItem = async () => {
     const name = (nuevoItem ?? "").trim();
     if (!name) return;
@@ -105,79 +80,53 @@ export default function ShoppingListScreen({ route, navigation }) {
       id: generateId(),
       name,
       checked: true,
-      priceInfo: { total: 0, unitPrice: 0, qty: 1 },
+      priceInfo: defaultPriceInfo(),
     };
 
-    await updateList(listId, (prev) => {
-      const base = ensurePrev(prev);
-      return {
-        ...base,
-        items: [newItem, ...base.items],
-      };
-    });
+    await updateListData(listId, (base) => ({
+      ...base,
+      items: [newItem, ...(base.items || [])],
+    }));
 
     setNuevoItem("");
-    loadList();
   };
 
-  //
-  // TOGGLE CHECK
-  //
+  // ------------------------------------------------------
+  // Toggle checked
+  // ------------------------------------------------------
   const toggleChecked = async (id) => {
-    await updateList(listId, (prev) => {
-      const base = ensurePrev(prev);
-      return {
-        ...base,
-        items: base.items.map((i) =>
-          i.id === id ? { ...i, checked: !i.checked } : i
-        ),
-      };
-    });
-
-    loadList();
+    await updateListData(listId, (base) => ({
+      ...base,
+      items: base.items.map((i) =>
+        i.id === id ? { ...i, checked: !i.checked } : i
+      ),
+    }));
   };
 
-  //
-  // ABRIR DETALLE
-  //
+  // ------------------------------------------------------
+  // Abrir detalle
+  // ------------------------------------------------------
   const openItemDetail = (item) => {
     navigation.navigate("ItemDetailScreen", {
       item,
       onSave: async (updated) => {
-        await updateList(listId, (prev) => {
-          const base = ensurePrev(prev);
-          return {
-            ...base,
-            items: base.items.map((i) => (i.id === updated.id ? updated : i)),
-          };
-        });
+        await updateListData(listId, (base) => ({
+          ...base,
+          items: base.items.map((i) => (i.id === updated.id ? updated : i)),
+        }));
       },
       onDelete: async (id) => {
-        await updateList(listId, (prev) => {
-          const base = ensurePrev(prev);
-          return {
-            ...base,
-            items: base.items.filter((i) => i.id !== id),
-          };
-        });
+        await updateListData(listId, (base) => ({
+          ...base,
+          items: base.items.filter((i) => i.id !== id),
+        }));
       },
     });
   };
 
-  //
-  // TOTAL
-  //
-  const total = (() => {
-    if (!list?.items) return "0.00";
-    return list.items
-      .filter((i) => i.checked)
-      .reduce((acc, item) => acc + (parseFloat(item.priceInfo?.total) || 0), 0)
-      .toFixed(2);
-  })();
-
-  //
-  // AÑADIR ITEM DESDE SEARCH COMBINED
-  //
+  // ------------------------------------------------------
+  // Añadir desde histórico
+  // ------------------------------------------------------
   const handleSelectHistoryItem = async (historyItem) => {
     const newItem = {
       ...defaultItem,
@@ -186,32 +135,38 @@ export default function ShoppingListScreen({ route, navigation }) {
       brand: historyItem.brand || "",
       barcode: historyItem.barcode || "",
       image: historyItem.image || null,
-      priceInfo: historyItem.priceInfo || { total: 0, unitPrice: 0, qty: 1 },
       checked: true,
+
+      priceInfo: {
+        ...defaultPriceInfo(),
+        ...historyItem.priceInfo,
+      },
     };
 
-    await updateList(listId, (prev) => {
-      const base = ensurePrev(prev);
-      return {
-        ...base,
-        items: [newItem, ...base.items],
-      };
-    });
-
-    loadList();
+    await updateListData(listId, (base) => ({
+      ...base,
+      items: [newItem, ...(base.items || [])],
+    }));
   };
 
-  if (!list) {
+  // ------------------------------------------------------
+  // Calcular total de la lista
+  // ------------------------------------------------------
+  const total = list?.items
+    ?.filter((i) => i.checked)
+    .reduce((acc, item) => acc + (Number(item.priceInfo?.total) || 0), 0)
+    ?.toFixed(2);
+
+  if (!list)
     return (
       <View style={styles.loadingContainer}>
-        <Text>Cargando...</Text>
+        <Text>Cargando…</Text>
       </View>
     );
-  }
 
-  //
-  // RENDER PRINCIPAL
-  //
+  // ------------------------------------------------------
+  // RENDER
+  // ------------------------------------------------------
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
       <KeyboardAvoidingView
@@ -231,24 +186,22 @@ export default function ShoppingListScreen({ route, navigation }) {
           contentContainerStyle={{ paddingBottom: 80 }}
           ListHeaderComponent={
             <View>
-              {/* ⭐ STORE SELECTOR */}
               <StoreSelector
                 navigation={navigation}
                 store={list.store}
                 onChangeStore={async (newStore) => {
-                  await updateList(listId, (prev) => ({
-                    ...prev,
-                    store: newStore, // ⭐ GUARDAR TIENDA SOLO EN ESTA LISTA
+                  await updateListData(listId, (base) => ({
+                    ...base,
+                    store: newStore,
                   }));
-                  loadList();
                 }}
               />
 
-              {/* BOTÓN PAGAR */}
+              {/* Finalizar compra */}
               <TouchableOpacity
                 style={styles.payButton}
                 onPress={() => {
-                  if (!list.items || list.items.length === 0) return;
+                  if (!list.items?.length) return;
 
                   safeAlert(
                     "Finalizar compra",
@@ -269,24 +222,21 @@ export default function ShoppingListScreen({ route, navigation }) {
                 <Text style={styles.payButtonText}>💳 Finalizar compra</Text>
               </TouchableOpacity>
 
-              {/* SEARCH BAR */}
               <SearchCombinedBar
                 currentList={list}
                 onSelectHistoryItem={handleSelectHistoryItem}
               />
 
-              {/* TOTAL */}
               <View style={styles.totalContainer}>
                 <Text style={styles.totalLabel}>Total:</Text>
                 <Text style={styles.totalValue}>{total} €</Text>
               </View>
 
-              {/* ADD ITEM */}
+              {/* Añadir manual */}
               <View style={styles.addRow}>
                 <TextInput
                   style={styles.newInput}
                   placeholder="Añadir producto..."
-                  placeholderTextColor="#999"
                   value={nuevoItem}
                   onChangeText={setNuevoItem}
                 />
@@ -302,15 +252,11 @@ export default function ShoppingListScreen({ route, navigation }) {
   );
 }
 
-//
-// 🎨 ESTILOS
-//
+// ---------------------------------
+// Estilos
+// ---------------------------------
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   totalContainer: {
     flexDirection: "row",
@@ -357,9 +303,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
   },
-  payButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "600",
-  },
+  payButtonText: { color: "white", fontSize: 18, fontWeight: "600" },
 });

@@ -17,7 +17,7 @@ export default function ShoppingListsScreen({ navigation }) {
   //
   // 🧠 Usamos SOLO el contexto global (sin estados duplicados)
   //
-  const { lists, addList, deleteList, archiveList, fetchLists } = useStore();
+  const { lists, addList, deleteList, archiveList, reload } = useStore();
 
   const [newListName, setNewListName] = useState("");
 
@@ -25,9 +25,14 @@ export default function ShoppingListsScreen({ navigation }) {
   // 🔄 Recargar listas cuando se vuelve a esta pantalla
   //
   useEffect(() => {
-    const unsub = navigation.addListener("focus", fetchLists);
+    reload(); // carga inicial
+
+    const unsub = navigation.addListener("focus", () => {
+      reload();
+    });
+
     return unsub;
-  }, [navigation, fetchLists]);
+  }, [navigation]);
 
   //
   // 🎛 Ajustes del header
@@ -62,7 +67,8 @@ export default function ShoppingListsScreen({ navigation }) {
 
     await addList(newList);
     setNewListName("");
-    fetchLists();
+
+    reload(); // asegurar sincronización tras añadir
   };
 
   //
@@ -90,7 +96,7 @@ export default function ShoppingListsScreen({ navigation }) {
               text: "Archivar",
               onPress: async () => {
                 await archiveList(item.id);
-                fetchLists();
+                reload();
               },
             },
 
@@ -99,7 +105,7 @@ export default function ShoppingListsScreen({ navigation }) {
               style: "destructive",
               onPress: async () => {
                 await deleteList(item.id);
-                fetchLists();
+                reload();
               },
             },
           ]

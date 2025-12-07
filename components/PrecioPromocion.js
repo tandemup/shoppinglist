@@ -1,6 +1,6 @@
-// PrecioPromocion.js — UI Antigua reintegrada + Fixes completos
+// PrecioPromocion.js — versión totalmente controlada (sin estados internos de datos)
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -12,10 +12,9 @@ import {
   UIManager,
 } from "react-native";
 
-import { parseReal, normalizeReal } from "../utils/number.js";
-import { PROMOTIONS, calcularPromoTotal } from "../utils/promoCalculator.js";
+import { parseReal, normalizeReal } from "../utils/number";
+import { PROMOTIONS, calcularPromoTotal } from "../utils/promoCalculator";
 
-// Necesario para animaciones en Android
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -25,112 +24,63 @@ if (
 
 const UNIT_TYPES = ["u", "kg", "l"];
 
-export default function PrecioPromocion({ value = {}, onChange }) {
-  // -----------------------------
-  // Estado interno
-  // -----------------------------
-  const [localUnit, setLocalUnit] = useState(value.unitType ?? "u");
-  const [localQty, setLocalQty] = useState(String(value.qty ?? "1"));
-  const [localPrice, setLocalPrice] = useState(String(value.unitPrice ?? ""));
-  const [localPromo, setLocalPromo] = useState(value.promo ?? "none");
+export default function PrecioPromocion({ value, onChange }) {
   const [expanded, setExpanded] = useState(false);
 
-  const lastSent = useRef(null);
-
-  //
   // -----------------------------
-  // FIX: Sincronización condicional desde el padre
+  // Handlers controlados
   // -----------------------------
-  //
+  const update = (patch) => {
+    const merged = { ...value, ...patch };
+    const p = parseReal(merged.unitPrice);
+    const q = parseReal(merged.qty);
 
-  useEffect(() => {
-    const incoming = value.promo ?? "none";
-    if (incoming !== localPromo) setLocalPromo(incoming);
-  }, [value.promo]);
+    const { total, warning, label } = calcularPromoTotal(
+      merged.promo ?? "none",
+      p,
+      q
+    );
 
-  useEffect(() => {
-    const incoming = value.unitType ?? "u";
-    if (incoming !== localUnit) setLocalUnit(incoming);
-  }, [value.unitType]);
+    const promoLabel = merged.promo !== "none" ? ` (${label})` : "";
 
-  useEffect(() => {
-    const incoming = String(value.qty ?? "1");
-    if (incoming !== localQty) setLocalQty(incoming);
-  }, [value.qty]);
-
-  useEffect(() => {
-    const incoming = String(value.unitPrice ?? "");
-    if (incoming !== localPrice) setLocalPrice(incoming);
-  }, [value.unitPrice]);
-
-  //
-  // -----------------------------
-  // Cálculo de totales
-  // -----------------------------
-  //
-  const computeTotals = () => {
-    const p = parseReal(localPrice);
-    const q = parseReal(localQty);
-    if (isNaN(p) || isNaN(q)) return { total: 0, summary: "", warning: null };
-
-    const { total, warning, label } = calcularPromoTotal(localPromo, p, q);
-
-    const promoLabel = localPromo !== "none" ? ` (${label})` : "";
-    const summary = `${q} × ${p.toFixed(2)} €${promoLabel} = ${total.toFixed(
+    merged.total = total;
+    merged.summary = `${q} × ${p.toFixed(2)} €${promoLabel} = ${total.toFixed(
       2
     )} €`;
+    merged.warning = warning;
 
-    return { total, summary, warning };
+    onChange(merged);
   };
 
-  const { total, summary, warning } = computeTotals();
+  // Variables derivadas desde el padre (sin estado local)
+  const unitType = value.unitType ?? "u";
+  const qty = String(value.qty ?? "1");
+  const unitPrice = String(value.unitPrice ?? "");
+  const promo = value.promo ?? "none";
 
-  //
-  // -----------------------------
-  // Notificar cambios al padre
-  // -----------------------------
-  //
-  useEffect(() => {
-    const p = parseReal(localPrice);
-    const q = parseReal(localQty);
-    if (isNaN(p) || isNaN(q)) return;
+  const total = value.total ?? 0;
+  const summary = value.summary ?? "";
+  const warning = value.warning ?? null;
 
-    const newValue = {
-      unitType: localUnit,
-      unitPrice: Number(p.toFixed(2)),
-      qty: Number(q),
-      promo: localPromo,
-      total: Number(total.toFixed(2)),
-      summary,
-    };
-
-    if (JSON.stringify(lastSent.current) !== JSON.stringify(newValue)) {
-      lastSent.current = newValue;
-      onChange(newValue);
-    }
-  }, [localUnit, localQty, localPrice, localPromo, total]);
-
-  //
   // -----------------------------
-  // UI — Interfaz Antigua restaurada
+  // UI
   // -----------------------------
-  //
   return (
     <View style={styles.container}>
-      {/* --- Selección de Unidad --- */}
+      {/* Unidad */}
       <View style={{ marginBottom: 10 }}>
         <Text style={styles.label}>Unidad</Text>
 
         <View style={styles.selectorRow}>
           {UNIT_TYPES.map((u) => {
             const emoji = u === "kg" ? "⚖️" : u === "l" ? "🧃" : "🧩";
-            const active = localUnit === u;
+            const active = unitType === u;
 
             return (
               <Pressable
                 key={u}
                 style={[styles.selectorBtn, active && styles.selectorBtnActive]}
-                onPress={() => setLocalUnit(u)}
+                onPress={() => update({ unitType: u })}
               >
                 <Text
                   style={[
@@ -148,40 +98,40 @@ export default function PrecioPromocion({ value = {}, onChange }) {
         <Text style={styles.unitHint}>🧩 unidad ⚖️ kilo 🧃 litro</Text>
       </View>
 
-      {/* --- Cantidad + Precio Unitario --- */}
+      {/* Cantidad + Precio unitario */}
       <View style={styles.row}>
         <View style={styles.halfBox}>
-          <Text style={styles.label}>Cantidad ({localUnit})</Text>
+          <Text style={styles.label}>Cantidad ({unitType})</Text>
           <TextInput
             style={[styles.input, styles.bigInput]}
             keyboardType="decimal-pad"
-            value={localQty}
-            onChangeText={(t) => setLocalQty(normalizeReal(t))}
+            value={qty}
+            onChangeText={(t) => update({ qty: normalizeReal(t) })}
             onBlur={() => {
-              const v = parseReal(localQty);
-              if (!isNaN(v)) setLocalQty(v.toString());
+              const v = parseReal(qty);
+              if (!isNaN(v)) update({ qty: v.toString() });
             }}
             placeholder="0"
           />
         </View>
 
         <View style={[styles.halfBox, { marginLeft: 10 }]}>
-          <Text style={styles.label}>Precio unitario (€/{localUnit})</Text>
+          <Text style={styles.label}>Precio unitario (€/{unitType})</Text>
           <TextInput
             style={[styles.input, styles.bigInput]}
             keyboardType="decimal-pad"
-            value={localPrice}
-            onChangeText={(t) => setLocalPrice(normalizeReal(t))}
+            value={unitPrice}
+            onChangeText={(t) => update({ unitPrice: normalizeReal(t) })}
             onBlur={() => {
-              const v = parseReal(localPrice);
-              if (!isNaN(v)) setLocalPrice(v.toFixed(2));
+              const v = parseReal(unitPrice);
+              if (!isNaN(v)) update({ unitPrice: v.toFixed(2) });
             }}
             placeholder="0.00"
           />
         </View>
       </View>
 
-      {/* --- Sección Ofertas (plegable) --- */}
+      {/* Sección ofertas */}
       <Pressable
         onPress={() => {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -193,9 +143,9 @@ export default function PrecioPromocion({ value = {}, onChange }) {
         <Text style={styles.chevron}>{expanded ? "▲" : "▼"}</Text>
       </Pressable>
 
-      {!expanded && localPromo !== "none" && (
+      {!expanded && promo !== "none" && (
         <Text style={styles.activePromoText}>
-          Oferta seleccionada: {PROMOTIONS[localPromo]?.label}
+          Oferta seleccionada: {PROMOTIONS[promo]?.label}
         </Text>
       )}
 
@@ -204,8 +154,8 @@ export default function PrecioPromocion({ value = {}, onChange }) {
           <Text style={styles.sectionHint}>Selecciona una promoción:</Text>
 
           <View style={styles.selectorRow}>
-            {Object.entries(PROMOTIONS).map(([key, promo]) => {
-              const active = localPromo === key;
+            {Object.entries(PROMOTIONS).map(([key, p]) => {
+              const active = promo === key;
 
               return (
                 <Pressable
@@ -214,7 +164,7 @@ export default function PrecioPromocion({ value = {}, onChange }) {
                     styles.selectorBtn,
                     active && styles.selectorBtnActive,
                   ]}
-                  onPress={() => setLocalPromo(key)}
+                  onPress={() => update({ promo: key })}
                 >
                   <Text
                     style={[
@@ -222,7 +172,7 @@ export default function PrecioPromocion({ value = {}, onChange }) {
                       active && styles.selectorTextActive,
                     ]}
                   >
-                    {promo.label}
+                    {p.label}
                   </Text>
                 </Pressable>
               );
@@ -231,7 +181,7 @@ export default function PrecioPromocion({ value = {}, onChange }) {
         </View>
       )}
 
-      {/* --- Total --- */}
+      {/* Total */}
       <View style={styles.totalBox}>
         <Text style={styles.totalLabel}>Total: {total.toFixed(2)} €</Text>
         {summary ? <Text style={styles.totalDetail}>{summary}</Text> : null}
@@ -241,23 +191,16 @@ export default function PrecioPromocion({ value = {}, onChange }) {
   );
 }
 
-//
 // -----------------------------
-// ESTILOS — Los originales
+// ESTILOS ORIGINALES
 // -----------------------------
-//
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
 
   row: { flexDirection: "row", justifyContent: "space-between" },
   halfBox: { flex: 1 },
 
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
-  },
+  label: { fontSize: 14, fontWeight: "600", marginBottom: 4, color: "#333" },
 
   input: {
     borderWidth: 1,
@@ -283,7 +226,7 @@ const styles = StyleSheet.create({
   },
   selectorBtnActive: { backgroundColor: "#2563EB" },
   selectorText: { color: "#475569", fontWeight: "600" },
-  selectorTextActive: { color: "#fff" },
+  selectorTextActive: { color: "#ffffff" },
 
   unitHint: { fontSize: 12, textAlign: "center", marginTop: 4 },
 

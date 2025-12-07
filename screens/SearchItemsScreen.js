@@ -1,5 +1,5 @@
 //screens/SearchItemsScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { useStore } from "../context/StoreContext";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { searchItemsAcrossLists } from "../utils/searchHelpers";
@@ -15,6 +17,17 @@ import { searchItemsAcrossLists } from "../utils/searchHelpers";
 export default function SearchItemsScreen({ navigation }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const { reload } = useStore();
+
+  useEffect(() => {
+    reload();
+
+    const unsub = navigation.addListener("focus", () => {
+      reload();
+    });
+
+    return unsub;
+  }, [navigation]);
 
   const handleSearch = async (text) => {
     setQuery(text);
