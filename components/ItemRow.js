@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { PROMOTIONS } from "../utils/promoCalculator";
 
 export default function ItemRow({ item, onToggle, onEdit }) {
   //
@@ -32,14 +33,33 @@ export default function ItemRow({ item, onToggle, onEdit }) {
   //
   // PROMOCIÓN
   //
-  const promo = item?.priceInfo?.promo;
-  const summary = item?.priceInfo?.summary;
-  const hasPromo = promo && promo !== "none";
+  // const promo = item?.priceInfo?.promo;
+  // const summary = item?.priceInfo?.summary;
+  // const hasPromo = promo && promo !== "none";
+  const promoKey = item?.priceInfo?.promo;
+  const promoLabel = PROMOTIONS[promoKey]?.label ?? null;
+  const hasPromo = promoKey && promoKey !== "none";
 
   //
   // ICONO DE UNIDAD
   //
   const iconUnidad = unit_logo[unitType] || "🧩";
+
+  function PromoTag({ promo }) {
+    if (!promo) return null;
+
+    return (
+      <View style={styles.promoRow}>
+        <Ionicons
+          name="pricetag"
+          size={16}
+          color="#16a34a"
+          style={{ marginRight: 4 }}
+        />
+        <Text style={styles.summaryText}>{promo}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.item}>
@@ -67,18 +87,7 @@ export default function ItemRow({ item, onToggle, onEdit }) {
           >
             {item.name}
           </Text>
-
-          {hasPromo && (
-            <View style={styles.promoRow}>
-              <Ionicons
-                name="pricetag"
-                size={16}
-                color="#16a34a"
-                style={{ marginRight: 4 }}
-              />
-              <Text style={styles.summaryText}>{promo}</Text>
-            </View>
-          )}
+          <PromoTag promo={hasPromo ? promoLabel : null} />
         </View>
 
         {/* CANTIDAD + ICONO + PRECIO UNITARIO */}

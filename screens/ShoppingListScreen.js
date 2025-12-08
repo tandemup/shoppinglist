@@ -1,11 +1,12 @@
 // ShoppingListScreen.js — VERSIÓN FINAL COMPATIBLE CON STORECONTEXT
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   FlatList,
+  Animated,
   TouchableOpacity,
   StyleSheet,
   KeyboardAvoidingView,
@@ -30,6 +31,11 @@ export default function ShoppingListScreen({ route, navigation }) {
 
   const [list, setList] = useState(null);
   const [nuevoItem, setNuevoItem] = useState("");
+
+  const footerAnim = useRef(new Animated.Value(0)).current;
+  // 0 = visible, 1 = oculto
+
+  let lastScrollY = 0;
 
   // ------------------------------------------------------
   // Cargar lista desde StoreContext
@@ -164,6 +170,131 @@ export default function ShoppingListScreen({ route, navigation }) {
       </View>
     );
 
+  function Header1() {
+    return (
+      <View>
+        <TouchableOpacity
+          style={styles.payButton}
+          onPress={() => {
+            if (!list.items?.length) return;
+
+            safeAlert(
+              "Finalizar compra",
+              "¿Confirmas que has pagado en la tienda?",
+              [
+                { text: "Cancelar", style: "cancel" },
+                {
+                  text: "Sí, pagar",
+                  onPress: async () => {
+                    await archiveList(list.id);
+                    navigation.navigate("ShoppingLists");
+                  },
+                },
+              ]
+            );
+          }}
+        >
+          <Text style={styles.payButtonText}>💳 Finalizar compra</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const ListHeader = React.memo(function ListHeader({
+    list,
+    total,
+    nuevoItem,
+    setNuevoItem,
+    updateListData,
+    listId,
+    navigation,
+    handleSelectHistoryItem,
+    addItem,
+  }) {
+    return (
+      <View>
+        <StoreSelector
+          navigation={navigation}
+          store={list.store}
+          onChangeStore={async (newStore) => {
+            await updateListData(listId, (base) => ({
+              ...base,
+              store: newStore,
+            }));
+          }}
+        />
+
+        <SearchCombinedBar
+          currentList={list}
+          onSelectHistoryItem={handleSelectHistoryItem}
+        />
+
+        <View style={styles.addRow}>
+          <TextInput
+            style={styles.newInput}
+            placeholder="Añadir producto..."
+            placeholderTextColor="#999"
+            value={nuevoItem}
+            onChangeText={setNuevoItem}
+          />
+          <TouchableOpacity style={styles.addButton} onPress={addItem}>
+            <Text style={styles.addButtonText}>＋</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  });
+
+  const ListFooter = React.memo(function ListFooter({
+    total,
+    nuevoItem,
+    setNuevoItem,
+    addItem,
+  }) {
+    return <Header1 />;
+  });
+
+  const StickyFooter = React.memo(function StickyFooter({
+    footerAnim,
+    total,
+    onFinishPurchase,
+  }) {
+    const translateY = footerAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 80], // se mueve hacia abajo al ocultarse
+    });
+
+    return (
+      <Animated.View
+        style={[stickyStyles.container, { transform: [{ translateY }] }]}
+      >
+        <Text style={stickyStyles.totalText}>Total: {total} €</Text>
+
+        <TouchableOpacity
+          style={stickyStyles.payButton}
+          onPress={onFinishPurchase}
+        >
+          <Text style={stickyStyles.payButtonText}>💳 Finalizar compra</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  });
+  const hideFooter = () => {
+    Animated.timing(footerAnim, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const showFooter = () => {
+    Animated.timing(footerAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  };
+
   // ------------------------------------------------------
   // RENDER
   // ------------------------------------------------------
@@ -183,69 +314,50 @@ export default function ShoppingListScreen({ route, navigation }) {
               onEdit={openItemDetail}
             />
           )}
-          contentContainerStyle={{ paddingBottom: 80 }}
+          onScroll={(e) => {
+            const y = e.nativeEvent.contentOffset.y;
+
+            if (y > lastScrollY + 5) {
+              // Scroll bajando → ocultar footer
+              hideFooter();
+            } else if (y < lastScrollY - 5) {
+              // Scroll subiendo → mostrar footer
+              showFooter();
+            }
+
+            lastScrollY = y;
+          }}
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingBottom: 120 }} // 🟢 espacio para el footer
           ListHeaderComponent={
-            <View>
-              <StoreSelector
-                navigation={navigation}
-                store={list.store}
-                onChangeStore={async (newStore) => {
-                  await updateListData(listId, (base) => ({
-                    ...base,
-                    store: newStore,
-                  }));
-                }}
-              />
-
-              {/* Finalizar compra */}
-              <TouchableOpacity
-                style={styles.payButton}
-                onPress={() => {
-                  if (!list.items?.length) return;
-
-                  safeAlert(
-                    "Finalizar compra",
-                    "¿Confirmas que has pagado en la tienda?",
-                    [
-                      { text: "Cancelar", style: "cancel" },
-                      {
-                        text: "Sí, pagar",
-                        onPress: async () => {
-                          await archiveList(list.id);
-                          navigation.navigate("ShoppingLists");
-                        },
-                      },
-                    ]
-                  );
-                }}
-              >
-                <Text style={styles.payButtonText}>💳 Finalizar compra</Text>
-              </TouchableOpacity>
-
-              <SearchCombinedBar
-                currentList={list}
-                onSelectHistoryItem={handleSelectHistoryItem}
-              />
-
-              <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>Total:</Text>
-                <Text style={styles.totalValue}>{total} €</Text>
-              </View>
-
-              {/* Añadir manual */}
-              <View style={styles.addRow}>
-                <TextInput
-                  style={styles.newInput}
-                  placeholder="Añadir producto..."
-                  value={nuevoItem}
-                  onChangeText={setNuevoItem}
-                />
-                <TouchableOpacity style={styles.addButton} onPress={addItem}>
-                  <Text style={styles.addButtonText}>＋</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <ListHeader
+              list={list}
+              total={total}
+              nuevoItem={nuevoItem}
+              setNuevoItem={setNuevoItem}
+              updateListData={updateListData}
+              listId={listId}
+              navigation={navigation}
+              handleSelectHistoryItem={handleSelectHistoryItem}
+              addItem={addItem}
+            />
           }
+        />
+        <StickyFooter
+          footerAnim={footerAnim}
+          total={total}
+          onFinishPurchase={() => {
+            safeAlert("Finalizar compra", "¿Confirmas que has pagado?", [
+              { text: "Cancelar", style: "cancel" },
+              {
+                text: "Sí",
+                onPress: async () => {
+                  await archiveList(list.id);
+                  navigation.navigate("ShoppingLists");
+                },
+              },
+            ]);
+          }}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -277,6 +389,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     marginBottom: 10,
   },
+
+  addButton: {
+    marginLeft: 8,
+    backgroundColor: "#4CAF50",
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    height: 40,
+  },
+  addButtonText: { color: "#fff", fontSize: 22, fontWeight: "bold" },
+
   newInput: {
     flex: 1,
     borderRadius: 10,
@@ -284,16 +407,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    height: 40,
+    fontSize: 16,
     backgroundColor: "#fff",
   },
-  addButton: {
-    marginLeft: 8,
-    backgroundColor: "#4CAF50",
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  newInput1: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8, // opcional si quieres más “aire”
+    height: 48, // <-- aumenta el alto (prueba 44, 48, 52…)
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    fontSize: 16,
   },
-  addButtonText: { color: "#fff", fontSize: 22, fontWeight: "bold" },
 
   payButton: {
     backgroundColor: "#4CAF50",
@@ -304,4 +431,46 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   payButtonText: { color: "white", fontSize: 18, fontWeight: "600" },
+});
+
+const stickyStyles = StyleSheet.create({
+  container: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderColor: "#ddd",
+
+    elevation: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+
+  totalText: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+
+  payButton: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  payButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
