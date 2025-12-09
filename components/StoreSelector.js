@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 export default function StoreSelector({ navigation, store, onChangeStore }) {
   const handleSelectStore = () => {
-    navigation.navigate("StoresScreen", {
+    navigation.navigate("Stores", {
       onSelectStore: async (selected) => {
         onChangeStore(selected); // ⭐ Actualizar SOLO esta lista
       },

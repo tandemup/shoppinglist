@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
 import { useStore } from "../context/StoreContext";
+import { generateId } from "../utils/generateId";
 
 export default function ShoppingListsScreen({ navigation }) {
   //
@@ -58,7 +59,7 @@ export default function ShoppingListsScreen({ navigation }) {
     if (!newListName.trim()) return;
 
     const newList = {
-      id: Date.now().toString(),
+      id: generateId(),
       name: newListName.trim(),
       createdAt: new Date().toISOString(),
       items: [],
@@ -96,7 +97,6 @@ export default function ShoppingListsScreen({ navigation }) {
               text: "Archivar",
               onPress: async () => {
                 await archiveList(item.id);
-                reload();
               },
             },
 
@@ -105,7 +105,6 @@ export default function ShoppingListsScreen({ navigation }) {
               style: "destructive",
               onPress: async () => {
                 await deleteList(item.id);
-                reload();
               },
             },
           ]

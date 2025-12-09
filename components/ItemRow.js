@@ -100,7 +100,16 @@ export default function ItemRow({ item, onToggle, onEdit }) {
 
       {/* PRECIO TOTAL */}
       <View style={styles.rightBlock}>
-        <Text style={styles.priceText}>{total.toFixed(2)} €</Text>
+        <Text
+          style={[
+            styles.priceText,
+            !item.checked && {
+              color: "#aaa",
+            },
+          ]}
+        >
+          {total.toFixed(2)} €
+        </Text>
       </View>
 
       {/* CHEVRON PARA EDITAR */}

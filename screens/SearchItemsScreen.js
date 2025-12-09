@@ -62,7 +62,7 @@ export default function SearchItemsScreen({ navigation }) {
             <TouchableOpacity
               style={styles.resultRow}
               onPress={() =>
-                navigation.navigate("ItemDetailScreen", {
+                navigation.navigate("ItemDetail", {
                   item: item.item,
                   onSave: () => {},
                   onDelete: () => {},

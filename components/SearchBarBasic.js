@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// components/SearchBarBasic.js
+import React, { useState } from "react";
 import {
   View,
   TextInput,
@@ -7,11 +8,9 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
-import { useStore } from "../context/StoreContext";
-
 import { Ionicons } from "@expo/vector-icons";
 
-export default function SearchCombinedBar({
+export default function SearchBarBasic({
   placeholder = "Buscar producto...",
   onTextChange,
   onSubmit,
@@ -19,23 +18,6 @@ export default function SearchCombinedBar({
   suggestions = [],
 }) {
   const [text, setText] = useState("");
-  const { purchaseHistory } = useStore(); // AÑADE ESTO arriba
-
-  const handleSearch = (text) => {
-    setQuery(text);
-
-    if (!text.trim()) {
-      setResults([]);
-      return;
-    }
-
-    const matches =
-      purchaseHistory
-        ?.filter((h) => h.name?.toLowerCase().includes(text.toLowerCase()))
-        .slice(0, 8) || [];
-
-    setResults(matches);
-  };
 
   const handleChange = (value) => {
     setText(value);
@@ -44,7 +26,7 @@ export default function SearchCombinedBar({
 
   return (
     <View style={styles.container}>
-      {/* INPUT */}
+      {/* 🔍 INPUT */}
       <View style={styles.inputWrapper}>
         <Ionicons
           name="search"
@@ -63,6 +45,7 @@ export default function SearchCombinedBar({
           onSubmitEditing={() => onSubmit?.(text)}
         />
 
+        {/* ＋ botón para crear */}
         {!!text.trim() && (
           <TouchableOpacity
             style={styles.addButton}
@@ -73,6 +56,7 @@ export default function SearchCombinedBar({
         )}
       </View>
 
+      {/* 📋 SUGERENCIAS */}
       {suggestions.length > 0 && (
         <FlatList
           data={suggestions}

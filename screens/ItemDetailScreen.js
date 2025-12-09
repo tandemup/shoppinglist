@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import PrecioPromocion from "../components/PrecioPromocion";
+import { generateId } from "../utils/generateId";
+
 import { defaultItem } from "../utils/defaultItem";
 import { safeAlert } from "../utils/safeAlert";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
