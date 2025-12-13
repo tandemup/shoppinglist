@@ -1,16 +1,17 @@
-// StoreContext.js — versión corregida con reload()
-// Expo-Shop 2025
-
+// StoreContext.js — versión optimizada y coherente 2025
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { defaultPriceInfo } from "../utils/defaultItem";
+import { ItemFactory } from "../utils/ItemFactory";
 
 const StoreContext = createContext();
 export const useStore = () => useContext(StoreContext);
 
-// -----------------------------------------
-// Helpers
-// -----------------------------------------
+//
+// ────────────────────────────────────────────────────────────────
+//  Storage helpers
+// ────────────────────────────────────────────────────────────────
+//
 async function load(key, fallback = null) {
   try {
     const raw = await AsyncStorage.getItem(key);
@@ -24,35 +25,35 @@ async function save(key, value) {
   await AsyncStorage.setItem(key, JSON.stringify(value));
 }
 
-// -----------------------------------------
-// Normalización
-// -----------------------------------------
+//
+// ────────────────────────────────────────────────────────────────
+//  Normalización de items
+// ────────────────────────────────────────────────────────────────
+//
 function normalizeItem(item) {
   if (!item) return null;
 
-  const base = item.priceInfo || {};
+  const base = item.priceInfo ?? {};
 
-  const qty = Number(base.qty ?? item.qty ?? 1);
-  const unitPrice = Number(base.unitPrice ?? item.unitPrice ?? 0);
+  const qty = Number(base.qty ?? 1);
+  const unitPrice = Number(base.unitPrice ?? 0);
   const total = Number(base.total ?? qty * unitPrice);
 
   return {
     ...item,
 
+    // PriceInfo garantizado
     priceInfo: {
       ...defaultPriceInfo(),
       ...base,
       qty,
       unitPrice,
       total,
-      unitType: base.unitType ?? item.unitType ?? "u",
+      unitType: base.unitType ?? "u",
       promo: base.promo ?? "none",
       summary: base.summary ?? null,
+      warning: base.warning ?? null,
     },
-
-    qty,
-    unitPrice,
-    total,
   };
 }
 
@@ -63,55 +64,26 @@ function normalizeStore(store) {
   return null;
 }
 
-// -----------------------------------------
-// Provider
-// -----------------------------------------
+//
+// ────────────────────────────────────────────────────────────────
+//  Provider
+// ────────────────────────────────────────────────────────────────
+//
 export function StoreProvider({ children }) {
   const [lists, setLists] = useState([]);
   const [purchaseHistory, setPurchaseHistory] = useState([]);
 
-  const [config, setConfig] = useState({
-    search: {
-      generalEngine: "google",
-      bookEngine: "googleBooks",
-    },
-  });
-
-  // -----------------------------------------
-  // Cargar configuración
-  // -----------------------------------------
-  useEffect(() => {
-    load("@expo-shop/config", null).then((stored) => {
-      if (stored) setConfig(stored);
-    });
-  }, []);
-
-  useEffect(() => {
-    save("@expo-shop/config", config);
-  }, [config]);
-
-  const setGeneralEngine = (engine) =>
-    setConfig((p) => ({
-      ...p,
-      search: { ...p.search, generalEngine: engine },
-    }));
-
-  const setBookEngine = (engine) =>
-    setConfig((p) => ({
-      ...p,
-      search: { ...p.search, bookEngine: engine },
-    }));
-
-  // -----------------------------------------
-  // CARGA INICIAL
-  // -----------------------------------------
+  //
+  // LOAD
+  //
   const reload = async () => {
     const loadedLists = await load("lists", []);
-    const normalizedLists = loadedLists.map((l) => ({
-      ...l,
-      items: (l.items || []).map(normalizeItem),
-    }));
-    setLists(normalizedLists);
+    setLists(
+      loadedLists.map((l) => ({
+        ...l,
+        items: (l.items ?? []).map(normalizeItem),
+      }))
+    );
 
     const hist = await load("purchaseHistory", []);
     setPurchaseHistory(hist.map(normalizeItem));
@@ -121,9 +93,11 @@ export function StoreProvider({ children }) {
     reload();
   }, []);
 
-  // -----------------------------------------
+  //
+  // ────────────────────────────────────────────────
   // CRUD LISTAS
-  // -----------------------------------------
+  // ────────────────────────────────────────────────
+  //
   const addList = async (newList) => {
     const updated = [newList, ...lists];
     setLists(updated);
@@ -131,10 +105,22 @@ export function StoreProvider({ children }) {
   };
 
   const updateListData = async (id, updater) => {
-    const updated = lists.map((l) => (l.id === id ? updater(l) : l));
-    setLists(updated);
-    await save("lists", updated);
-    return updated.find((l) => l.id === id);
+    let updatedList = null;
+
+    setLists((prev) => {
+      const updated = prev.map((l) => {
+        if (l.id === id) {
+          updatedList = updater(l);
+          return updatedList;
+        }
+        return l;
+      });
+
+      save("lists", updated);
+      return updated;
+    });
+
+    return updatedList;
   };
 
   const deleteList = async (id) => {
@@ -143,6 +129,9 @@ export function StoreProvider({ children }) {
     await save("lists", updated);
   };
 
+  //
+  // ARCHIVAR LISTA
+  //
   const archiveList = async (id) => {
     const target = lists.find((l) => l.id === id);
     if (!target) return;
@@ -150,30 +139,30 @@ export function StoreProvider({ children }) {
     const purchasedAt = new Date().toISOString();
     const storeName = normalizeStore(target.store);
 
-    // -----------------------------------------------------
-    // 1) Crear entradas del historial con todos los campos
-    // -----------------------------------------------------
-    const newEntries = (target.items || []).map((rawItem) => {
-      const item = normalizeItem(rawItem); // asegura priceInfo coherente
+    //
+    // 🔥 Filtrar solo los comprados
+    //
+    const purchasedItems = (target.items ?? [])
+      .filter((raw) => raw.checked)
+      .map((raw) => normalizeItem(raw));
 
-      return {
-        ...item,
-        listName: target.name,
-        store: storeName,
-        purchasedAt,
-      };
-    });
+    //
+    // 1️⃣ Añadir al historial SOLO los comprados
+    //
+    const newEntries = purchasedItems.map((item) => ({
+      ...item,
+      listName: target.name,
+      store: storeName,
+      purchasedAt,
+    }));
 
-    // -----------------------------------------------------
-    // 2) Guardar en purchaseHistory sin perder lo existente
-    // -----------------------------------------------------
     const updatedHistory = [...purchaseHistory, ...newEntries];
     setPurchaseHistory(updatedHistory);
     await save("purchaseHistory", updatedHistory);
 
-    // -----------------------------------------------------
-    // 3) Marcar lista como archivada y normalizar sus items
-    // -----------------------------------------------------
+    //
+    // 2️⃣ Actualizar la lista archivada dejando SOLO items comprados
+    //
     const updatedLists = lists.map((l) =>
       l.id === id
         ? {
@@ -181,7 +170,7 @@ export function StoreProvider({ children }) {
             archived: true,
             archivedAt: purchasedAt,
             store: storeName,
-            items: (l.items || []).map((it) => normalizeItem(it)),
+            items: purchasedItems, // 👈 FILTRO APLICADO AQUÍ
           }
         : l
     );
@@ -190,9 +179,9 @@ export function StoreProvider({ children }) {
     await save("lists", updatedLists);
   };
 
-  // -----------------------------------------
-  // Historial
-  // -----------------------------------------
+  //
+  // HISTORIAL EXTRA
+  //
   const addItemsToHistory = async (items) => {
     const stamped = items.map((i) =>
       normalizeItem({
@@ -211,25 +200,52 @@ export function StoreProvider({ children }) {
     await save("purchaseHistory", []);
   };
 
-  // -----------------------------------------
-  // Derivados
-  // -----------------------------------------
+  //
+  // ────────────────────────────────────────────────
+  // ITEM HELPERS (OPTIMIZADOS)
+  // ────────────────────────────────────────────────
+  //
+  const getItemById = (listId, itemId) => {
+    const list = lists.find((l) => l.id === listId);
+    if (!list) return null;
+    return list.items.find((i) => i.id === itemId) ?? null;
+  };
+
+  const updateItem = async (listId, itemId, patch) => {
+    return updateListData(listId, (base) => ({
+      ...base,
+      items: base.items.map((i) => {
+        if (i.id !== itemId) return i;
+
+        const merged = { ...i, ...patch };
+
+        // Mantener checked si no viene en patch
+        if (typeof patch.checked !== "boolean") {
+          merged.checked = i.checked;
+        }
+
+        return ItemFactory.normalize(merged);
+      }),
+    }));
+  };
+
+  //
+  // DERIVADOS
+  //
   const activeLists = lists.filter((l) => !l.archived);
   const archivedLists = lists.filter((l) => l.archived);
 
-  // -----------------------------------------
-  // Exponer API
-  // -----------------------------------------
+  //
+  // EXPOSE API
+  //
   return (
     <StoreContext.Provider
       value={{
-        // datos
         lists,
         activeLists,
         archivedLists,
         purchaseHistory,
 
-        // acciones
         reload,
         addList,
         updateListData,
@@ -238,10 +254,8 @@ export function StoreProvider({ children }) {
         addItemsToHistory,
         clearPurchaseHistory,
 
-        // config
-        config,
-        setGeneralEngine,
-        setBookEngine,
+        getItemById,
+        updateItem,
       }}
     >
       {children}

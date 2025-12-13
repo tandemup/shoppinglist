@@ -247,13 +247,26 @@ export default function MenuScreen({ navigation }) {
               <DangerRow
                 icon="close-circle"
                 label="Borrar almacenamiento completo"
-                onPress={async () => {
-                  await clearStorage();
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "ShoppingLists" }],
-                  });
-                }}
+                onPress={() =>
+                  safeAlert(
+                    "Borrar almacenamiento",
+                    "¿Seguro? Esta acción no se puede deshacer.",
+                    [
+                      { text: "Cancelar", style: "cancel" },
+                      {
+                        text: "Borrar todo",
+                        style: "destructive",
+                        onPress: async () => {
+                          await clearStorage();
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: "ShoppingLists" }],
+                          });
+                        },
+                      },
+                    ]
+                  )
+                }
               />
             </View>
           )}

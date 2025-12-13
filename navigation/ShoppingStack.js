@@ -5,7 +5,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import ShoppingListsScreen from "../screens/ShoppingListsScreen";
 import ShoppingListScreen from "../screens/ShoppingListScreen";
 import ItemDetailScreen from "../screens/ItemDetailScreen";
-import SearchItemsScreen from "../screens/SearchItemsScreen";
 import StoresScreen from "../screens/StoresScreen";
 import ArchivedListsScreen from "../screens/ArchivedListsScreen";
 import ArchivedListDetailScreen from "../screens/ArchivedListDetailScreen";
@@ -28,25 +27,19 @@ export default function ShoppingStack() {
       <Stack.Screen
         name="ShoppingLists"
         component={ShoppingListsScreen}
-        options={{ title: "Mis Listas" }}
+        options={{ title: "Shopping Lists" }}
       />
 
       <Stack.Screen
         name="ShoppingList"
         component={ShoppingListScreen}
-        options={{ title: "Lista" }}
+        options={{ title: "Shopping List" }}
       />
 
       <Stack.Screen
         name="ItemDetail"
         component={ItemDetailScreen}
-        options={{ title: "Editar producto" }}
-      />
-
-      <Stack.Screen
-        name="SearchItems"
-        component={SearchItemsScreen}
-        options={{ title: "Buscar productos" }}
+        options={{ title: "Editar" }}
       />
 
       {/* Accesible desde un producto: seleccionar tienda */}

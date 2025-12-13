@@ -1,211 +1,236 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { PROMOTIONS } from "../utils/promoCalculator";
+import { PriceFormatter } from "../utils/pricing/PricingEngine";
 
-export default function ItemRow({ item, onToggle, onEdit }) {
-  //
-  // ICONOS PARA CADA UNIDAD
-  //
-  const unit_logo = {
-    u: "🧩",
-    kg: "⚖️",
-    g: "⚖️",
-    l: "🧃",
+export default function ItemRow({ item, onToggle, onPressDetail }) {
+  // 🔒 Fuente única de verdad
+  const info = item.priceInfo ?? {};
+
+  const qty = Number(info.qty ?? 1);
+  const unitPrice = Number(info.unitPrice ?? 0);
+  const unit = info.unit ?? "u";
+  const promo = info.promo ?? "none";
+  const currency = info.currency ?? "€";
+
+  // Texto descriptivo (solo formateo, no lógica)
+  const fmt = PriceFormatter.formatLineDetailed({
+    qty,
+    unitPrice,
+    promo,
+    unit,
+    currency,
+    lang: "es",
+  });
+
+  const isActive = item.checked === true;
+
+  // ✅ CONDICIÓN CORRECTA DE OFERTA
+  const hasOffer =
+    info.promo && info.promo !== "none" && Number(info.savings) > 0;
+
+  const handleToggle = () => {
+    onToggle(item.id);
   };
 
-  //
-  // DATOS DEL ITEM
-  //
-  const qty = item?.priceInfo?.qty ?? 1;
-
-  // ← LA UNIDAD REAL AHORA SE LEE CORRECTAMENTE
-  const unitType = item?.priceInfo?.unitType ?? "u";
-
-  const unitPrice = item?.priceInfo?.unitPrice ?? 0;
-
-  // UNIDAD VISIBLE
-  const visibleUnits = { u: "u", kg: "kg", g: "g", l: "l" };
-  const displayUnit = visibleUnits[unitType] ?? unitType;
-
-  const total = item?.priceInfo?.total ?? qty * unitPrice;
-
-  //
-  // PROMOCIÓN
-  //
-  // const promo = item?.priceInfo?.promo;
-  // const summary = item?.priceInfo?.summary;
-  // const hasPromo = promo && promo !== "none";
-  const promoKey = item?.priceInfo?.promo;
-  const promoLabel = PROMOTIONS[promoKey]?.label ?? null;
-  const hasPromo = promoKey && promoKey !== "none";
-
-  //
-  // ICONO DE UNIDAD
-  //
-  const iconUnidad = unit_logo[unitType] || "🧩";
-
-  function PromoTag({ promo }) {
-    if (!promo) return null;
-
-    return (
-      <View style={styles.promoRow}>
-        <Ionicons
-          name="pricetag"
-          size={16}
-          color="#16a34a"
-          style={{ marginRight: 4 }}
-        />
-        <Text style={styles.summaryText}>{promo}</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.item}>
+    <View style={[styles.item, !isActive && styles.itemInactive]}>
       {/* CHECKBOX */}
       <Pressable
-        onPress={() => onToggle(item.id)}
-        style={[styles.checkbox, item.checked && styles.checkboxChecked]}
-        hitSlop={14}
+        onPress={handleToggle}
+        style={[styles.checkbox, isActive && styles.checkboxChecked]}
       >
-        {item.checked && <Text style={styles.checkboxMark}>✓</Text>}
+        {isActive && <Text style={styles.checkMark}>✓</Text>}
       </Pressable>
 
-      {/* BLOQUE IZQUIERDO */}
-      <View style={styles.leftBlock}>
-        {/* NOMBRE + ICONO PROMO */}
-        <View style={styles.nameRow}>
-          <Text
-            style={[
-              styles.name,
-              !item.checked && {
-                textDecorationLine: "line-through",
-                color: "#aaa",
-              },
-            ]}
-          >
-            {item.name}
-          </Text>
-          <PromoTag promo={hasPromo ? promoLabel : null} />
-        </View>
-
-        {/* CANTIDAD + ICONO + PRECIO UNITARIO */}
-        <Text style={styles.detailText}>
-          {qty} {displayUnit} × {unitPrice.toFixed(2)} €/{displayUnit}
-        </Text>
-
-        {/* EJEMPLO: 0.3 kg × 5.00 €/kg */}
-      </View>
-
-      {/* PRECIO TOTAL */}
-      <View style={styles.rightBlock}>
+      {/* COLUMNA IZQUIERDA */}
+      <View style={styles.left}>
+        {/* Nombre */}
         <Text
-          style={[
-            styles.priceText,
-            !item.checked && {
-              color: "#aaa",
-            },
-          ]}
+          style={[styles.name, !isActive && styles.nameOff]}
+          numberOfLines={2}
         >
-          {total.toFixed(2)} €
+          {item.name}
         </Text>
+
+        {/* 🏷 OFERTA + AHORRO */}
+        {hasOffer && (
+          <View style={[styles.offerCard, !isActive && styles.offerCardOff]}>
+            <Ionicons
+              name="pricetag"
+              size={14}
+              color={isActive ? "#16a34a" : "#94a3b8"}
+            />
+
+            <Text style={[styles.offerText, !isActive && styles.offerTextOff]}>
+              {info.promoLabel}
+            </Text>
+
+            <Text
+              style={[styles.offerSeparator, !isActive && styles.offerTextOff]}
+            >
+              ·
+            </Text>
+
+            <Text style={[styles.offerText, !isActive && styles.offerTextOff]}>
+              Ahorras {info.savings.toFixed(2)} {currency}
+            </Text>
+          </View>
+        )}
+
+        {/* Línea cantidad × precio unitario */}
+        <Text style={[styles.detail, !isActive && styles.detailOff]}>
+          {fmt.line}
+        </Text>
+
+        {/* Subtotal solo si hay oferta */}
+        {hasOffer && (
+          <Text style={[styles.subtotal, !isActive && styles.subtotalOff]}>
+            Subtotal: {info.subtotal.toFixed(2)} {currency}
+          </Text>
+        )}
       </View>
 
-      {/* CHEVRON PARA EDITAR */}
-      <Pressable onPress={() => onEdit(item)} hitSlop={10}>
-        <Ionicons name="chevron-forward" size={22} color="#555" />
-      </Pressable>
+      {/* COLUMNA DERECHA */}
+      <View style={styles.right}>
+        {/* Total */}
+        <Text style={[styles.total, !isActive && styles.totalOff]}>
+          {info.total.toFixed(2)} {currency}
+        </Text>
+
+        {/* Chevron solo si está activo */}
+        {isActive && (
+          <Pressable onPress={onPressDetail}>
+            <Ionicons name="chevron-forward" size={22} color="#555" />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
 
-//
-// ESTILOS
-//
 const styles = StyleSheet.create({
   item: {
     flexDirection: "row",
-    alignItems: "flex-start",
     backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    marginHorizontal: 5,
-    marginVertical: 4,
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#ddd",
+    marginVertical: 4,
+  },
+
+  itemInactive: {
+    backgroundColor: "#f3f3f3",
+    borderColor: "#ccc",
+    opacity: 0.9,
   },
 
   checkbox: {
-    width: 28,
-    height: 28,
+    width: 26,
+    height: 26,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: "#ccc",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10,
-    marginTop: 4,
   },
 
   checkboxChecked: {
-    borderColor: "#4CAF50",
     backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
   },
 
-  checkboxMark: {
-    color: "white",
-    fontSize: 17,
+  checkMark: {
+    color: "#fff",
     fontWeight: "bold",
+    fontSize: 16,
   },
 
-  leftBlock: {
+  left: {
     flex: 1,
     marginRight: 10,
   },
 
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
   name: {
     fontSize: 16,
-    color: "#111",
-    fontWeight: "500",
-    marginBottom: 2,
+    fontWeight: "600",
+    color: "#222",
   },
 
-  promoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 8,
+  nameOff: {
+    color: "#aaa",
   },
 
-  detailText: {
+  detail: {
     fontSize: 13,
     color: "#555",
-    marginTop: 2,
+    marginTop: 4,
   },
 
-  summaryText: {
+  detailOff: {
+    color: "#bbb",
+  },
+
+  subtotal: {
     fontSize: 12,
-    color: "#16a34a",
+    color: "#777",
     marginTop: 2,
-    fontWeight: "500",
   },
 
-  rightBlock: {
-    minWidth: 80,
+  subtotalOff: {
+    color: "#bbb",
+  },
+
+  offerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#ecfdf5",
+    borderColor: "#a7f3d0",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginTop: 4,
+    gap: 4,
+  },
+
+  offerCardOff: {
+    backgroundColor: "#f1f5f9",
+    borderColor: "#e2e8f0",
+  },
+
+  offerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#16a34a",
+  },
+
+  offerSeparator: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#16a34a",
+  },
+
+  offerTextOff: {
+    color: "#94a3b8",
+  },
+
+  right: {
     alignItems: "flex-end",
     justifyContent: "center",
-    marginRight: 6,
+    gap: 4,
   },
 
-  priceText: {
+  total: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#111",
+    color: "#222",
+  },
+
+  totalOff: {
+    color: "#aaa",
   },
 });

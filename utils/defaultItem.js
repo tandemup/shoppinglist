@@ -1,14 +1,14 @@
 // utils/defaultItem.js
-export function defaultPriceInfo() {
-  return {
-    unitPrice: 0,
-    qty: 1,
-    unitType: "u", // 👈 unidad por defecto
-    promo: "none",
-    summary: "",
-    total: 0,
-  };
-}
+export const defaultPriceInfo = () => ({
+  unitType: "u", // u | kg | l
+  qty: 1,
+  unitPrice: 0,
+  promo: "none",
+  total: 0,
+  summary: "",
+  warning: null,
+});
+
 export const defaultItem = {
   id: "",
   name: "",

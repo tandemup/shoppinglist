@@ -3,39 +3,116 @@ import {
   View,
   FlatList,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+
 import { safeAlert } from "../utils/safeAlert";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import ItemRow from "../components/ItemRow";
 import StoreSelector from "../components/StoreSelector";
-import NewItemInput from "../components/NewItemInput";
-
+import SearchCombinedBar from "../components/SearchCombinedBar";
 import { useStore } from "../context/StoreContext";
+import { ItemFactory } from "../utils/ItemFactory";
 
 export default function ShoppingListScreen({ navigation, route }) {
   const { listId } = route.params;
-  const { lists, updateListData, archiveList } = useStore();
+  const { lists, updateItem, updateListData, archiveList } = useStore();
 
   const list = lists.find((l) => l.id === listId);
   const items = list?.items || [];
+
   const [footerHeight, setFooterHeight] = useState(0);
   const insets = useSafeAreaInsets();
 
+  //
+  // CAMBIAR TIENDA
+  //
+  const handleChangeStore = async (store) => {
+    await updateListData(listId, (base) => ({
+      ...base,
+      store,
+    }));
+  };
+
+  //
+  // NUEVO ITEM
+  //
+  const handleCreateNewItem = async (name) => {
+    const clean = (name ?? "").trim();
+    if (!clean) return;
+
+    const newItem = ItemFactory.create(clean);
+
+    await updateListData(listId, (base) => ({
+      ...base,
+      items: [newItem, ...(base.items ?? [])],
+    }));
+  };
+
+  //
+  // EDITAR ITEM — pasar una copia 100% segura
+  //
+  const openEditor = (item) => {
+    navigation.navigate("ItemDetail", {
+      item: ItemFactory.clone(item), // ← evita mutaciones antes de guardar
+      listId,
+
+      onSave: async (patch) => {
+        await updateItem(listId, item.id, patch);
+      },
+
+      onDelete: async () => {
+        await updateListData(listId, (base) => ({
+          ...base,
+          items: base.items.filter((i) => i.id !== item.id),
+        }));
+      },
+    });
+  };
+
+  //
+  // TOGGLE CHECK — editar directamente el item real
+  //
+  const toggleCheck = async (itemId) => {
+    const found = items.find((i) => i.id === itemId);
+    if (!found) return;
+
+    await updateItem(listId, itemId, {
+      checked: !found.checked,
+    });
+  };
+
+  //
+  // FINALIZAR COMPRA
+  //
   const handleFinish = () => {
+    if (!list?.store || !list.store.name?.trim()) {
+      safeAlert(
+        "Tienda no seleccionada",
+        "Por favor, selecciona una tienda antes de finalizar la compra.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    const purchasedItems = items.filter((i) => i.checked);
+
     safeAlert(
       "Finalizar compra",
-      "Los productos se archivarán y se guardarán en el historial.",
+      "Se archivarán únicamente los productos marcados.",
       [
         { text: "Cancelar", style: "cancel" },
         {
           text: "Finalizar",
           style: "destructive",
           onPress: async () => {
+            // Dejar solo los comprados antes de archivar
+            await updateListData(listId, (base) => ({
+              ...base,
+              items: purchasedItems,
+            }));
+
             await archiveList(listId);
             navigation.navigate("ShoppingLists");
           },
@@ -44,88 +121,13 @@ export default function ShoppingListScreen({ navigation, route }) {
     );
   };
 
-  // -------------------------
-  // Cambiar tienda
-  // -------------------------
-  const handleChangeStore = async (store) => {
-    await updateListData(listId, (base) => ({
-      ...base,
-      store,
-    }));
-  };
-
-  // -------------------------
-  // Añadir item
-  // -------------------------
-  const addItem = async (name) => {
-    name = name.trim();
-    if (!name) return;
-
-    await updateListData(listId, (base) => ({
-      ...base,
-      items: [
-        {
-          id: Date.now().toString(),
-          name,
-          checked: true, // ← recomendable para tu lógica del total
-          priceInfo: {
-            qty: 1,
-            unitPrice: 0,
-            total: 0,
-            unitType: "u",
-            promo: "none",
-            summary: null,
-          },
-        },
-        ...(base.items || []),
-      ],
-    }));
-  };
-
-  // -------------------------
-  // Marcar / desmarcar
-  // -------------------------
-  const toggleItem = async (id) => {
-    await updateListData(listId, (base) => ({
-      ...base,
-      items: base.items.map((i) =>
-        i.id === id ? { ...i, checked: !i.checked } : i
-      ),
-    }));
-  };
-
-  // -------------------------
-  // Abrir detalle
-  // -------------------------
-  const openDetail = (item) => {
-    navigation.navigate("ItemDetail", {
-      item,
-      listId,
-      onSave: async (updated) => {
-        await updateListData(listId, (base) => ({
-          ...base,
-          items: base.items.map((i) => (i.id === updated.id ? updated : i)),
-        }));
-      },
-      onDelete: async (id) => {
-        await updateListData(listId, (base) => ({
-          ...base,
-          items: base.items.filter((i) => i.id !== id),
-        }));
-      },
-    });
-  };
-
-  // -------------------------
-  // Total
-  // -------------------------
+  //
+  // TOTAL
+  //
   const total = items
-    .filter((i) => i.checked === true)
+    .filter((i) => i.checked)
     .reduce((acc, i) => acc + (i.priceInfo?.total || 0), 0);
 
-  // -------------------------
-  // UI
-  // -------------------------
   return (
     <View style={styles.container}>
       <StoreSelector
@@ -134,17 +136,28 @@ export default function ShoppingListScreen({ navigation, route }) {
         onChangeStore={handleChangeStore}
       />
 
-      <NewItemInput onSubmit={addItem} />
+      <View style={{ paddingHorizontal: 10, marginTop: 10 }}>
+        <SearchCombinedBar
+          currentList={list}
+          onSelectHistoryItem={() => {}}
+          onCreateItem={handleCreateNewItem}
+        />
+      </View>
 
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: footerHeight }}
         renderItem={({ item }) => (
-          <ItemRow item={item} onToggle={toggleItem} onEdit={openDetail} />
+          <ItemRow
+            item={item}
+            onToggle={toggleCheck}
+            onPressDetail={() => openEditor(item)}
+          />
         )}
       />
 
+      {/* FOOTER */}
       <View
         style={[styles.footer, { paddingBottom: insets.bottom }]}
         onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
@@ -158,68 +171,28 @@ export default function ShoppingListScreen({ navigation, route }) {
   );
 }
 
-// --------------------------------------------------
+//
 // ESTILOS
-// --------------------------------------------------
+//
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f8f8",
-  },
-
-  addRow: {
-    flexDirection: "row",
-    padding: 10,
-  },
-
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "white",
-  },
-
-  addBtn: {
-    marginLeft: 8,
-    backgroundColor: "#4CAF50",
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  addBtnText: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "600",
-    marginTop: -2,
-  },
-
+  container: { flex: 1, backgroundColor: "#f8f8f8" },
   footer: {
     position: "absolute",
-    bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "white",
+    bottom: 0,
+    backgroundColor: "#fff",
     borderTopWidth: 1,
     borderColor: "#ddd",
     paddingTop: 12,
     paddingHorizontal: 16,
   },
-
   totalText: {
-    fontSize: 25, // ← más grande
-    fontWeight: "700", // ← más fuerte
-    textAlign: "right", // ← alineado a la derecha
-    width: "100%", // ← ocupa todo el ancho
-    color: "#222",
+    fontSize: 25,
+    fontWeight: "700",
+    textAlign: "right",
     marginBottom: 8,
   },
-
   finishBtn: {
     backgroundColor: "#007bff",
     padding: 14,
@@ -227,9 +200,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-
   finishText: {
-    color: "white",
+    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },

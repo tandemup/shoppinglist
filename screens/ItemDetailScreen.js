@@ -1,153 +1,250 @@
-// screens/ItemDetailScreen.js
-import React, { useState, useEffect } from "react";
+// ItemDetailScreen.js — versión con total en tiempo real + decimales seguros
+
+import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
+  LayoutAnimation,
+  ScrollView,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import PrecioPromocion from "../components/PrecioPromocion";
-import { generateId } from "../utils/generateId";
 
-import { defaultItem } from "../utils/defaultItem";
-import { safeAlert } from "../utils/safeAlert";
+import EditName from "../components/EditName";
+import EditBarcode from "../components/EditBarcode";
+import UnidadSelector from "../components/UnidadSelector";
+import CantidadPrecioInputs from "../components/CantidadPrecioInputs";
+import OfertaSelector from "../components/OfertaSelector";
+import TotalBox from "../components/TotalBox";
+import { calcularPromoTotal } from "../utils/pricing/PricingEngine";
+
+import { ItemFactory } from "../utils/ItemFactory";
+import { normalizeReal, parseReal } from "../utils/number";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { defaultPriceInfo } from "../utils/defaultItem";
 
+// -------------------------------------------------------------
+// CALCULAR PRICEINFO FINAL (solo en blur / guardar)
+// -------------------------------------------------------------
+function calculatePriceInfo(priceInfo = {}) {
+  const qty = Number(priceInfo.qty) || 1;
+  const unitPrice = Number(priceInfo.unitPrice) || 0;
+  const promoKey = priceInfo.promo ?? "none";
+
+  const result = calcularPromoTotal(promoKey, unitPrice, qty);
+
+  return {
+    ...priceInfo,
+    qty,
+    unitPrice,
+    total: result.total,
+    summary: result.label,
+    warning: result.warning,
+  };
+}
+
+// -------------------------------------------------------------
+// COMPONENTE PRINCIPAL
+// -------------------------------------------------------------
 export default function ItemDetailScreen({ route, navigation }) {
-  const { item, onSave, onDelete } = route.params;
-
-  const originalId = item.id;
-
-  const [itemData, setItemData] = useState({
-    ...defaultItem,
-    barcode: "",
-    aiData: null,
-    ...item,
-    id: originalId,
-  });
+  const { item, listId, onSave, onDelete } = route.params;
 
   //
-  // 🔁 Cuando volvemos del Scanner → actualizar barcode
+  // 1️⃣ Clonar el item para obtener datos coherentes sin mutar el original
   //
-  useEffect(() => {
-    if (route.params?.scannedBarcode) {
-      setItemData((prev) => ({
+  const base = ItemFactory.clone(item);
+
+  //
+  // 2️⃣ Estado local ÚNICO: itemData
+  //
+  const [itemData, setItemData] = useState(base);
+
+  // Expansión de promociones
+  const [expanded, setExpanded] = useState(false);
+
+  // -------------------------------------------------------------
+  // ACTUALIZAR PRICEINFO SOLO EN BLUR
+  // -------------------------------------------------------------
+  const updatePriceField = (patch) => {
+    setItemData((prev) => {
+      const updatedPriceInfo = calculatePriceInfo({
+        ...prev.priceInfo,
+        ...patch,
+      });
+
+      return {
         ...prev,
-        barcode: route.params.scannedBarcode,
-      }));
-    }
-  }, [route.params?.scannedBarcode]);
-
-  //
-  // ☰ Menú
-  //
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Menu")}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="menu" size={24} color="black" />
-        </TouchableOpacity>
-      ),
+        priceInfo: updatedPriceInfo,
+        priceInfoRaw: {}, // limpieza opcional
+      };
     });
-  }, [navigation]);
+  };
 
-  //
-  // 💾 Guardar
-  //
+  // -------------------------------------------------------------
+  // ► TOTAL EN TIEMPO REAL (sin tocar priceInfo todavía)
+  // -------------------------------------------------------------
+  const qtyPreview = parseReal(
+    itemData.priceInfo.qtyRaw ?? itemData.priceInfo.qty,
+    1
+  );
+  const unitPricePreview = parseReal(
+    itemData.priceInfo.unitPriceRaw ?? itemData.priceInfo.unitPrice,
+    0
+  );
+  const promoKey = itemData.priceInfo.promo ?? "none";
 
-  const handleSave = async () => {
-    if (!itemData.name.trim()) {
-      safeAlert("Nombre vacío", "Introduce un nombre para el producto.");
-      return;
-    }
+  const resultPreview = calcularPromoTotal(
+    promoKey,
+    unitPricePreview,
+    qtyPreview
+  );
 
-    // ⭐ Unificar y reparar priceInfo
-    const fixedPriceInfo = {
-      ...defaultPriceInfo(),
-      ...itemData.priceInfo,
-      total: parseFloat(itemData.priceInfo?.total) || 0,
-      qty: parseFloat(itemData.priceInfo?.qty) || 1,
-      unitPrice: parseFloat(itemData.priceInfo?.unitPrice) || 0,
+  // Subtotal y ahorro (preview)
+  const totalPreview = resultPreview.total;
+
+  const subtotalPreview = qtyPreview * unitPricePreview;
+  const savingsPreview = Math.max(0, subtotalPreview - totalPreview);
+
+  const summaryPreview = resultPreview.label;
+  const warningPreview = resultPreview.warning;
+
+  // -------------------------------------------------------------
+  // GUARDAR → solo PATCH
+  // -------------------------------------------------------------
+  const handleSave = () => {
+    const { name, barcode, priceInfo } = itemData;
+
+    // 🔥 Total calculado con la oferta aplicada (ya lo tienes arriba como totalPreview)
+    const finalTotal = totalPreview;
+
+    const patch = {
+      name: (name ?? "").trim(),
+      barcode: barcode ?? null,
+      priceInfo: {
+        qty: Number(priceInfo.qty) || 1,
+        unitPrice: Number(priceInfo.unitPrice) || 0,
+        unitType: priceInfo.unitType,
+        promo: priceInfo.promo,
+        total: finalTotal, // 👈🔥 CLAVE: ahora sí se guarda la oferta
+        summary: summaryPreview, // opcional pero recomendado
+        warning: warningPreview, // opcional
+      },
     };
 
-    const updatedItem = {
-      ...itemData,
-      id: originalId,
-      priceInfo: fixedPriceInfo, // 👈 Aquí aplicamos el fix
-    };
-
-    try {
-      await onSave(updatedItem);
-      requestAnimationFrame(() => navigation.goBack());
-    } catch (err) {
-      console.error(err);
-      safeAlert("Error", "No se pudo guardar.");
-    }
+    onSave(patch);
+    navigation.goBack();
   };
 
   //
-  // 🗑 Eliminar
+  // Eliminar item
   //
   const handleDelete = () => {
-    safeAlert("Eliminar producto", "¿Seguro que deseas eliminarlo?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await Promise.resolve(onDelete(originalId));
-            requestAnimationFrame(() => navigation.goBack());
-          } catch (err) {
-            console.error(err);
-            safeAlert("Error", "No se pudo eliminar.");
-          }
-        },
-      },
-    ]);
+    onDelete(item.id);
+    navigation.goBack();
   };
 
+  // -------------------------------------------------------------
+  // RENDER
+  // -------------------------------------------------------------
   return (
-    <KeyboardAwareScrollView
-      contentContainerStyle={styles.container}
-      enableOnAndroid={true}
-      extraScrollHeight={40}
-    >
-      {/* Nombre */}
-      <Text style={styles.label}>Nombre</Text>
-      <TextInput
-        style={styles.input}
-        value={itemData.name}
-        onChangeText={(text) =>
-          setItemData((prev) => ({ ...prev, name: text }))
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* NOMBRE */}
+      <EditName
+        style={{ marginTop: 0 }}
+        name={itemData.name}
+        setName={(text) =>
+          setItemData((prev) => ({
+            ...prev,
+            name: text,
+          }))
         }
       />
 
-      {/* Barcode */}
-      <Text style={styles.label}>Código de barras</Text>
-      <TextInput
-        style={styles.input}
-        value={itemData.barcode}
-        onChangeText={(text) =>
-          setItemData((prev) => ({ ...prev, barcode: text }))
+      {/* BARCODE */}
+      <EditBarcode
+        style={{ marginTop: 0 }}
+        barcode={itemData.barcode}
+        setBarcode={(text) =>
+          setItemData((prev) => ({
+            ...prev,
+            barcode: text,
+          }))
         }
       />
 
-      {/* Precio y promociones */}
-      <PrecioPromocion
-        value={itemData.priceInfo}
-        onChange={(info) =>
-          setItemData((prev) => ({ ...prev, priceInfo: info }))
+      {/* UNIDAD */}
+      <UnidadSelector
+        unitType={itemData.priceInfo.unitType}
+        onChange={(unitType) =>
+          updatePriceField({
+            unitType,
+          })
         }
       />
 
-      {/* Botones */}
+      {/* CANTIDAD + PRECIO UNITARIO */}
+      <CantidadPrecioInputs
+        unitType={itemData.priceInfo.unitType}
+        qty={String(itemData.priceInfo.qtyRaw ?? itemData.priceInfo.qty)}
+        unitPrice={String(
+          itemData.priceInfo.unitPriceRaw ?? itemData.priceInfo.unitPrice
+        )}
+        onQtyChange={(t) =>
+          setItemData((prev) => ({
+            ...prev,
+            priceInfo: {
+              ...prev.priceInfo,
+              qtyRaw: normalizeReal(t),
+            },
+          }))
+        }
+        onUnitPriceChange={(t) =>
+          setItemData((prev) => ({
+            ...prev,
+            priceInfo: {
+              ...prev.priceInfo,
+              unitPriceRaw: normalizeReal(t),
+            },
+          }))
+        }
+        onQtyBlur={() =>
+          updatePriceField({
+            qty: parseReal(itemData.priceInfo.qtyRaw, 1),
+          })
+        }
+        onUnitPriceBlur={() =>
+          updatePriceField({
+            unitPrice: parseReal(itemData.priceInfo.unitPriceRaw, 0),
+          })
+        }
+      />
+
+      {/* PROMOCIONES */}
+      <OfertaSelector
+        expanded={expanded}
+        promo={itemData.priceInfo.promo}
+        onToggle={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setExpanded((v) => !v);
+        }}
+        onSelect={(promo) => {
+          updatePriceField({ promo });
+        }}
+      />
+
+      {/* TOTAL (siempre en tiempo real) */}
+      <TotalBox
+        qty={qtyPreview}
+        unit={itemData.priceInfo.unit}
+        unitPrice={unitPricePreview}
+        subtotal={subtotalPreview}
+        promo={promoKey}
+        savings={savingsPreview}
+        total={totalPreview}
+        currency="€"
+        warning={warningPreview}
+      />
+
+      {/* BOTONES */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveText}>💾 Guardar</Text>
@@ -157,73 +254,58 @@ export default function ItemDetailScreen({ route, navigation }) {
           <Text style={styles.deleteText}>🗑️ Eliminar</Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAwareScrollView>
+    </ScrollView>
   );
 }
 
-//
-// 🎨 Estilos
-//
+// -------------------------------------------------------------
+// ESTILOS — optimizados
+// -------------------------------------------------------------
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
     padding: 16,
+    gap: 12,
     backgroundColor: "#fff",
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-
-  // 📷 Botón escanear
-  scanBtn: {
-    backgroundColor: "#2196F3",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  scanBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+  container1: {
+    flexGrow: 1,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 32,
+    gap: 12,
+    width: "100%",
+    maxWidth: 480,
+    alignSelf: "center",
   },
 
   actions: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
+    marginTop: 24,
+    gap: 12,
   },
+
   saveBtn: {
     flex: 1,
     backgroundColor: "#4CAF50",
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
-    marginRight: 6,
   },
+
   deleteBtn: {
     flex: 1,
     backgroundColor: "#f44336",
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
-    marginLeft: 6,
   },
+
   saveText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "700",
   },
+
   deleteText: {
     color: "#fff",
     fontSize: 16,

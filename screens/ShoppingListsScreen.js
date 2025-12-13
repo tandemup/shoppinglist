@@ -15,16 +15,9 @@ import { useStore } from "../context/StoreContext";
 import { generateId } from "../utils/generateId";
 
 export default function ShoppingListsScreen({ navigation }) {
-  //
-  // 🧠 Usamos SOLO el contexto global (sin estados duplicados)
-  //
   const { lists, addList, deleteList, archiveList, reload } = useStore();
-
   const [newListName, setNewListName] = useState("");
 
-  //
-  // 🔄 Recargar listas cuando se vuelve a esta pantalla
-  //
   useEffect(() => {
     reload(); // carga inicial
 
@@ -35,9 +28,6 @@ export default function ShoppingListsScreen({ navigation }) {
     return unsub;
   }, [navigation]);
 
-  //
-  // 🎛 Ajustes del header
-  //
   useEffect(() => {
     navigation.setOptions({
       headerTitleAlign: "center",
@@ -52,9 +42,6 @@ export default function ShoppingListsScreen({ navigation }) {
     });
   }, [navigation]);
 
-  //
-  // ➕ Crear nueva lista
-  //
   const handleAddList = async () => {
     if (!newListName.trim()) return;
 
@@ -72,16 +59,10 @@ export default function ShoppingListsScreen({ navigation }) {
     reload(); // asegurar sincronización tras añadir
   };
 
-  //
-  // 🚪 Abrir lista
-  //
   const handleOpenList = (list) => {
     navigation.navigate("ShoppingList", { listId: list.id });
   };
 
-  //
-  // 🔥 Elemento renderizado: tarjeta + long-press
-  //
   const renderItem = ({ item }) => (
     <Pressable
       style={styles.card}
