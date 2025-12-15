@@ -7,6 +7,8 @@ import {
   FlatList,
   TouchableOpacity,
 } from "react-native";
+import { ROUTES } from "../navigation/ROUTES";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -71,7 +73,7 @@ export default function PurchaseDetailScreen({ route, navigation }) {
               "La nueva lista se ha generado correctamente."
             );
 
-            navigation.navigate("ShoppingList", {
+            navigation.navigate(ROUTES.SHOPPING_LIST, {
               listId: newList.id,
             });
           },

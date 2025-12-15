@@ -1,3 +1,4 @@
+//SearchCombinedBar
 import React, { useState } from "react";
 import {
   View,
@@ -7,6 +8,8 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
 import { searchItemsAcrossLists } from "../utils/searchHelpers";
 import { getScannedHistory } from "../utils/storage/scannerHistory";
 
@@ -100,13 +103,19 @@ export default function SearchCombinedBar({
   //
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
-        placeholder="🔍 Buscar producto (actual, histórico o escaneos)…"
-        placeholderTextColor="#999"
-        value={query}
-        onChangeText={handleSearch}
-      />
+      <View style={styles.searchBox}>
+        <Ionicons name="search" size={18} color="#777" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Añadir producto…"
+          placeholderTextColor="#999"
+          value={query}
+          onChangeText={handleSearch}
+          autoCorrect={false}
+          autoCapitalize="none"
+          clearButtonMode="while-editing"
+        />
+      </View>
 
       {(localResults.length > 0 ||
         historyResults.length > 0 ||
@@ -231,23 +240,38 @@ export default function SearchCombinedBar({
   );
 }
 
-//
-// 🎨 ESTILOS
-//
 const styles = StyleSheet.create({
   container: {
     position: "relative",
     zIndex: 30,
     marginHorizontal: 5,
   },
-  input: {
+
+  /* 🔍 Barra de búsqueda */
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 10,
-    padding: 10,
-    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    height: 40,
     marginBottom: 6,
   },
+
+  icon: {
+    marginRight: 6,
+  },
+
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: "#333",
+    paddingVertical: 0, // evita saltos verticales en Android
+  },
+
+  /* 📦 Resultados */
   resultsBox: {
     backgroundColor: "#fff",
     borderRadius: 10,
@@ -255,6 +279,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     maxHeight: 300,
   },
+
   header: {
     fontWeight: "700",
     fontSize: 14,
@@ -263,37 +288,46 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: "#f3f3f3",
   },
+
   resultRow: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderColor: "#eee",
   },
+
   currentRow: {
     backgroundColor: "#E8F5E9",
   },
+
   historyRow: {
     backgroundColor: "#F9FAFB",
   },
+
   itemName: {
     fontSize: 15,
     fontWeight: "600",
   },
+
   listInfo: {
     fontSize: 13,
     color: "#555",
     marginTop: 2,
   },
+
   diffText: {
     fontSize: 12,
     fontWeight: "700",
   },
+
+  /* ➕ Crear nuevo item */
   createRow: {
     padding: 12,
     backgroundColor: "#E3F2FD",
     borderTopWidth: 1,
     borderColor: "#ddd",
   },
+
   createText: {
     fontSize: 16,
     fontWeight: "600",

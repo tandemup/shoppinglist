@@ -9,6 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
+import { ROUTES } from "../navigation/ROUTES";
 
 import {
   clearStorage,
@@ -99,22 +100,22 @@ export default function MenuScreen({ navigation }) {
           <Row
             icon="list"
             label="Mis listas"
-            onPress={() => navigation.navigate("ShoppingLists")}
+            onPress={() => navigation.navigate(ROUTES.SHOPPING_LISTS)}
           />
           <Row
             icon="archive"
             label="Listas archivadas"
-            onPress={() => navigation.navigate("ArchivedLists")}
+            onPress={() => navigation.navigate(ROUTES.ARCHIVED_LISTS)}
           />
           <Row
             icon="receipt"
             label="Historial de compras"
-            onPress={() => navigation.navigate("PurchaseHistory")}
+            onPress={() => navigation.navigate(ROUTES.PURCHASE_HISTORY)}
           />
           <Row
             icon="barcode"
             label="Historial de escaneos"
-            onPress={() => navigation.navigate("ScannedHistory")}
+            onPress={() => navigation.navigate(ROUTES.SCANNED_HISTORY)}
           />
         </View>
 

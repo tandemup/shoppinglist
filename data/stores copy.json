@@ -1,0 +1,66 @@
+[
+  {
+    "id": "1",
+    "name": "Mercadona",
+    "address": "C. Pintor Luís Pardo 1, 33204 Gijón, Asturias, España",
+    "zipcode": "33204",
+    "location": { "latitude": 43.5308588, "longitude": -5.6468933 },
+    "display": { "icon": "storefront", "color": "#1976D2", "radius": 80, "zone": "Gijón-Este" }
+  },
+  {
+    "id": "25b",
+    "name": "Carrefour Los Fresnos",
+    "address": "Av. del Llano, s/n, 33209 Gijón, Asturias, España",
+    "zipcode": "33209",
+    "location": { "latitude": 43.532687, "longitude": -5.66107 },
+    "display": { "icon": "storefront", "color": "#1976D2", "radius": 80, "zone": "Centro" }
+  },
+  {
+    "id": "2",
+    "name": "Carrefour Express",
+    "address": "Plaza San Miguel 5, 33202 Gijón, Asturias, España",
+    "zipcode": "33202",
+    "location": { "latitude": 43.5397724, "longitude": -5.6572703 },
+    "display": { "icon": "storefront", "color": "#1976D2", "radius": 80, "zone": "Centro" }
+  },
+  {
+    "id": "9",
+    "name": "Masymas",
+    "address": "C. Ezcurdia 125, 33205 Gijón, Asturias, España",
+    "zipcode": "33205",
+    "location": { "latitude": 43.5325, "longitude": -5.6575 },
+    "display": { "icon": "shopping-bag", "color": "#0288D1", "radius": 80, "zone": "Centro" }
+  },
+  {
+    "id": "21",
+    "name": "Masymas",
+    "address": "Av. Portugal 39, 33207 Gijón, Asturias, España",
+    "zipcode": "33207",
+    "location": { "latitude": 43.5370, "longitude": -5.6550 },
+    "display": { "icon": "shopping-bag", "color": "#0288D1", "radius": 80, "zone": "Centro" }
+  },
+  {
+    "id": "22",
+    "name": "Masymas",
+    "address": "Av. Schulz 72, 33208 Gijón, Asturias, España",
+    "zipcode": "33208",
+    "location": { "latitude": 43.5340, "longitude": -5.6620 },
+    "display": { "icon": "shopping-bag", "color": "#0288D1", "radius": 80, "zone": "Gijón-Sur" }
+  },
+  {
+    "id": "23",
+    "name": "Bazar Oriental",
+    "address": "C. Río de Oro 6, 33209 Gijón, Asturias, España",
+    "zipcode": "33209",
+    "location": { "latitude": 43.5200, "longitude": -5.6390 },
+    "display": { "icon": "package", "color": "#FFA726", "radius": 70, "zone": "Gijón-Sur" }
+  },
+  {
+    "id": "24",
+    "name": "Bazar Asiático",
+    "address": "Av. de la Constitución 98, 33212 Gijón, Asturias, España",
+    "zipcode": "33212",
+    "location": { "latitude": 43.5320, "longitude": -5.6645 },
+    "display": { "icon": "package", "color": "#FFA726", "radius": 70, "zone": "Gijón-Sur" }
+  }
+]

@@ -2,18 +2,11 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { ROUTES } from "../navigation/ROUTES";
 
-export default function StoreSelector({ navigation, store, onChangeStore }) {
-  const handleSelectStore = () => {
-    navigation.navigate("Stores", {
-      onSelectStore: async (selected) => {
-        onChangeStore(selected); // ⭐ Actualizar SOLO esta lista
-      },
-    });
-  };
-
+export default function StoreSelector({ onPress, store }) {
   return (
-    <TouchableOpacity style={styles.box} onPress={handleSelectStore}>
+    <TouchableOpacity style={styles.box} onPress={onPress}>
       <Ionicons name="storefront" size={20} color="#007bff" />
 
       <View style={styles.middleColumn}>
@@ -29,12 +22,7 @@ export default function StoreSelector({ navigation, store, onChangeStore }) {
         )}
       </View>
 
-      <Ionicons
-        name="chevron-forward"
-        size={20}
-        color="#777"
-        style={styles.chevron}
-      />
+      <Ionicons name="chevron-forward" size={20} color="#777" />
     </TouchableOpacity>
   );
 }

@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -11,14 +17,11 @@ import {
   haversineDistance,
 } from "../utils/locationHelpers";
 import { ROUTES } from "../navigation/ROUTES";
+import { isUserInStore } from "../utils/isUserInStore";
+import { detectStorePresence } from "../utils/storePresence";
+import { saveShoppingLocation } from "../utils/locationPlacesService";
 
-export default function StoresScreen({ route, navigation }) {
-  // ────────────────────────────────────────────────
-  // PARAMS
-  // ────────────────────────────────────────────────
-  const { onSelectStore, selectedStore } = route.params ?? {};
-  const isSelectionMode = typeof onSelectStore === "function";
-
+export default function StoresBrowseScreen({ navigation }) {
   // ────────────────────────────────────────────────
   // STATE
   // ────────────────────────────────────────────────
@@ -26,14 +29,6 @@ export default function StoresScreen({ route, navigation }) {
   const [search, setSearch] = useState("");
   const [hasLocation, setHasLocation] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
-
-  // ────────────────────────────────────────────────
-  // NORMALIZE SELECTED STORE
-  // ────────────────────────────────────────────────
-  const normalizedSelectedStore =
-    typeof selectedStore === "string"
-      ? selectedStore.toLowerCase()
-      : selectedStore?.name?.toLowerCase();
 
   // ────────────────────────────────────────────────
   // HANDLERS
@@ -45,6 +40,15 @@ export default function StoresScreen({ route, navigation }) {
     setUserLocation(location);
     recalcDistances(location);
     setHasLocation(true);
+
+    // Detectar presencia en tienda (informativo)
+    const store = detectStorePresence(location, stores);
+    if (store) {
+      await saveShoppingLocation({
+        coords: location,
+        store,
+      });
+    }
   };
 
   const recalcDistances = (location) => {
@@ -55,13 +59,6 @@ export default function StoresScreen({ route, navigation }) {
 
     updated.sort((a, b) => a.distance - b.distance);
     setSortedStores(updated);
-  };
-
-  const handleSelectStore = (store) => {
-    if (!isSelectionMode) return;
-
-    onSelectStore?.(store);
-    navigation.goBack();
   };
 
   // ────────────────────────────────────────────────
@@ -125,15 +122,17 @@ export default function StoresScreen({ route, navigation }) {
           <Text style={styles.noResults}>No se encontraron tiendas.</Text>
         ) : (
           filteredStores.map((store) => {
-            const isHighlighted =
-              normalizedSelectedStore &&
-              store.name.toLowerCase().includes(normalizedSelectedStore);
+            const isHere = hasLocation && isUserInStore(userLocation, store);
 
             return (
               <TouchableOpacity
                 key={store.id}
-                style={[styles.card, isHighlighted && styles.activeCard]}
-                onPress={() => handleSelectStore(store)}
+                style={[styles.card, isHere && styles.hereCard]}
+                onPress={() =>
+                  navigation.navigate(ROUTES.STORE_DETAIL, {
+                    store,
+                  })
+                }
               >
                 <Text style={styles.name}>{store.name}</Text>
                 <Text style={styles.address}>📍 {store.address}</Text>
@@ -142,6 +141,10 @@ export default function StoresScreen({ route, navigation }) {
                   <Text style={styles.distance}>
                     📏 A {store.distance.toFixed(2)} km
                   </Text>
+                )}
+
+                {isHere && (
+                  <Text style={styles.hereLabel}>🟢 Estás en esta tienda</Text>
                 )}
               </TouchableOpacity>
             );
@@ -198,11 +201,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "transparent",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    elevation: 2,
   },
-  activeCard: {
-    borderColor: "#007bff",
+  hereCard: {
+    borderColor: "#2e7d32",
     borderWidth: 2,
-    backgroundColor: "#f0f6ff",
+    backgroundColor: "#f1fbf3",
   },
   name: {
     fontSize: 16,
@@ -213,6 +221,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#444",
     marginTop: 2,
+    lineHeight: 18,
   },
   distance: {
     fontSize: 13,
@@ -239,5 +248,11 @@ const styles = StyleSheet.create({
   mapButtonText: {
     color: "white",
     fontWeight: "600",
+  },
+  hereLabel: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#2e7d32",
   },
 });

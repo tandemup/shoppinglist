@@ -1,66 +1,63 @@
 [
   {
-    "id": "1",
+    "id": "oviedo-mercadona-uria",
     "name": "Mercadona",
-    "address": "C. Pintor Luís Pardo 1, 33204 Gijón, Asturias, España",
-    "zipcode": "33204",
-    "location": { "latitude": 43.5308588, "longitude": -5.6468933 },
-    "display": { "icon": "storefront", "color": "#1976D2", "radius": 80, "zone": "Gijón-Este" }
+    "location": { "latitude": 43.36142, "longitude": -5.84955 },
+    "address": "Calle Uría 12, 33003 Oviedo"
   },
   {
-    "id": "25b",
-    "name": "Carrefour Los Fresnos",
-    "address": "Av. del Llano, s/n, 33209 Gijón, Asturias, España",
-    "zipcode": "33209",
-    "location": { "latitude": 43.532687, "longitude": -5.66107 },
-    "display": { "icon": "storefront", "color": "#1976D2", "radius": 80, "zone": "Centro" }
+    "id": "oviedo-alimerka-galicia",
+    "name": "Alimerka",
+    "location": { "latitude": 43.36412, "longitude": -5.85001 },
+    "address": "Avenida de Galicia 21, 33005 Oviedo"
   },
   {
-    "id": "2",
-    "name": "Carrefour Express",
-    "address": "Plaza San Miguel 5, 33202 Gijón, Asturias, España",
-    "zipcode": "33202",
-    "location": { "latitude": 43.5397724, "longitude": -5.6572703 },
-    "display": { "icon": "storefront", "color": "#1976D2", "radius": 80, "zone": "Centro" }
+    "id": "oviedo-dia-san-francisco",
+    "name": "DIA",
+    "location": { "latitude": 43.36275, "longitude": -5.85132 },
+    "address": "Calle San Francisco 3, 33003 Oviedo"
   },
   {
-    "id": "9",
-    "name": "Masymas",
-    "address": "C. Ezcurdia 125, 33205 Gijón, Asturias, España",
-    "zipcode": "33205",
-    "location": { "latitude": 43.5325, "longitude": -5.6575 },
-    "display": { "icon": "shopping-bag", "color": "#0288D1", "radius": 80, "zone": "Centro" }
+    "id": "oviedo-lidl-independencia",
+    "name": "Lidl",
+    "location": { "latitude": 43.35588, "longitude": -5.84672 },
+    "address": "Calle Independencia 45, 33011 Oviedo"
   },
   {
-    "id": "21",
-    "name": "Masymas",
-    "address": "Av. Portugal 39, 33207 Gijón, Asturias, España",
-    "zipcode": "33207",
-    "location": { "latitude": 43.5370, "longitude": -5.6550 },
-    "display": { "icon": "shopping-bag", "color": "#0288D1", "radius": 80, "zone": "Centro" }
+    "id": "oviedo-supercor-elorza",
+    "name": "Supercor",
+    "location": { "latitude": 43.35977, "longitude": -5.84812 },
+    "address": "Calle General Elorza 18, 33001 Oviedo"
+  },
+
+  {
+    "id": "gijon-mercadona-corrida",
+    "name": "Mercadona",
+    "location": { "latitude": 43.54527, "longitude": -5.66221 },
+    "address": "Calle Corrida 41, 33206 Gijón"
   },
   {
-    "id": "22",
-    "name": "Masymas",
-    "address": "Av. Schulz 72, 33208 Gijón, Asturias, España",
-    "zipcode": "33208",
-    "location": { "latitude": 43.5340, "longitude": -5.6620 },
-    "display": { "icon": "shopping-bag", "color": "#0288D1", "radius": 80, "zone": "Gijón-Sur" }
+    "id": "gijon-alimerka-poniente",
+    "name": "Alimerka",
+    "location": { "latitude": 43.54388, "longitude": -5.66491 },
+    "address": "Calle Rodríguez San Pedro 16, 33206 Gijón"
   },
   {
-    "id": "23",
-    "name": "Bazar Oriental",
-    "address": "C. Río de Oro 6, 33209 Gijón, Asturias, España",
-    "zipcode": "33209",
-    "location": { "latitude": 43.5200, "longitude": -5.6390 },
-    "display": { "icon": "package", "color": "#FFA726", "radius": 70, "zone": "Gijón-Sur" }
+    "id": "gijon-dia-arquimedes",
+    "name": "DIA",
+    "location": { "latitude": 43.54152, "longitude": -5.65743 },
+    "address": "Calle Arquímedes 28, 33208 Gijón"
   },
   {
-    "id": "24",
-    "name": "Bazar Asiático",
-    "address": "Av. de la Constitución 98, 33212 Gijón, Asturias, España",
-    "zipcode": "33212",
-    "location": { "latitude": 43.5320, "longitude": -5.6645 },
-    "display": { "icon": "package", "color": "#FFA726", "radius": 70, "zone": "Gijón-Sur" }
+    "id": "gijon-lidl-constitucion",
+    "name": "Lidl",
+    "location": { "latitude": 43.53894, "longitude": -5.66788 },
+    "address": "Avenida de la Constitución 102, 33211 Gijón"
+  },
+  {
+    "id": "gijon-eroski-llano",
+    "name": "Eroski",
+    "location": { "latitude": 43.53341, "longitude": -5.65922 },
+    "address": "Calle del Río Eo 7, 33210 Gijón"
   }
 ]

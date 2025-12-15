@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Pressable,
 } from "react-native";
+import { ROUTES } from "../navigation/ROUTES";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
@@ -33,7 +35,7 @@ export default function ShoppingListsScreen({ navigation }) {
       headerTitleAlign: "center",
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => navigation.navigate("Menu")}
+          onPress={() => navigation.navigate(ROUTES.MENU)}
           style={{ marginRight: 15 }}
         >
           <Ionicons name="menu" size={26} color="black" />
@@ -60,7 +62,7 @@ export default function ShoppingListsScreen({ navigation }) {
   };
 
   const handleOpenList = (list) => {
-    navigation.navigate("ShoppingList", { listId: list.id });
+    navigation.navigate(ROUTES.SHOPPING_LIST, { listId: list.id });
   };
 
   const renderItem = ({ item }) => (

@@ -8,6 +8,8 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
+import { ROUTES } from "../navigation/ROUTES";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/safeAlert";
@@ -33,7 +35,7 @@ export default function ScannedHistoryScreen({ navigation }) {
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity
-          onPress={() => navigation.navigate("Menu")}
+          onPress={() => navigation.navigate(ROUTES.MENU)}
           style={{ marginRight: 15 }}
         >
           <Ionicons name="menu" size={26} color="black" />
@@ -113,7 +115,7 @@ export default function ScannedHistoryScreen({ navigation }) {
   const renderItem = ({ item }) => (
     <TouchableOpacity
       onPress={() =>
-        navigation.navigate("EditScannedItem", {
+        navigation.navigate(ROUTES.EDIT_SCANNED_ITEM, {
           item,
           reload: loadScannedHistory, // ⭐ PASAMOS LA FUNCIÓN
         })

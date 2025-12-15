@@ -1,5 +1,4 @@
 // ArchivedListsScreen.js
-
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -7,7 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  Linking,
+  Platform,
 } from "react-native";
+import { ROUTES } from "../navigation/ROUTES";
+
 import { useStore } from "../context/StoreContext";
 import { Ionicons } from "@expo/vector-icons";
 import { formatStore } from "../utils/formatStore";
@@ -37,17 +40,28 @@ export default function ArchivedListsScreen({ navigation }) {
     .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
 
   const openDetails = (list) => {
-    navigation.navigate("ArchivedListDetail", { list });
+    navigation.navigate(ROUTES.ARCHIVED_LIST_DETAIL, { list });
+  };
+
+  const openStore = (store) => {
+    if (!store) return;
+
+    navigation.navigate(ROUTES.TIENDAS, {
+      store: store,
+      from: "archivedLists",
+    });
   };
 
   // ────────────────────────────────────────────────
   // COMPONENTES INTERNOS
   // ────────────────────────────────────────────────
-
-  const HeaderRow = ({ title }) => (
+  const HeaderRow = ({ title, onPress }) => (
     <View style={styles.topRow}>
       <Text style={styles.itemname}>{title}</Text>
-      <Ionicons name="chevron-forward" size={22} color="#B0B0B0" />
+
+      <TouchableOpacity onPress={onPress} hitSlop={8}>
+        <Ionicons name="chevron-forward" size={22} color="#555" />
+      </TouchableOpacity>
     </View>
   );
 
@@ -64,10 +78,17 @@ export default function ArchivedListsScreen({ navigation }) {
 
       <Text style={styles.dot}>•</Text>
 
-      <Ionicons name="location-outline" size={16} color="#777" />
-      <Text style={styles.subInfo}>
-        {store ? formatStore(store) : "Sin tienda"}
-      </Text>
+      <TouchableOpacity
+        style={styles.storeLink}
+        onPress={() => openStore(store)}
+        activeOpacity={0.6}
+        hitSlop={8}
+      >
+        <Ionicons name="location-outline" size={16} color="#2563eb" />
+        <Text style={styles.storeText}>
+          {store ? formatStore(store) : "Sin tienda"}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -91,12 +112,8 @@ export default function ArchivedListsScreen({ navigation }) {
     );
 
     return (
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => openDetails(list)}
-        activeOpacity={0.7}
-      >
-        <HeaderRow title={list.name} />
+      <View style={styles.card}>
+        <HeaderRow title={list.name} onPress={() => openDetails(list)} />
 
         <InfoRow
           archivedAt={list.archivedAt || list.createdAt}
@@ -106,7 +123,7 @@ export default function ArchivedListsScreen({ navigation }) {
         <View style={styles.separator} />
 
         <ProductsAndTotalRow count={items.length} total={total} />
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -185,4 +202,15 @@ const styles = StyleSheet.create({
 
   productsText: { fontSize: 15, color: "#444" },
   price: { fontSize: 20, fontWeight: "700", color: "#16a34a" },
+  storeLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+
+  storeText: {
+    fontSize: 14,
+    color: "#2563eb", // azul link
+    fontWeight: "500",
+  },
 });

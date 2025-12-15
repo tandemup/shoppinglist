@@ -11,6 +11,8 @@ export const ROUTES = {
   ITEM_DETAIL: "ItemDetail",
   SEARCH_ITEMS: "SearchItems",
   STORES: "Stores",
+  STORE_DETAIL: "StoreDetail",
+  STORE_MAP: "StoreMap",
 
   // Archive
   ARCHIVED_LISTS: "ArchivedLists",

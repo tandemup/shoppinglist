@@ -9,6 +9,8 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import { ROUTES } from "../navigation/ROUTES";
+
 import { useCameraPermissions } from "expo-camera";
 
 import BarcodeScanner from "../components/BarcodeScanner";
@@ -163,7 +165,7 @@ export default function ScannerTab({ navigation }) {
         }}
         onCancel={() => {
           abortController.current?.abort();
-          navigation.navigate("Listas");
+          navigation.navigate(ROUTES.LISTAS);
         }}
       />
 

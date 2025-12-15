@@ -1,7 +1,9 @@
-// navigation/ShoppingStack.js
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { ROUTES } from "./ROUTES";
+
+// Screens
 import ShoppingListsScreen from "../screens/ShoppingListsScreen";
 import ShoppingListScreen from "../screens/ShoppingListScreen";
 import ItemDetailScreen from "../screens/ItemDetailScreen";
@@ -11,6 +13,7 @@ import ArchivedListDetailScreen from "../screens/ArchivedListDetailScreen";
 import PurchaseHistoryScreen from "../screens/PurchaseHistoryScreen";
 import ScannedHistoryScreen from "../screens/ScannedHistoryScreen";
 import EditScannedItemScreen from "../screens/EditScannedItemScreen";
+import StoreMapScreen from "../screens/StoreMapScreen";
 import MenuScreen from "../screens/MenuScreen";
 
 const Stack = createNativeStackNavigator();
@@ -24,67 +27,78 @@ export default function ShoppingStack() {
         headerTitleStyle: { fontSize: 20, fontWeight: "700" },
       }}
     >
+      {/* 🛒 Listado de listas */}
       <Stack.Screen
-        name="ShoppingLists"
+        name={ROUTES.SHOPPING_LISTS}
         component={ShoppingListsScreen}
-        options={{ title: "Shopping Lists" }}
+        options={{ title: "Listas de la compra" }}
       />
 
+      {/* 🛒 Lista activa */}
       <Stack.Screen
-        name="ShoppingList"
+        name={ROUTES.SHOPPING_LIST}
         component={ShoppingListScreen}
-        options={{ title: "Shopping List" }}
+        options={{ title: "Lista de la compra" }}
       />
 
+      {/* ✏️ Editar producto */}
       <Stack.Screen
-        name="ItemDetail"
+        name={ROUTES.ITEM_DETAIL}
         component={ItemDetailScreen}
-        options={{ title: "Editar" }}
+        options={{ title: "Editar producto" }}
       />
 
-      {/* Accesible desde un producto: seleccionar tienda */}
+      {/* 🏪 SELECCIONAR TIENDA (SOLO DESDE LISTA) */}
       <Stack.Screen
-        name="Stores"
+        name={ROUTES.STORES}
         component={StoresScreen}
-        options={{ title: "Tiendas" }}
+        options={{ title: "Seleccionar tienda" }}
       />
 
-      {/* Archivadas */}
+      {/* 📦 Listas archivadas */}
       <Stack.Screen
-        name="ArchivedLists"
+        name={ROUTES.ARCHIVED_LISTS}
         component={ArchivedListsScreen}
         options={{ title: "Archivadas" }}
       />
 
       <Stack.Screen
-        name="ArchivedListDetail"
+        name={ROUTES.ARCHIVED_LIST_DETAIL}
         component={ArchivedListDetailScreen}
-        options={{ title: "Detalle" }}
+        options={{ title: "Detalle archivado" }}
       />
 
-      {/* Historial desde menú */}
+      {/* 📜 Historial */}
       <Stack.Screen
-        name="PurchaseHistory"
+        name={ROUTES.PURCHASE_HISTORY}
         component={PurchaseHistoryScreen}
         options={{ title: "Historial de compras" }}
       />
 
       <Stack.Screen
-        name="ScannedHistory"
+        name={ROUTES.SCANNED_HISTORY}
         component={ScannedHistoryScreen}
         options={{ title: "Historial de escaneos" }}
       />
 
+      {/* 📷 Editar escaneo */}
       <Stack.Screen
-        name="EditScannedItem"
+        name={ROUTES.EDIT_SCANNED_ITEM}
         component={EditScannedItemScreen}
         options={{ title: "Editar escaneo" }}
       />
 
+      {/* ☰ Menú */}
       <Stack.Screen
-        name="Menu"
+        name={ROUTES.MENU}
         component={MenuScreen}
         options={{ title: "Menú" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.STORE_MAP}
+        component={StoreMapScreen}
+        options={{ title: "Mapa de tiendas" }}
       />
     </Stack.Navigator>
   );

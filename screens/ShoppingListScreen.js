@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   FlatList,
@@ -6,16 +6,21 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { ROUTES } from "../navigation/ROUTES";
 
 import { safeAlert } from "../utils/safeAlert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ItemRow from "../components/ItemRow";
 import StoreSelector from "../components/StoreSelector";
 import SearchCombinedBar from "../components/SearchCombinedBar";
+import { loadShoppingLocation } from "../utils/locationPlacesService";
+
 import { useStore } from "../context/StoreContext";
 import { ItemFactory } from "../utils/ItemFactory";
 
 export default function ShoppingListScreen({ navigation, route }) {
+  const [shoppingPlace, setShoppingPlace] = useState(null);
+
   const { listId } = route.params;
   const { lists, updateItem, updateListData, archiveList } = useStore();
 
@@ -25,19 +30,25 @@ export default function ShoppingListScreen({ navigation, route }) {
   const [footerHeight, setFooterHeight] = useState(0);
   const insets = useSafeAreaInsets();
 
-  //
-  // CAMBIAR TIENDA
-  //
+  useEffect(() => {
+    loadShoppingLocation().then(setShoppingPlace);
+  }, []);
+
+  // ────────────────────────────────────────────────
+  // CAMBIAR TIENDA (callback que se pasa al selector)
+  // ────────────────────────────────────────────────
   const handleChangeStore = async (store) => {
+    if (!store) return;
+
     await updateListData(listId, (base) => ({
       ...base,
       store,
     }));
   };
 
-  //
+  // ────────────────────────────────────────────────
   // NUEVO ITEM
-  //
+  // ────────────────────────────────────────────────
   const handleCreateNewItem = async (name) => {
     const clean = (name ?? "").trim();
     if (!clean) return;
@@ -50,12 +61,18 @@ export default function ShoppingListScreen({ navigation, route }) {
     }));
   };
 
-  //
-  // EDITAR ITEM — pasar una copia 100% segura
-  //
+  // ────────────────────────────────────────────────
+  // EDITAR ITEM
+  // ────────────────────────────────────────────────
+  const openStoreSelector = () => {
+    navigation.navigate(ROUTES.STORES, {
+      onSelectStore: handleChangeStore,
+    });
+  };
+
   const openEditor = (item) => {
-    navigation.navigate("ItemDetail", {
-      item: ItemFactory.clone(item), // ← evita mutaciones antes de guardar
+    navigation.navigate(ROUTES.ITEM_DETAIL, {
+      item: ItemFactory.clone(item),
       listId,
 
       onSave: async (patch) => {
@@ -71,9 +88,9 @@ export default function ShoppingListScreen({ navigation, route }) {
     });
   };
 
-  //
-  // TOGGLE CHECK — editar directamente el item real
-  //
+  // ────────────────────────────────────────────────
+  // TOGGLE CHECK
+  // ────────────────────────────────────────────────
   const toggleCheck = async (itemId) => {
     const found = items.find((i) => i.id === itemId);
     if (!found) return;
@@ -83,9 +100,9 @@ export default function ShoppingListScreen({ navigation, route }) {
     });
   };
 
-  //
+  // ────────────────────────────────────────────────
   // FINALIZAR COMPRA
-  //
+  // ────────────────────────────────────────────────
   const handleFinish = () => {
     if (!list?.store || !list.store.name?.trim()) {
       safeAlert(
@@ -107,34 +124,43 @@ export default function ShoppingListScreen({ navigation, route }) {
           text: "Finalizar",
           style: "destructive",
           onPress: async () => {
-            // Dejar solo los comprados antes de archivar
             await updateListData(listId, (base) => ({
               ...base,
               items: purchasedItems,
             }));
 
             await archiveList(listId);
-            navigation.navigate("ShoppingLists");
+            navigation.navigate(ROUTES.SHOPPING_LISTS);
           },
         },
       ]
     );
   };
 
-  //
+  // ────────────────────────────────────────────────
   // TOTAL
-  //
+  // ────────────────────────────────────────────────
   const total = items
     .filter((i) => i.checked)
     .reduce((acc, i) => acc + (i.priceInfo?.total || 0), 0);
 
+  // ────────────────────────────────────────────────
+  // RENDER
+  // ────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <StoreSelector
         navigation={navigation}
         store={list?.store}
-        onChangeStore={handleChangeStore}
+        onPress={openStoreSelector}
       />
+      {shoppingPlace?.storeId === list?.store?.id && (
+        <View style={styles.hereBanner}>
+          <Text style={styles.hereBannerText}>
+            🟢 Estás comprando en {shoppingPlace.label}
+          </Text>
+        </View>
+      )}
 
       <View style={{ paddingHorizontal: 10, marginTop: 10 }}>
         <SearchCombinedBar
@@ -163,6 +189,7 @@ export default function ShoppingListScreen({ navigation, route }) {
         onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
       >
         <Text style={styles.totalText}>💰 {total.toFixed(2)} €</Text>
+
         <TouchableOpacity style={styles.finishBtn} onPress={handleFinish}>
           <Text style={styles.finishText}>💳 Finalizar compra</Text>
         </TouchableOpacity>
@@ -171,11 +198,12 @@ export default function ShoppingListScreen({ navigation, route }) {
   );
 }
 
-//
-// ESTILOS
-//
+// ────────────────────────────────────────────────
+// 🎨 ESTILOS
+// ────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8f8f8" },
+
   footer: {
     position: "absolute",
     left: 0,
@@ -187,12 +215,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 16,
   },
+
   totalText: {
     fontSize: 25,
     fontWeight: "700",
     textAlign: "right",
     marginBottom: 8,
   },
+
   finishBtn: {
     backgroundColor: "#007bff",
     padding: 14,
@@ -200,9 +230,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
+
   finishText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  hereBanner: {
+    marginHorizontal: 16,
+    marginTop: -4,
+    marginBottom: 8,
+    padding: 10,
+    backgroundColor: "#e8f5e9",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#2e7d32",
+  },
+  hereBannerText: {
+    color: "#2e7d32",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
