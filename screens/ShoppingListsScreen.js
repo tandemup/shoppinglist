@@ -36,7 +36,13 @@ export default function ShoppingListsScreen({ navigation }) {
   }, [navigation]);
 
   const handleAddList = async () => {
-    if (!newListName.trim()) return;
+    if (!newListName.trim()) {
+      safeAlert(
+        "Nombre vacío",
+        "Escribe un nombre para la lista antes de crearla."
+      );
+      return;
+    }
 
     const newList = {
       id: generateId(),
@@ -103,12 +109,13 @@ export default function ShoppingListsScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Mis Listas</Text>
 
-      {/* Crear nueva lista */}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
           placeholder="Nueva lista..."
           placeholderTextColor="#999"
+          returnKeyType="done"
+          blurOnSubmit={true}
           value={newListName}
           onChangeText={setNewListName}
         />
@@ -117,7 +124,6 @@ export default function ShoppingListsScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Listado */}
       <FlatList
         data={activeLists}
         keyExtractor={(item) => item.id}
