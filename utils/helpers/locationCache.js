@@ -25,7 +25,10 @@ export async function getCachedLocation() {
     }
 
     console.log("📍 Cache location: HIT");
-    return parsed.coords;
+    return {
+      coords: parsed.coords,
+      timestamp: parsed.timestamp,
+    };
   } catch (e) {
     console.warn("Error leyendo caché de ubicación", e);
     return null;

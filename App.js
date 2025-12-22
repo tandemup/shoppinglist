@@ -3,7 +3,6 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
 import { StoreProvider } from "./context/StoreContext";
 import { ConfigProvider } from "./context/ConfigContext";
 
@@ -17,8 +16,8 @@ const RootStack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <StoreProvider>
-      <ConfigProvider>
+    <ConfigProvider>
+      <StoreProvider>
         <NavigationContainer>
           <RootStack.Navigator screenOptions={{ headerShown: false }}>
             {/* Pantalla inicial */}
@@ -28,7 +27,7 @@ export default function App() {
             <RootStack.Screen name="MainTabs" component={MainTabs} />
           </RootStack.Navigator>
         </NavigationContainer>
-      </ConfigProvider>
-    </StoreProvider>
+      </StoreProvider>
+    </ConfigProvider>
   );
 }

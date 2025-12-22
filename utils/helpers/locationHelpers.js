@@ -2,30 +2,25 @@ import * as Location from "expo-location";
 import { getCachedLocation, setCachedLocation } from "./locationCache";
 
 /**
- * Obtiene la ubicación del usuario usando caché si es válida.
- * @param {Object} options
- * @param {boolean} options.force - Fuerza GPS ignorando caché
+ * Obtiene la ubicación del usuario usando caché si es válida
  */
 export async function getCurrentLocation({ force = false } = {}) {
-  // 1️⃣ Intentar caché
   if (!force) {
     const cached = await getCachedLocation();
-    if (cached) {
+    if (cached?.coords) {
       console.log("📍 Using CACHED location");
-      return cached;
+      return {
+        ...cached.coords,
+        _timestamp: cached.timestamp,
+      };
     }
   }
 
   console.log("📍 Using GPS location");
 
-  // 2️⃣ Pedir permisos
   const { status } = await Location.requestForegroundPermissionsAsync();
+  if (status !== "granted") return null;
 
-  if (status !== "granted") {
-    return null;
-  }
-
-  // 3️⃣ Obtener ubicación real
   const location = await Location.getCurrentPositionAsync({
     accuracy: Location.Accuracy.Balanced,
   });
@@ -35,20 +30,18 @@ export async function getCurrentLocation({ force = false } = {}) {
     longitude: location.coords.longitude,
   };
 
-  // 4️⃣ Guardar en caché
   await setCachedLocation(coords);
-
   return coords;
 }
 
 /**
- * Calcula distancia Haversine en km entre dos puntos
+ * Distancia Haversine en kilómetros
  */
 export function haversineDistance(a, b) {
   if (!a || !b) return null;
 
   const toRad = (x) => (x * Math.PI) / 180;
-  const R = 6371; // km
+  const R = 6371; // radio Tierra en km
 
   const dLat = toRad(b.latitude - a.latitude);
   const dLon = toRad(b.longitude - a.longitude);
@@ -62,3 +55,8 @@ export function haversineDistance(a, b) {
 
   return 2 * R * Math.asin(Math.sqrt(h));
 }
+
+/**
+ * Alias semántico (por claridad en pantallas)
+ */
+export const getDistanceKm = haversineDistance;

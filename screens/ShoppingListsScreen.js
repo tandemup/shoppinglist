@@ -17,18 +17,9 @@ import { useStore } from "../context/StoreContext";
 import { generateId } from "../utils/generateId";
 
 export default function ShoppingListsScreen({ navigation }) {
-  const { lists, addList, deleteList, archiveList, reload } = useStore();
+  const store = useStore() || {};
+  const { lists = [], addList, deleteList, archiveList } = store;
   const [newListName, setNewListName] = useState("");
-
-  useEffect(() => {
-    reload(); // carga inicial
-
-    const unsub = navigation.addListener("focus", () => {
-      reload();
-    });
-
-    return unsub;
-  }, [navigation]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -57,8 +48,6 @@ export default function ShoppingListsScreen({ navigation }) {
 
     await addList(newList);
     setNewListName("");
-
-    reload(); // asegurar sincronización tras añadir
   };
 
   const handleOpenList = (list) => {

@@ -1,6 +1,6 @@
 // utils/searchHelpers.js
 
-import { loadLists } from "./storage/listStorage";
+import { loadLists } from "../storage/listStorage";
 
 /**
  * Busca productos en todas las listas guardadas

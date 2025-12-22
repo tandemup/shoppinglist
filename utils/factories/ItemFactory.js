@@ -1,7 +1,7 @@
 // utils/ItemFactory.js
-import { generateId } from "./generateId";
-import { defaultItem, defaultPriceInfo } from "./defaultItem";
-import { PricingEngine } from "./pricing";
+import { generateId } from "../generateId";
+import { defaultItem, defaultPriceInfo } from "../defaultItem";
+import { PricingEngine } from "../pricing";
 
 // -------------------------------------
 function safeNumber(n, fallback = 0) {
