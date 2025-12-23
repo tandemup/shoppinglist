@@ -21,7 +21,6 @@ export default function MainTabs() {
         tabBarStyle: { height: 60, paddingBottom: 6, paddingTop: 4 },
       }}
     >
-      {/* 🛒 Lista de compras */}
       <Tab.Screen
         name="Listas"
         component={ShoppingStack}
@@ -42,8 +41,6 @@ export default function MainTabs() {
           ),
         }}
       />
-
-      {/* 📷 Escanear */}
       <Tab.Screen
         name="Escanear"
         component={ScannerStack}
