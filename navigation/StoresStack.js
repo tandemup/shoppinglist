@@ -1,7 +1,8 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { ROUTES } from "./ROUTES";
 
-// ⚠️ OJO: NO usar StoresScreen aquí
+import StoresScreen from "../screens/StoresScreen";
 import StoresBrowseScreen from "../screens/StoresBrowseScreen";
 import StoreDetailScreen from "../screens/StoreDetailScreen";
 import StoreMapScreen from "../screens/StoreMapScreen";
@@ -12,21 +13,24 @@ export default function StoresStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="StoresRoot"
-        component={StoresBrowseScreen}
+        name={ROUTES.STORES_HOME}
+        component={StoresScreen}
         options={{ title: "Tiendas" }}
       />
-
       <Stack.Screen
-        name="StoreDetail"
+        name={ROUTES.STORES_BROWSE}
+        component={StoresBrowseScreen}
+        options={{ title: "Buscar tiendas" }}
+      />
+      <Stack.Screen
+        name={ROUTES.STORE_DETAIL}
         component={StoreDetailScreen}
         options={{ title: "Detalle de tienda" }}
       />
-
       <Stack.Screen
-        name="StoreMap"
+        name={ROUTES.STORE_MAP}
         component={StoreMapScreen}
-        options={{ title: "Mapa de tiendas" }}
+        options={{ title: "Mapa" }}
       />
     </Stack.Navigator>
   );

@@ -1,4 +1,3 @@
-// navigation/ROUTES.js
 export const ROUTES = {
   // Main tabs
   LISTAS: "Listas",
@@ -11,6 +10,8 @@ export const ROUTES = {
   ITEM_DETAIL: "ItemDetail",
   SEARCH_ITEMS: "SearchItems",
   STORES: "Stores",
+  STORES_HOME: "StoresHome",
+  STORES_BROWSE: "StoresBrowse",
   STORE_DETAIL: "StoreDetail",
   STORE_MAP: "StoreMap",
 

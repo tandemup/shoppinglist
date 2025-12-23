@@ -3,6 +3,8 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { ROUTES } from "./ROUTES";
+
 import ShoppingStack from "./ShoppingStack";
 import StoresStack from "./StoresStack";
 import ScannerStack from "./ScannerStack";
@@ -30,11 +32,11 @@ export default function MainTabs() {
         }}
       />
 
-      {/* 🏪 Tiendas */}
       <Tab.Screen
-        name="Tiendas"
+        name={ROUTES.TIENDAS}
         component={StoresStack}
         options={{
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="store" color={color} size={size} />
           ),

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   TextInput,
   StyleSheet,
   Pressable,
@@ -25,12 +24,12 @@ export default function ShoppingListsScreen({ navigation }) {
     navigation.setOptions({
       headerTitleAlign: "center",
       headerRight: () => (
-        <TouchableOpacity
+        <Pressable
           onPress={() => navigation.navigate(ROUTES.MENU)}
           style={{ marginRight: 15 }}
         >
           <Ionicons name="menu" size={26} color="black" />
-        </TouchableOpacity>
+        </Pressable>
       ),
     });
   }, [navigation]);
@@ -65,38 +64,18 @@ export default function ShoppingListsScreen({ navigation }) {
       style={styles.card}
       onPress={() => handleOpenList(item)}
       onLongPress={() => {
-        safeAlert(
-          "Opciones de la lista",
-          `¿Qué deseas hacer con "${item.name}"?`,
-          [
-            { text: "Cancelar", style: "cancel" },
-
-            {
-              text: "Archivar",
-              onPress: async () => {
-                await archiveList(item.id);
-              },
-            },
-
-            {
-              text: "Eliminar",
-              style: "destructive",
-              onPress: async () => {
-                await deleteList(item.id);
-              },
-            },
-          ]
-        );
+        safeAlert("Archivar lista", `¿Quieres archivar "${item.name}"?`, [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Archivar",
+            style: "destructive",
+            onPress: () => archiveList(item.id),
+          },
+        ]);
       }}
-      delayLongPress={400}
     >
-      <Text style={styles.name}>{item.name}</Text>
-
-      <Text style={styles.date}>
-        Creada el {new Date(item.createdAt).toLocaleDateString()}
-      </Text>
-
-      <Text style={styles.count}>{item.items?.length || 0} productos</Text>
+      <Text style={styles.cardTitle}>{item.name}</Text>
+      <Text style={styles.cardMeta}>{item.items.length} productos</Text>
     </Pressable>
   );
 
@@ -119,9 +98,9 @@ export default function ShoppingListsScreen({ navigation }) {
           value={newListName}
           onChangeText={setNewListName}
         />
-        <TouchableOpacity style={styles.addButton} onPress={handleAddList}>
+        <Pressable style={styles.addButton} onPress={handleAddList}>
           <Text style={styles.addButtonText}>+</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       <FlatList
