@@ -8,11 +8,13 @@ export default function StoresScreen({ navigation }) {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <Text style={styles.title}>Tiendas</Text>
+
         <Text style={styles.subtitle}>
           Encuentra tiendas, consúltalas en el mapa o selecciónalas para tus
           listas de la compra.
         </Text>
 
+        {/* Acción principal */}
         <Pressable
           style={styles.primaryButton}
           onPress={() => navigation.navigate(ROUTES.STORES_BROWSE)}
@@ -20,11 +22,20 @@ export default function StoresScreen({ navigation }) {
           <Text style={styles.primaryText}>Ver tiendas</Text>
         </Pressable>
 
+        {/* Acción secundaria */}
         <Pressable
           style={styles.secondaryButton}
           onPress={() => navigation.navigate(ROUTES.STORE_MAP)}
         >
           <Text style={styles.secondaryText}>Ver tiendas en el mapa</Text>
+        </Pressable>
+
+        {/* Favoritas */}
+        <Pressable
+          style={[styles.secondaryButton, styles.favoritesButton]}
+          onPress={() => navigation.navigate(ROUTES.STORES_FAVORITES)}
+        >
+          <Text style={styles.secondaryText}>⭐ Ver favoritas</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -71,10 +82,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#ccc",
+    marginBottom: 12,
   },
   secondaryText: {
     color: "#111",
     fontSize: 16,
     textAlign: "center",
+  },
+  favoritesButton: {
+    borderColor: "#facc15",
   },
 });

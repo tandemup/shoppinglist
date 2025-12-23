@@ -6,6 +6,7 @@ import StoresScreen from "../screens/StoresScreen";
 import StoresBrowseScreen from "../screens/StoresBrowseScreen";
 import StoreDetailScreen from "../screens/StoreDetailScreen";
 import StoreMapScreen from "../screens/StoreMapScreen";
+import StoresFavoritesScreen from "../screens/StoresFavoritesScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -31,6 +32,11 @@ export default function StoresStack() {
         name={ROUTES.STORE_MAP}
         component={StoreMapScreen}
         options={{ title: "Mapa" }}
+      />
+      <Stack.Screen
+        name={ROUTES.STORES_FAVORITES}
+        component={StoresFavoritesScreen}
+        options={{ title: "Favoritas" }}
       />
     </Stack.Navigator>
   );

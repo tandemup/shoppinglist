@@ -14,6 +14,7 @@ export const ROUTES = {
   STORES_BROWSE: "StoresBrowse",
   STORE_DETAIL: "StoreDetail",
   STORE_MAP: "StoreMap",
+  STORES_FAVORITES: "StoresFavorites",
 
   // Archive
   ARCHIVED_LISTS: "ArchivedLists",
