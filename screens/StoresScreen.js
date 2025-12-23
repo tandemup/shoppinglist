@@ -14,7 +14,6 @@ export default function StoresScreen({ navigation }) {
           listas de la compra.
         </Text>
 
-        {/* Acción principal */}
         <Pressable
           style={styles.primaryButton}
           onPress={() => navigation.navigate(ROUTES.STORES_BROWSE)}
@@ -22,7 +21,6 @@ export default function StoresScreen({ navigation }) {
           <Text style={styles.primaryText}>Ver tiendas</Text>
         </Pressable>
 
-        {/* Acción secundaria */}
         <Pressable
           style={styles.secondaryButton}
           onPress={() => navigation.navigate(ROUTES.STORE_MAP)}
@@ -30,7 +28,6 @@ export default function StoresScreen({ navigation }) {
           <Text style={styles.secondaryText}>Ver tiendas en el mapa</Text>
         </Pressable>
 
-        {/* Favoritas */}
         <Pressable
           style={[styles.secondaryButton, styles.favoritesButton]}
           onPress={() => navigation.navigate(ROUTES.STORES_FAVORITES)}

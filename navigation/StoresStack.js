@@ -18,21 +18,25 @@ export default function StoresStack() {
         component={StoresScreen}
         options={{ title: "Tiendas" }}
       />
+
       <Stack.Screen
         name={ROUTES.STORES_BROWSE}
         component={StoresBrowseScreen}
         options={{ title: "Buscar tiendas" }}
       />
+
       <Stack.Screen
         name={ROUTES.STORE_DETAIL}
         component={StoreDetailScreen}
         options={{ title: "Detalle de tienda" }}
       />
+
       <Stack.Screen
         name={ROUTES.STORE_MAP}
         component={StoreMapScreen}
         options={{ title: "Mapa" }}
       />
+
       <Stack.Screen
         name={ROUTES.STORES_FAVORITES}
         component={StoresFavoritesScreen}

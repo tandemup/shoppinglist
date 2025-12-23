@@ -1,6 +1,6 @@
-// navigation/HistoryStack.js
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { ROUTES } from "./ROUTES";
 
 import PurchaseHistoryScreen from "../screens/PurchaseHistoryScreen";
 import ItemDetailScreen from "../screens/ItemDetailScreen";
@@ -9,21 +9,14 @@ const Stack = createNativeStackNavigator();
 
 export default function HistoryStack() {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerTitleAlign: "center",
-        headerStyle: { backgroundColor: "#fff" },
-        headerTitleStyle: { fontSize: 20, fontWeight: "700" },
-      }}
-    >
+    <Stack.Navigator>
       <Stack.Screen
-        name="PurchaseHistory"
+        name={ROUTES.PURCHASE_HISTORY}
         component={PurchaseHistoryScreen}
         options={{ title: "Historial" }}
       />
-
       <Stack.Screen
-        name="HistoryItemDetail"
+        name={ROUTES.ITEM_DETAIL}
         component={ItemDetailScreen}
         options={{ title: "Detalle" }}
       />

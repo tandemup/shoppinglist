@@ -1,22 +1,13 @@
 import React, { useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  TextInput,
-} from "react-native";
+import { View, Text, FlatList, StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFavorites } from "../context/FavoritesContext";
 import StoreCard from "../components/StoreCard";
-
 import { ROUTES } from "../navigation/ROUTES";
 import stores from "../data/stores.json";
 
-export default function StoresBrowseScreen({ navigation }) {
+export default function StoresBrowseScreen({ navigation, route }) {
   const [query, setQuery] = useState("");
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { selectForListId } = route.params || {};
 
   const filteredStores = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -28,15 +19,25 @@ export default function StoresBrowseScreen({ navigation }) {
     });
   }, [query]);
 
+  const handlePressStore = (store) => {
+    if (selectForListId) {
+      navigation.navigate(ROUTES.SHOPPING_TAB, {
+        screen: ROUTES.SHOPPING_LIST,
+        params: {
+          listId: selectForListId,
+          selectedStoreId: store.id,
+        },
+      });
+      return;
+    }
+
+    navigation.navigate(ROUTES.STORE_DETAIL, {
+      storeId: store.id,
+    });
+  };
+
   const renderItem = ({ item }) => (
-    <StoreCard
-      store={item}
-      isFavorite={isFavorite(item.id)}
-      onToggleFavorite={() => toggleFavorite(item.id)}
-      onPress={() =>
-        navigation.navigate(ROUTES.STORE_DETAIL, { storeId: item.id })
-      }
-    />
+    <StoreCard store={item} onPress={() => handlePressStore(item)} />
   );
 
   return (
@@ -94,21 +95,5 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
     paddingTop: 8,
-  },
-  card: {
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 1,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  address: {
-    fontSize: 13,
-    color: "#666",
   },
 });

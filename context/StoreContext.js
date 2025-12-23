@@ -56,6 +56,11 @@ export function StoreProvider({ children }) {
     );
   };
 
+  const setStoreForList = async (listId, storeId) => {
+    const updated = lists.map((l) => (l.id === listId ? { ...l, storeId } : l));
+    await persist(updated);
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -64,6 +69,7 @@ export function StoreProvider({ children }) {
         addList,
         deleteList,
         archiveList,
+        setStoreForList,
       }}
     >
       {children}

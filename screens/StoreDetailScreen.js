@@ -10,8 +10,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import stores from "../data/stores.json";
+import { useStore } from "../context/StoreContext";
+
 export default function StoreDetailScreen({ route, navigation }) {
-  const { store } = route.params ?? {};
+  const { storeId, selectForListId } = route.params ?? {};
+  const { setStoreForList } = useStore();
+
+  const store = stores.find((s) => s.id === storeId);
 
   if (!store) {
     return (
@@ -38,34 +44,28 @@ export default function StoreDetailScreen({ route, navigation }) {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.name}>{store.name}</Text>
 
-        <Text style={styles.type}>
-          {store.type}
-          {store.brand ? ` · ${store.brand}` : ""}
-        </Text>
-
-        {store.address?.full && (
-          <Text style={styles.section}>{store.address.full}</Text>
-        )}
-
-        {store.distance != null && (
-          <Text style={styles.distance}>
-            A {(store.distance / 1000).toFixed(2)} km
-          </Text>
-        )}
-
-        {store.website && (
-          <Pressable onPress={() => Linking.openURL(store.website)}>
-            <Text style={styles.link}>{store.website}</Text>
-          </Pressable>
-        )}
+        {store.address && <Text style={styles.section}>{store.address}</Text>}
 
         <Pressable style={styles.mapButton} onPress={openMaps}>
           <Text style={styles.mapButtonText}>🗺️ Abrir en mapas</Text>
         </Pressable>
+
+        {selectForListId && (
+          <Pressable
+            style={[styles.mapButton, styles.selectButton]}
+            onPress={async () => {
+              await setStoreForList(selectForListId, store.id);
+              navigation.goBack();
+            }}
+          >
+            <Text style={styles.mapButtonText}>Elegir esta tienda</Text>
+          </Pressable>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

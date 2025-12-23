@@ -1,15 +1,15 @@
 export const ROUTES = {
-  // Main tabs
-  LISTAS: "Listas",
-  TIENDAS: "Tiendas",
-  ESCANEAR: "Escanear",
+  // Tabs
+  SHOPPING_TAB: "Listas",
+  STORES_TAB: "Tiendas",
+  SCANNER_TAB: "Escanear",
 
   // Shopping stack
   SHOPPING_LISTS: "ShoppingLists",
   SHOPPING_LIST: "ShoppingList",
   ITEM_DETAIL: "ItemDetail",
-  SEARCH_ITEMS: "SearchItems",
-  STORES: "Stores",
+
+  // Stores stack
   STORES_HOME: "StoresHome",
   STORES_BROWSE: "StoresBrowse",
   STORE_DETAIL: "StoreDetail",
