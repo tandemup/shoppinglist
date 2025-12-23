@@ -1,30 +1,41 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import defaultConfig from "../config/config.default.json";
-
-const CONFIG_KEY = "app_config";
 
 const ConfigContext = createContext();
 
+const FAVORITES_KEY = "favoriteStores";
+
 export function ConfigProvider({ children }) {
-  const [config, setConfig] = useState(defaultConfig);
+  const [favoriteStores, setFavoriteStores] = useState([]);
 
   useEffect(() => {
-    (async () => {
-      const saved = await AsyncStorage.getItem(CONFIG_KEY);
-      if (saved) {
-        setConfig(JSON.parse(saved));
-      }
-    })();
+    AsyncStorage.getItem(FAVORITES_KEY).then((raw) => {
+      if (raw) setFavoriteStores(JSON.parse(raw));
+    });
   }, []);
 
-  const updateConfig = async (newConfig) => {
-    setConfig(newConfig);
-    await AsyncStorage.setItem(CONFIG_KEY, JSON.stringify(newConfig));
+  useEffect(() => {
+    AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteStores));
+  }, [favoriteStores]);
+
+  const toggleFavoriteStore = (storeId) => {
+    setFavoriteStores((prev) =>
+      prev.includes(storeId)
+        ? prev.filter((id) => id !== storeId)
+        : [...prev, storeId]
+    );
   };
 
+  const isFavoriteStore = (storeId) => favoriteStores.includes(storeId);
+
   return (
-    <ConfigContext.Provider value={{ config, updateConfig }}>
+    <ConfigContext.Provider
+      value={{
+        favoriteStores,
+        toggleFavoriteStore,
+        isFavoriteStore,
+      }}
+    >
       {children}
     </ConfigContext.Provider>
   );

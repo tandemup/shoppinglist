@@ -8,6 +8,7 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import StoreCard from "../components/StoreCard";
 
 import { ROUTES } from "../navigation/ROUTES";
 import stores from "../data/stores.json";
@@ -26,15 +27,12 @@ export default function StoresBrowseScreen({ navigation }) {
   }, [query]);
 
   const renderItem = ({ item }) => (
-    <Pressable
-      style={styles.card}
+    <StoreCard
+      store={item}
       onPress={() =>
         navigation.navigate(ROUTES.STORE_DETAIL, { storeId: item.id })
       }
-    >
-      <Text style={styles.name}>{item.name}</Text>
-      {item.address ? <Text style={styles.address}>{item.address}</Text> : null}
-    </Pressable>
+    />
   );
 
   return (
