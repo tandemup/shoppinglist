@@ -5,6 +5,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StoreProvider } from "./context/StoreContext";
 import { ConfigProvider } from "./context/ConfigContext";
+import { FavoritesProvider } from "./context/FavoritesContext";
 
 // Pantalla de carga
 import SplashScreen from "./screens/SplashScreen";
@@ -18,15 +19,17 @@ export default function App() {
   return (
     <ConfigProvider>
       <StoreProvider>
-        <NavigationContainer>
-          <RootStack.Navigator screenOptions={{ headerShown: false }}>
-            {/* Pantalla inicial */}
-            <RootStack.Screen name="Splash" component={SplashScreen} />
+        <FavoritesProvider>
+          <NavigationContainer>
+            <RootStack.Navigator screenOptions={{ headerShown: false }}>
+              {/* Pantalla inicial */}
+              <RootStack.Screen name="Splash" component={SplashScreen} />
 
-            {/* Tabs principales (Listas, Tiendas, Escanear) */}
-            <RootStack.Screen name="MainTabs" component={MainTabs} />
-          </RootStack.Navigator>
-        </NavigationContainer>
+              {/* Tabs principales (Listas, Tiendas, Escanear) */}
+              <RootStack.Screen name="MainTabs" component={MainTabs} />
+            </RootStack.Navigator>
+          </NavigationContainer>
+        </FavoritesProvider>
       </StoreProvider>
     </ConfigProvider>
   );

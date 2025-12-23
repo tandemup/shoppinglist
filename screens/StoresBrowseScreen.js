@@ -8,6 +8,7 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFavorites } from "../context/FavoritesContext";
 import StoreCard from "../components/StoreCard";
 
 import { ROUTES } from "../navigation/ROUTES";
@@ -15,6 +16,7 @@ import stores from "../data/stores.json";
 
 export default function StoresBrowseScreen({ navigation }) {
   const [query, setQuery] = useState("");
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const filteredStores = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -29,6 +31,8 @@ export default function StoresBrowseScreen({ navigation }) {
   const renderItem = ({ item }) => (
     <StoreCard
       store={item}
+      isFavorite={isFavorite(item.id)}
+      onToggleFavorite={() => toggleFavorite(item.id)}
       onPress={() =>
         navigation.navigate(ROUTES.STORE_DETAIL, { storeId: item.id })
       }
