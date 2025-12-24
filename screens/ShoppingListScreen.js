@@ -1,100 +1,131 @@
 import React, { useEffect } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRoute } from "@react-navigation/native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
 import { useStore } from "../context/StoreContext";
 import { ROUTES } from "../navigation/ROUTES";
 
-export default function ShoppingListScreen({ navigation }) {
+export default function ShoppingListScreen() {
   const route = useRoute();
-  const selectForListId = route.params?.selectForListId;
+  const navigation = useNavigation();
 
-  const { listId, selectedStoreId } = route.params ?? {};
+  const { listId, selectedStore } = route.params ?? {};
+
   const { lists, setStoreForList } = useStore();
-
   const list = lists.find((l) => l.id === listId);
 
   // ────────────────────────────────────────────────
-  // GUARDAR TIENDA SELECCIONADA (si viene de Stores)
+  // Guardar tienda cuando vuelve desde Stores
   // ────────────────────────────────────────────────
   useEffect(() => {
-    if (listId && selectedStoreId) {
-      setStoreForList(listId, selectedStoreId);
+    if (selectedStore && listId) {
+      setStoreForList(listId, selectedStore);
 
-      // limpiar params para evitar re-ejecución
-      navigation.setParams({ selectedStoreId: undefined });
+      // limpiar params para evitar loops
+      navigation.setParams({ selectedStore: undefined });
     }
-  }, [listId, selectedStoreId]);
+  }, [selectedStore, listId]);
 
   if (!list) {
     return (
-      <SafeAreaView>
+      <SafeAreaView style={styles.center}>
         <Text>Lista no encontrada</Text>
       </SafeAreaView>
     );
   }
 
+  // ────────────────────────────────────────────────
+  // Navegar a selección de tienda
+  // ────────────────────────────────────────────────
+  const handleSelectStore = () => {
+    navigation.navigate(ROUTES.STORES_TAB, {
+      screen: ROUTES.STORES_BROWSE,
+      params: {
+        selectForListId: list.id,
+      },
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* HEADER */}
       <Text style={styles.title}>{list.name}</Text>
 
-      <Pressable
-        style={styles.storeBox}
-        onPress={() =>
-          navigation.navigate(ROUTES.STORES_TAB, {
-            screen: ROUTES.STORES_BROWSE,
-            params: {
-              selectForListId: listId,
-            },
-          })
-        }
-      >
-        <Text>{list.storeId ? `Tienda asignada` : "Seleccionar tienda"}</Text>
+      {/* TIENDA */}
+      <Pressable style={styles.storeBox} onPress={handleSelectStore}>
+        <Text style={styles.storeLabel}>Tienda</Text>
+
+        {list.store ? (
+          <>
+            <Text style={styles.storeName}>{list.store.name}</Text>
+            {list.store.address && (
+              <Text style={styles.storeAddress}>{list.store.address}</Text>
+            )}
+          </>
+        ) : (
+          <Text style={styles.storePlaceholder}>Seleccionar tienda</Text>
+        )}
       </Pressable>
+
+      {/* AQUÍ IRÁN LOS ITEMS */}
+      <View style={styles.itemsPlaceholder}>
+        <Text style={{ color: "#888" }}>(Aquí irán los productos)</Text>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  title: { fontSize: 20, fontWeight: "600", marginBottom: 12 },
-  storeBox: {
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-});
-
-const styles1 = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
   },
+
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   title: {
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+
+  storeBox: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#f2f2f2",
     marginBottom: 24,
   },
-  subtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-  },
-  storeBox: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    padding: 16,
-  },
+
   storeLabel: {
     fontSize: 12,
     color: "#666",
     marginBottom: 4,
   },
-  storeValue: {
+
+  storePlaceholder: {
     fontSize: 16,
-    fontWeight: "500",
+    color: "#999",
+  },
+
+  storeName: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  storeAddress: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  itemsPlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

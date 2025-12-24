@@ -56,9 +56,15 @@ export function StoreProvider({ children }) {
     );
   };
 
-  const setStoreForList = async (listId, storeId) => {
-    const updated = lists.map((l) => (l.id === listId ? { ...l, storeId } : l));
+  const setStoreForList = async (listId, store) => {
+    const updated = lists.map((l) =>
+      l.id === listId
+        ? { ...l, store } // guardamos el objeto tienda
+        : l
+    );
+
     await persist(updated);
+    setLists(updated);
   };
 
   return (
