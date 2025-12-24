@@ -6,14 +6,28 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import { useStore } from "../context/StoreContext";
 import { ROUTES } from "../navigation/ROUTES";
 
-export default function ShoppingListScreen() {
-  const route = useRoute();
-  const navigation = useNavigation();
+import { getDistanceKm } from "../utils/distance";
+import { isOpenNow } from "../utils/openingHours";
+import { useLocation } from "../context/LocationContext";
 
+export default function ShoppingListScreen({ route, navigation }) {
   const { listId, selectedStore } = route.params ?? {};
-
   const { lists, setStoreForList } = useStore();
+  const { location } = useLocation();
+
   const list = lists.find((l) => l.id === listId);
+  if (!list) {
+    return <Text>Lista no encontrada</Text>;
+  }
+  const storeId = list.storeId;
+
+  let distanceKm = null;
+  let openNow = null;
+
+  if (list.store && location && list.store.location) {
+    distanceKm = getDistanceKm(location, list.store.location);
+    openNow = isOpenNow(list.store.openingHours);
+  }
 
   // ────────────────────────────────────────────────
   // Guardar tienda cuando vuelve desde Stores
@@ -49,10 +63,26 @@ export default function ShoppingListScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
       <Text style={styles.title}>{list.name}</Text>
+      {list.store && (
+        <View style={styles.metaRow}>
+          {distanceKm !== null && (
+            <Text style={styles.metaText}>📍 {distanceKm.toFixed(1)} km</Text>
+          )}
 
-      {/* TIENDA */}
+          {openNow !== null && (
+            <Text
+              style={[
+                styles.metaText,
+                { color: openNow ? "#2e7d32" : "#c62828" },
+              ]}
+            >
+              {openNow ? "🟢 Abierto ahora" : "🔴 Cerrado"}
+            </Text>
+          )}
+        </View>
+      )}
+
       <Pressable style={styles.storeBox} onPress={handleSelectStore}>
         <Text style={styles.storeLabel}>Tienda</Text>
 
@@ -68,7 +98,6 @@ export default function ShoppingListScreen() {
         )}
       </Pressable>
 
-      {/* AQUÍ IRÁN LOS ITEMS */}
       <View style={styles.itemsPlaceholder}>
         <Text style={{ color: "#888" }}>(Aquí irán los productos)</Text>
       </View>
@@ -127,5 +156,15 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  metaRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 6,
+  },
+
+  metaText: {
+    fontSize: 13,
+    color: "#555",
   },
 });
