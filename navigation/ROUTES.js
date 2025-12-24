@@ -1,8 +1,8 @@
 export const ROUTES = {
   // Tabs
-  SHOPPING_TAB: "Listas",
-  STORES_TAB: "Tiendas",
-  SCANNER_TAB: "Escanear",
+  SHOPPING_TAB: "ShoppingTab",
+  STORES_TAB: "StoresTab",
+  SCANNER_TAB: "ScannerTab",
 
   // Shopping stack
   SHOPPING_LISTS: "ShoppingLists",
@@ -12,9 +12,9 @@ export const ROUTES = {
   // Stores stack
   STORES_HOME: "StoresHome",
   STORES_BROWSE: "StoresBrowse",
+  STORES_FAVORITES: "StoresFavorites",
   STORE_DETAIL: "StoreDetail",
   STORE_MAP: "StoreMap",
-  STORES_FAVORITES: "StoresFavorites",
 
   // Archive
   ARCHIVED_LISTS: "ArchivedLists",

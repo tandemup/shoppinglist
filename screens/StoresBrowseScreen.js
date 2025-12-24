@@ -2,12 +2,15 @@ import React, { useMemo, useState } from "react";
 import { View, Text, FlatList, StyleSheet, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import StoreCard from "../components/StoreCard";
+import { useRoute } from "@react-navigation/native";
+
 import { ROUTES } from "../navigation/ROUTES";
 import stores from "../data/stores.json";
 
-export default function StoresBrowseScreen({ navigation, route }) {
+export default function StoresBrowseScreen({ navigation }) {
   const [query, setQuery] = useState("");
-  const { selectForListId } = route.params || {};
+  const route = useRoute();
+  const selectForListId = route.params?.selectForListId;
 
   const filteredStores = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -25,15 +28,13 @@ export default function StoresBrowseScreen({ navigation, route }) {
         screen: ROUTES.SHOPPING_LIST,
         params: {
           listId: selectForListId,
-          selectedStoreId: store.id,
+          selectedStore: store,
         },
       });
       return;
     }
 
-    navigation.navigate(ROUTES.STORE_DETAIL, {
-      storeId: store.id,
-    });
+    navigation.navigate(ROUTES.STORE_DETAIL, { storeId: store.id });
   };
 
   const renderItem = ({ item }) => (
