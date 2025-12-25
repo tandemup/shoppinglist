@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ConfigContext = createContext();
-
 const FAVORITES_KEY = "favoriteStores";
 
 export function ConfigProvider({ children }) {

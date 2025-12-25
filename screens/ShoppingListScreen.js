@@ -122,17 +122,12 @@ export default function ShoppingListScreen() {
       },
     });
   };
+
   const handleSelectStore = () => {
-    navigation.navigate(ROUTES.STORES_SELECT, {
+    navigation.navigate(ROUTES.STORE_SELECT, {
       listId,
-      selectForListId: listId,
     });
   };
-
-  const assignedStore = useMemo(() => {
-    if (!list.storeId) return null;
-    return stores.find((s) => s.id === list.storeId);
-  }, [list.storeId, stores]);
 
   // ────────────────────────────────────────────────
   // 🧮 TOTAL

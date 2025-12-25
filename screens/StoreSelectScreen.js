@@ -1,19 +1,48 @@
+import React, { useState, useMemo } from "react";
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import { useConfig } from "../context/ConfigContext";
 import { useStoresWithDistance } from "../hooks/useStoresWithDistance";
 import StoreCard from "../components/StoreCard";
 import { ROUTES } from "../navigation/ROUTES";
 
-export default function StoreSelectScreen({ navigation, route }) {
-  const { onSelectStore } = route.params ?? {};
-  const { favoriteStoreIds } = useConfig();
+export default function StoreSelectScreen() {
+  const route = useRoute();
+  const navigation = useNavigation();
+
+  const { listId } = route.params ?? {};
+  const [search, setSearch] = useState("");
+  const { favoriteStores = [] } = useConfig() ?? {};
+
   const { sortedStores } = useStoresWithDistance();
 
-  const favoriteStores = sortedStores.filter((s) =>
-    favoriteStoreIds.includes(s.id)
-  );
+  // ────────────────────────────────────────────────
+  // ⭐ SOLO TIENDAS FAVORITAS
+  // ────────────────────────────────────────────────
+  const favoriteStoresList = useMemo(() => {
+    const ids = Array.isArray(favoriteStores) ? favoriteStores : [];
+    return (sortedStores ?? []).filter((s) => ids.includes(s.id));
+  }, [sortedStores, favoriteStores]);
 
-  if (favoriteStores.length === 0) {
+  // ────────────────────────────────────────────────
+  // 🔍 FILTRO SEGURO
+  // ────────────────────────────────────────────────
+  const filteredStores = useMemo(() => {
+    const text = search?.toLowerCase() ?? "";
+
+    return favoriteStores.filter((store) => {
+      return (
+        store?.name?.toLowerCase().includes(text) ||
+        store?.city?.toLowerCase().includes(text) ||
+        store?.postcode?.toString().includes(text)
+      );
+    });
+  }, [favoriteStores, search]);
+
+  // ────────────────────────────────────────────────
+  // 🧱 EMPTY STATE
+  // ────────────────────────────────────────────────
+  if (favoriteStoresList.length === 0) {
     return (
       <View style={styles.empty}>
         <Text style={styles.title}>No tienes tiendas favoritas</Text>
@@ -23,7 +52,7 @@ export default function StoreSelectScreen({ navigation, route }) {
 
         <Pressable
           style={styles.button}
-          onPress={() => navigation.navigate(ROUTES.TIENDAS)}
+          onPress={() => navigation.navigate(ROUTES.STORES_TAB)}
         >
           <Text style={styles.buttonText}>Ir a Tiendas</Text>
         </Pressable>
@@ -31,19 +60,22 @@ export default function StoreSelectScreen({ navigation, route }) {
     );
   }
 
+  // ────────────────────────────────────────────────
+  // 🧱 LISTADO
+  // ────────────────────────────────────────────────
   return (
     <FlatList
       contentContainerStyle={{ padding: 16 }}
-      data={favoriteStores}
+      data={filteredStores}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
         <StoreCard
           store={item}
-          onPress={async () => {
-            if (typeof onSelectStore === "function") {
-              await onSelectStore(item);
-            }
-            navigation.goBack();
+          onPress={() => {
+            navigation.navigate(ROUTES.SHOPPING_LIST, {
+              listId,
+              selectedStore: item,
+            });
           }}
         />
       )}

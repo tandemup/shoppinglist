@@ -12,6 +12,7 @@ export const ROUTES = {
   // Stores stack
   STORES_HOME: "StoresHome",
   STORES_BROWSE: "StoresBrowse",
+  STORE_SELECT: "StoreSelect",
   STORES_FAVORITES: "StoresFavorites",
   STORE_DETAIL: "StoreDetail",
   STORE_MAP: "StoreMap",

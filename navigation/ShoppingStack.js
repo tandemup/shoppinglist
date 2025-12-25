@@ -6,6 +6,7 @@ import ShoppingListsScreen from "../screens/ShoppingListsScreen";
 import ShoppingListScreen from "../screens/ShoppingListScreen";
 import ItemDetailScreen from "../screens/ItemDetailScreen";
 import StoresScreen from "../screens/StoresScreen";
+import StoreSelectScreen from "../screens/StoreSelectScreen";
 import ArchivedListsScreen from "../screens/ArchivedListsScreen";
 import ArchivedListDetailScreen from "../screens/ArchivedListDetailScreen";
 import PurchaseHistoryScreen from "../screens/PurchaseHistoryScreen";
@@ -46,6 +47,12 @@ export default function ShoppingStack() {
         name={ROUTES.STORES_HOME}
         component={StoresScreen}
         options={{ title: "Seleccionar tienda" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.STORE_SELECT}
+        component={StoreSelectScreen}
+        options={{ title: "Sel tienda" }}
       />
 
       <Stack.Screen
