@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
@@ -7,6 +15,7 @@ import { useStore } from "../context/StoreContext";
 import { useLocation } from "../context/LocationContext";
 import { useStores } from "../context/StoresContext";
 
+import StoreSelector from "../components/StoreSelector";
 import NewItemInput from "../components/NewItemInput";
 import ItemRow from "../components/ItemRow";
 import { ROUTES } from "../navigation/ROUTES";
@@ -83,6 +92,47 @@ export default function ShoppingListScreen() {
       ],
     }));
   };
+  const toggleItem = async (id) => {
+    await updateListData(listId, (base) => ({
+      ...base,
+      items: base.items.map((i) =>
+        i.id === id ? { ...i, checked: !i.checked } : i
+      ),
+    }));
+  };
+
+  // -------------------------
+  // Abrir detalle
+  // -------------------------
+  const openDetail = (item) => {
+    navigation.navigate("ItemDetail", {
+      item,
+      listId,
+      onSave: async (updated) => {
+        await updateListData(listId, (base) => ({
+          ...base,
+          items: base.items.map((i) => (i.id === updated.id ? updated : i)),
+        }));
+      },
+      onDelete: async (id) => {
+        await updateListData(listId, (base) => ({
+          ...base,
+          items: base.items.filter((i) => i.id !== id),
+        }));
+      },
+    });
+  };
+  const handleSelectStore = () => {
+    navigation.navigate(ROUTES.STORES_SELECT, {
+      listId,
+      selectForListId: listId,
+    });
+  };
+
+  const assignedStore = useMemo(() => {
+    if (!list.storeId) return null;
+    return stores.find((s) => s.id === list.storeId);
+  }, [list.storeId, stores]);
 
   // ────────────────────────────────────────────────
   // 🧮 TOTAL
@@ -111,68 +161,33 @@ export default function ShoppingListScreen() {
   // 🧱 RENDER
   // ────────────────────────────────────────────────
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>{list.name}</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View style={styles.container}>
+        <StoreSelector store={assignedStore} onPress={handleSelectStore} />
 
-      {/* 🏪 TIENDA */}
-      <Pressable
-        style={styles.storeBox}
-        onPress={() =>
-          navigation.navigate(ROUTES.STORES_TAB, {
-            screen: ROUTES.STORES_BROWSE,
-            params: { selectForListId: listId },
-          })
-        }
-      >
-        {assignedStore ? (
-          <>
-            <Text style={styles.storeName}>{assignedStore.name}</Text>
-            {distanceKm != null && (
-              <Text style={styles.meta}>{distanceKm} km</Text>
-            )}
-            {openStatus && (
-              <Text
-                style={[
-                  styles.meta,
-                  { color: openStatus.open ? "green" : "red" },
-                ]}
-              >
-                {openStatus.label}
-              </Text>
-            )}
-          </>
-        ) : (
-          <Text style={styles.selectStore}>Seleccionar tienda</Text>
-        )}
-      </Pressable>
-
-      {/* ➕ NUEVO ITEM */}
-      <NewItemInput listId={listId} />
-
-      {/* 📋 ITEMS */}
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ItemRow item={item} listId={listId} />}
-        contentContainerStyle={{ paddingBottom: 120 }}
-      />
-
-      {/* 🧾 FOOTER */}
-      <View style={styles.footer}>
-        <Text style={styles.total}>Total: {total.toFixed(2)} €</Text>
-
-        <Pressable
-          style={[
-            styles.finishBtn,
-            !items.some((i) => i.checked) && styles.disabled,
-          ]}
-          disabled={!items.some((i) => i.checked)}
-          onPress={handleFinish}
-        >
-          <Text style={styles.finishText}>Finalizar compra</Text>
-        </Pressable>
+        {!list?.archived && <NewItemInput onSubmit={handleAddItem} />}
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <ItemRow item={item} onToggle={toggleItem} onEdit={openDetail} />
+          )}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingBottom: 120,
+            flexGrow: items.length === 0 ? 1 : undefined,
+          }}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No hay productos en la lista</Text>
+            </View>
+          }
+        />
       </View>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 

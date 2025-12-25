@@ -42,7 +42,6 @@ export default function ShoppingStack() {
         options={{ title: "Editar producto" }}
       />
 
-      {/* ✅ Selector de tienda PARA UNA LISTA */}
       <Stack.Screen
         name={ROUTES.STORES_HOME}
         component={StoresScreen}
