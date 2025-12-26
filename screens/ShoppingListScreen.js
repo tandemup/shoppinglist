@@ -18,30 +18,27 @@ import { useStores } from "../context/StoresContext";
 import StoreSelector from "../components/StoreSelector";
 import NewItemInput from "../components/NewItemInput";
 import ItemRow from "../components/ItemRow";
+
 import { ROUTES } from "../navigation/ROUTES";
 import { getDistanceKm } from "../utils/distance";
 import { getOpenStatus } from "../utils/openingHours";
+import { safeAlert } from "../utils/safeAlert";
 
 export default function ShoppingListScreen() {
   const route = useRoute();
   const navigation = useNavigation();
 
   const { listId, selectedStore } = route.params ?? {};
-
   const { lists, updateListData, archiveList, setStoreForList } = useStore();
-
   const { stores } = useStores();
   const { location } = useLocation();
 
   // ────────────────────────────────────────────────
-  // 🛡️ PROTECCIONES
+  // PROTECCIONES
   // ────────────────────────────────────────────────
-  if (!lists || !listId) {
-    return null;
-  }
+  if (!lists || !listId) return null;
 
   const list = lists.find((l) => l.id === listId);
-
   if (!list) {
     return (
       <SafeAreaView style={styles.center}>
@@ -53,17 +50,17 @@ export default function ShoppingListScreen() {
   const items = list.items ?? [];
 
   // ────────────────────────────────────────────────
-  // 🏪 ASIGNAR TIENDA DESDE NAVEGACIÓN
+  // ASIGNAR TIENDA DESDE STORE_SELECT
   // ────────────────────────────────────────────────
   useEffect(() => {
-    if (selectedStore?.id && listId) {
+    if (selectedStore?.id) {
       setStoreForList(listId, selectedStore.id);
       navigation.setParams({ selectedStore: undefined });
     }
-  }, [selectedStore, listId]);
+  }, [selectedStore]);
 
   // ────────────────────────────────────────────────
-  // 🏪 TIENDA ASIGNADA
+  // TIENDA ASIGNADA
   // ────────────────────────────────────────────────
   const assignedStore = useMemo(() => {
     if (!list.storeId) return null;
@@ -79,19 +76,27 @@ export default function ShoppingListScreen() {
     ? getOpenStatus(assignedStore.hours)
     : null;
 
+  // ────────────────────────────────────────────────
+  // ITEMS
+  // ────────────────────────────────────────────────
   const handleAddItem = async (name) => {
-    await updateListData(listId, (list) => ({
-      ...list,
+    if (!name?.trim()) return;
+
+    await updateListData(listId, (base) => ({
+      ...base,
       items: [
-        ...(list.items || []),
+        ...(base.items || []),
         {
           id: Date.now().toString(),
-          name,
+          name: name.trim(),
           checked: false,
+          qty: 1,
+          price: 0,
         },
       ],
     }));
   };
+
   const toggleItem = async (id) => {
     await updateListData(listId, (base) => ({
       ...base,
@@ -101,9 +106,6 @@ export default function ShoppingListScreen() {
     }));
   };
 
-  // -------------------------
-  // Abrir detalle
-  // -------------------------
   const openDetail = (item) => {
     navigation.navigate("ItemDetail", {
       item,
@@ -123,37 +125,70 @@ export default function ShoppingListScreen() {
     });
   };
 
+  // ────────────────────────────────────────────────
+  // SELECCIONAR TIENDA
+  // ────────────────────────────────────────────────
   const handleSelectStore = () => {
     navigation.navigate(ROUTES.STORE_SELECT, {
       listId,
+      selectForListId: listId,
     });
   };
 
   // ────────────────────────────────────────────────
-  // 🧮 TOTAL
+  // TOTAL
   // ────────────────────────────────────────────────
-  const total = items.reduce(
-    (sum, i) => sum + (i.checked ? i.price * i.qty : 0),
-    0
-  );
+  const total = items.reduce((sum, i) => {
+    if (!i.checked) return sum;
+    const price = Number(i.price) || 0;
+    const qty = Number(i.qty) || 1;
+    return sum + price * qty;
+  }, 0);
 
   // ────────────────────────────────────────────────
-  // 🛒 FINALIZAR COMPRA
+  // FINALIZAR COMPRA
   // ────────────────────────────────────────────────
-  const handleFinish = async () => {
+  const handleFinish = () => {
+    if (!list.storeId) {
+      safeAlert(
+        "Tienda no seleccionada",
+        "Selecciona una tienda antes de finalizar la compra",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     const purchased = items.filter((i) => i.checked);
+    if (purchased.length === 0) {
+      safeAlert("Sin productos", "Marca al menos un producto como comprado", [
+        { text: "OK" },
+      ]);
+      return;
+    }
 
-    await updateListData(listId, (base) => ({
-      ...base,
-      items: purchased,
-    }));
-
-    await archiveList(listId);
-    navigation.navigate(ROUTES.SHOPPING_LISTS);
+    safeAlert(
+      "Finalizar compra",
+      "Se archivarán únicamente los productos marcados.",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Finalizar",
+          style: "destructive",
+          onPress: async () => {
+            await updateListData(listId, (base) => ({
+              ...base,
+              items: purchased,
+            }));
+            await archiveList(listId);
+            navigation.navigate(ROUTES.SHOPPING_LISTS);
+          },
+        },
+      ]
+    );
   };
 
   // ────────────────────────────────────────────────
-  // 🧱 RENDER
+  // RENDER
   // ────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
@@ -161,9 +196,19 @@ export default function ShoppingListScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.container}>
-        <StoreSelector store={assignedStore} onPress={handleSelectStore} />
+        <StoreSelector
+          store={assignedStore}
+          distanceKm={distanceKm}
+          openStatus={openStatus}
+          onPress={handleSelectStore}
+        />
 
-        {!list?.archived && <NewItemInput onSubmit={handleAddItem} />}
+        {!list.archived && <NewItemInput onSubmit={handleAddItem} />}
+
+        {list.archived && (
+          <Text style={styles.archivedText}>Esta lista está archivada</Text>
+        )}
+
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
@@ -172,7 +217,7 @@ export default function ShoppingListScreen() {
           )}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
-            paddingBottom: 120,
+            paddingBottom: 140,
             flexGrow: items.length === 0 ? 1 : undefined,
           }}
           ListEmptyComponent={
@@ -182,12 +227,26 @@ export default function ShoppingListScreen() {
           }
         />
       </View>
+
+      {!list.archived && items.length > 0 && (
+        <View style={styles.footer}>
+          <Text style={styles.total}>Total: {total.toFixed(2)} €</Text>
+
+          <Pressable
+            style={[styles.finishBtn, !list.storeId && styles.disabled]}
+            onPress={handleFinish}
+            disabled={!list.storeId}
+          >
+            <Text style={styles.finishText}>Finalizar compra</Text>
+          </Pressable>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 // ────────────────────────────────────────────────
-// 🎨 ESTILOS
+// ESTILOS
 // ────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
@@ -199,27 +258,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "600",
-    marginBottom: 12,
+  archivedText: {
+    color: "#888",
+    marginBottom: 8,
   },
-  storeBox: {
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    marginBottom: 12,
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  storeName: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  selectStore: {
+  emptyText: {
     color: "#666",
-  },
-  meta: {
-    fontSize: 12,
   },
   footer: {
     position: "absolute",
