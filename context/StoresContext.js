@@ -1,8 +1,9 @@
+// context/StoresContext.js
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// 👉 cambia la ruta si tu JSON está en otro sitio
-import storesData from "../data/stores.json";
+import rawStores from "../data/stores.json";
+import { runPhase0 } from "../utils/devPhase0";
 
 const StoresContext = createContext(null);
 
@@ -16,6 +17,19 @@ export const useStores = () => {
 
 const FAVORITES_KEY = "@favorite_stores";
 
+// ────────────────────────────────────────────────
+// NORMALIZACIÓN DE TIENDAS
+// ────────────────────────────────────────────────
+const normalizeStores = (stores) =>
+  stores.filter(Boolean).map((store, index) => {
+    const id = store.id ?? store.osm_id ?? store["@id"] ?? `store-${index}`;
+
+    return {
+      ...store,
+      id: String(id), // 🔑 SIEMPRE string y nunca null
+    };
+  });
+
 export function StoresProvider({ children }) {
   const [stores, setStores] = useState([]);
   const [favorites, setFavorites] = useState([]);
@@ -27,13 +41,25 @@ export function StoresProvider({ children }) {
   useEffect(() => {
     const load = async () => {
       try {
-        // 1️⃣ tiendas (catálogo)
-        setStores(storesData);
+        const normalizedStores = normalizeStores(rawStores);
+        setStores(normalizedStores);
 
-        // 2️⃣ favoritas
         const favRaw = await AsyncStorage.getItem(FAVORITES_KEY);
+        let validFavorites = [];
+
         if (favRaw) {
-          setFavorites(JSON.parse(favRaw));
+          const parsed = JSON.parse(favRaw);
+          validFavorites = parsed.filter((id) =>
+            normalizedStores.some((s) => s.id === id)
+          );
+          setFavorites(validFavorites);
+        }
+
+        if (__DEV__) {
+          runPhase0({
+            stores: normalizedStores,
+            favorites: validFavorites,
+          });
         }
       } catch (e) {
         console.warn("Error loading stores", e);
@@ -44,20 +70,20 @@ export function StoresProvider({ children }) {
 
     load();
   }, []);
-
   // ────────────────────────────────────────────────
   // FAVORITAS
   // ────────────────────────────────────────────────
   const toggleFavorite = async (storeId) => {
-    const next = favorites.includes(storeId)
-      ? favorites.filter((id) => id !== storeId)
-      : [...favorites, storeId];
+    const id = String(storeId);
+    const next = favorites.includes(id)
+      ? favorites.filter((fid) => fid !== id)
+      : [...favorites, id];
 
     setFavorites(next);
     await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
   };
 
-  const isFavorite = (storeId) => favorites.includes(storeId);
+  const isFavorite = (storeId) => favorites.includes(String(storeId));
 
   return (
     <StoresContext.Provider

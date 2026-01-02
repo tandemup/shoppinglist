@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo } from "react";
+// screens/ShoppingListScreen.js
+import React, { useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  ScrollView,
   Pressable,
   KeyboardAvoidingView,
   Platform,
@@ -20,6 +21,7 @@ import NewItemInput from "../components/NewItemInput";
 import ItemRow from "../components/ItemRow";
 
 import { ROUTES } from "../navigation/ROUTES";
+import { defaultPriceInfo } from "../utils/defaultItem";
 import { getDistanceKm } from "../utils/distance";
 import { getOpenStatus } from "../utils/openingHours";
 import { safeAlert } from "../utils/safeAlert";
@@ -28,17 +30,15 @@ export default function ShoppingListScreen() {
   const route = useRoute();
   const navigation = useNavigation();
 
-  const { listId, selectedStore } = route.params ?? {};
-  const { lists, updateListData, archiveList, setStoreForList } = useStore();
+  const { listId } = route.params ?? {};
+  const { lists, updateListData, archiveList } = useStore();
   const { stores } = useStores();
   const { location } = useLocation();
 
-  // ────────────────────────────────────────────────
-  // PROTECCIONES
-  // ────────────────────────────────────────────────
   if (!lists || !listId) return null;
 
   const list = lists.find((l) => l.id === listId);
+
   if (!list) {
     return (
       <SafeAreaView style={styles.center}>
@@ -50,21 +50,11 @@ export default function ShoppingListScreen() {
   const items = list.items ?? [];
 
   // ────────────────────────────────────────────────
-  // ASIGNAR TIENDA DESDE STORE_SELECT
-  // ────────────────────────────────────────────────
-  useEffect(() => {
-    if (selectedStore?.id) {
-      setStoreForList(listId, selectedStore.id);
-      navigation.setParams({ selectedStore: undefined });
-    }
-  }, [selectedStore]);
-
-  // ────────────────────────────────────────────────
-  // TIENDA ASIGNADA
+  // TIENDA ASIGNADA (SOLO DESDE CONTEXTO)
   // ────────────────────────────────────────────────
   const assignedStore = useMemo(() => {
     if (!list.storeId) return null;
-    return stores.find((s) => s.id === list.storeId);
+    return stores.find((s) => s.id === list.storeId) ?? null;
   }, [list.storeId, stores]);
 
   const distanceKm =
@@ -89,9 +79,8 @@ export default function ShoppingListScreen() {
         {
           id: Date.now().toString(),
           name: name.trim(),
-          checked: false,
-          qty: 1,
-          price: 0,
+          checked: true, // ✅ nuevo item marcado
+          priceInfo: defaultPriceInfo(),
         },
       ],
     }));
@@ -130,7 +119,6 @@ export default function ShoppingListScreen() {
   // ────────────────────────────────────────────────
   const handleSelectStore = () => {
     navigation.navigate(ROUTES.STORE_SELECT, {
-      listId,
       selectForListId: listId,
     });
   };
@@ -140,9 +128,8 @@ export default function ShoppingListScreen() {
   // ────────────────────────────────────────────────
   const total = items.reduce((sum, i) => {
     if (!i.checked) return sum;
-    const price = Number(i.price) || 0;
-    const qty = Number(i.qty) || 1;
-    return sum + price * qty;
+    const p = i.priceInfo;
+    return sum + (Number(p?.total) || 0);
   }, 0);
 
   // ────────────────────────────────────────────────
@@ -159,6 +146,7 @@ export default function ShoppingListScreen() {
     }
 
     const purchased = items.filter((i) => i.checked);
+
     if (purchased.length === 0) {
       safeAlert("Sin productos", "Marca al menos un producto como comprado", [
         { text: "OK" },
@@ -187,9 +175,6 @@ export default function ShoppingListScreen() {
     );
   };
 
-  // ────────────────────────────────────────────────
-  // RENDER
-  // ────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -209,23 +194,25 @@ export default function ShoppingListScreen() {
           <Text style={styles.archivedText}>Esta lista está archivada</Text>
         )}
 
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ItemRow item={item} onToggle={toggleItem} onEdit={openDetail} />
-          )}
+        <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{
-            paddingBottom: 140,
-            flexGrow: items.length === 0 ? 1 : undefined,
-          }}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No hay productos en la lista</Text>
-            </View>
-          }
-        />
+          contentContainerStyle={{ paddingBottom: 160 }}
+        >
+          {items.length === 0 && (
+            <Text style={styles.emptyText}>
+              No hay productos en esta lista 😊
+            </Text>
+          )}
+
+          {items.map((item) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              onToggle={toggleItem}
+              onEdit={openDetail}
+            />
+          ))}
+        </ScrollView>
       </View>
 
       {!list.archived && items.length > 0 && (
@@ -245,9 +232,6 @@ export default function ShoppingListScreen() {
   );
 }
 
-// ────────────────────────────────────────────────
-// ESTILOS
-// ────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -262,13 +246,10 @@ const styles = StyleSheet.create({
     color: "#888",
     marginBottom: 8,
   },
-  emptyState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   emptyText: {
+    textAlign: "center",
     color: "#666",
+    marginTop: 24,
   },
   footer: {
     position: "absolute",

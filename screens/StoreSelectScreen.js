@@ -1,113 +1,113 @@
-import React, { useState, useMemo } from "react";
-import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
+// screens/StoreSelectScreen.js
+import React, { useMemo } from "react";
+import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+
+import { useStores } from "../context/StoresContext";
 import { useConfig } from "../context/ConfigContext";
-import { useStoresWithDistance } from "../hooks/useStoresWithDistance";
+
 import StoreCard from "../components/StoreCard";
 import { ROUTES } from "../navigation/ROUTES";
 
 export default function StoreSelectScreen() {
-  const route = useRoute();
   const navigation = useNavigation();
+  const route = useRoute();
 
-  const { listId } = route.params ?? {};
-  const [search, setSearch] = useState("");
-  const { favoriteStores = [] } = useConfig() ?? {};
+  const { selectForListId } = route.params ?? {};
 
-  const { sortedStores } = useStoresWithDistance();
-
-  // ────────────────────────────────────────────────
-  // ⭐ SOLO TIENDAS FAVORITAS
-  // ────────────────────────────────────────────────
-  const favoriteStoresList = useMemo(() => {
-    const ids = Array.isArray(favoriteStores) ? favoriteStores : [];
-    return (sortedStores ?? []).filter((s) => ids.includes(s.id));
-  }, [sortedStores, favoriteStores]);
+  const { stores } = useStores();
+  const { favoriteStoreIds } = useConfig();
 
   // ────────────────────────────────────────────────
-  // 🔍 FILTRO SEGURO
+  // SOLO TIENDAS FAVORITAS
   // ────────────────────────────────────────────────
-  const filteredStores = useMemo(() => {
-    const text = search?.toLowerCase() ?? "";
+  const favoriteStores = useMemo(() => {
+    if (!stores?.length || !favoriteStoreIds?.length) return [];
+    return stores.filter((s) => favoriteStoreIds.includes(s.id));
+  }, [stores, favoriteStoreIds]);
 
-    return favoriteStores.filter((store) => {
-      return (
-        store?.name?.toLowerCase().includes(text) ||
-        store?.city?.toLowerCase().includes(text) ||
-        store?.postcode?.toString().includes(text)
-      );
+  // ────────────────────────────────────────────────
+  // SELECCIONAR TIENDA → VOLVER
+  // ────────────────────────────────────────────────
+  const handleSelectStore = (store) => {
+    navigation.navigate(ROUTES.SHOPPING_LIST, {
+      listId: selectForListId,
+      selectedStore: store,
     });
-  }, [favoriteStores, search]);
+  };
 
   // ────────────────────────────────────────────────
-  // 🧱 EMPTY STATE
+  // SIN FAVORITAS → UX
   // ────────────────────────────────────────────────
-  if (favoriteStoresList.length === 0) {
+  if (favoriteStores.length === 0) {
     return (
-      <View style={styles.empty}>
-        <Text style={styles.title}>No tienes tiendas favoritas</Text>
-        <Text style={styles.subtitle}>
-          Ve al tab "Tiendas" y marca ⭐ las tiendas que usas habitualmente
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyTitle}>No tienes tiendas favoritas</Text>
+
+        <Text style={styles.emptySubtitle}>
+          Marca una tienda como favorita para poder seleccionarla rápidamente
         </Text>
 
         <Pressable
-          style={styles.button}
-          onPress={() => navigation.navigate(ROUTES.STORES_TAB)}
+          style={styles.exploreButton}
+          onPress={() =>
+            navigation.navigate(ROUTES.STORES_TAB, {
+              screen: ROUTES.STORES,
+              params: {
+                selectForListId,
+              },
+            })
+          }
         >
-          <Text style={styles.buttonText}>Ir a Tiendas</Text>
+          <Text style={styles.exploreText}>Explorar tiendas</Text>
         </Pressable>
       </View>
     );
   }
 
   // ────────────────────────────────────────────────
-  // 🧱 LISTADO
+  // LISTADO FAVORITAS
   // ────────────────────────────────────────────────
   return (
     <FlatList
-      contentContainerStyle={{ padding: 16 }}
-      data={filteredStores}
+      data={favoriteStores}
       keyExtractor={(item) => item.id}
+      contentContainerStyle={styles.list}
       renderItem={({ item }) => (
-        <StoreCard
-          store={item}
-          onPress={() => {
-            navigation.navigate(ROUTES.SHOPPING_LIST, {
-              listId,
-              selectedStore: item,
-            });
-          }}
-        />
+        <StoreCard store={item} onPress={() => handleSelectStore(item)} />
       )}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  empty: {
+  list: {
+    padding: 16,
+  },
+  emptyContainer: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
     padding: 24,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  title: {
+  emptyTitle: {
     fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 6,
+    fontWeight: "600",
+    marginBottom: 8,
   },
-  subtitle: {
+  emptySubtitle: {
     fontSize: 14,
     color: "#666",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 24,
   },
-  button: {
-    backgroundColor: "#007bff",
+  exploreButton: {
+    backgroundColor: "#2563eb",
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  buttonText: {
+  exploreText: {
     color: "#fff",
     fontWeight: "600",
   },

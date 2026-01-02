@@ -52,7 +52,7 @@ export default function ShoppingStack() {
       <Stack.Screen
         name={ROUTES.STORE_SELECT}
         component={StoreSelectScreen}
-        options={{ title: "Sel tienda" }}
+        options={{ title: "Seleccionar tienda" }}
       />
 
       <Stack.Screen

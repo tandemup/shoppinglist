@@ -1,92 +1,87 @@
-import React from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+// screens/StoresScreen.js
+import React, { useMemo, useState } from "react";
+import { View, Text, FlatList, StyleSheet, TextInput } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+
+import { useStores } from "../context/StoresContext";
+import StoreCard from "../components/StoreCard";
 import { ROUTES } from "../navigation/ROUTES";
 
-export default function StoresScreen({ navigation }) {
+export default function StoresScreen() {
+  const navigation = useNavigation();
+  const route = useRoute();
+
+  const { selectForListId } = route.params ?? {};
+
+  const { stores } = useStores();
+  const [query, setQuery] = useState("");
+
+  // ────────────────────────────────────────────────
+  // FILTRO BÚSQUEDA
+  // ────────────────────────────────────────────────
+  const filteredStores = useMemo(() => {
+    if (!query.trim()) return stores;
+    const q = query.toLowerCase();
+    return stores.filter(
+      (s) =>
+        s.name.toLowerCase().includes(q) || s.address?.toLowerCase().includes(q)
+    );
+  }, [stores, query]);
+
+  // ────────────────────────────────────────────────
+  // TAP EN TIENDA (MODO DUAL)
+  // ────────────────────────────────────────────────
+  const handlePressStore = (store) => {
+    // 🔥 MODO SELECCIÓN
+    if (selectForListId) {
+      navigation.navigate(ROUTES.SHOPPING_LIST, {
+        listId: selectForListId,
+        selectedStore: store,
+      });
+      return;
+    }
+
+    // 🧭 MODO NORMAL
+    navigation.navigate(ROUTES.STORE_DETAIL, {
+      storeId: store.id,
+    });
+  };
+
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Tiendas</Text>
+    <View style={styles.container}>
+      <TextInput
+        style={styles.search}
+        placeholder="Buscar tiendas..."
+        value={query}
+        onChangeText={setQuery}
+      />
 
-        <Text style={styles.subtitle}>
-          Encuentra tiendas, consúltalas en el mapa o selecciónalas para tus
-          listas de la compra.
-        </Text>
-
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => navigation.navigate(ROUTES.STORES_BROWSE)}
-        >
-          <Text style={styles.primaryText}>Ver tiendas</Text>
-        </Pressable>
-
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.navigate(ROUTES.STORE_MAP)}
-        >
-          <Text style={styles.secondaryText}>Ver tiendas en el mapa</Text>
-        </Pressable>
-
-        <Pressable
-          style={[styles.secondaryButton, styles.favoritesButton]}
-          onPress={() => navigation.navigate(ROUTES.STORES_FAVORITES)}
-        >
-          <Text style={styles.secondaryText}>⭐ Ver favoritas</Text>
-        </Pressable>
-      </View>
-    </SafeAreaView>
+      <FlatList
+        data={filteredStores}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <StoreCard store={item} onPress={() => handlePressStore(item)} />
+        )}
+        contentContainerStyle={styles.list}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: "#f2f2f2",
-  },
   container: {
     flex: 1,
-    padding: 20,
-    justifyContent: "center",
+    padding: 16,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  primaryButton: {
-    backgroundColor: "#2563eb",
-    paddingVertical: 14,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  primaryText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  secondaryButton: {
+  search: {
     backgroundColor: "#fff",
-    paddingVertical: 14,
+    padding: 12,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
-  secondaryText: {
-    color: "#111",
-    fontSize: 16,
-    textAlign: "center",
-  },
-  favoritesButton: {
-    borderColor: "#facc15",
+  list: {
+    paddingBottom: 16,
   },
 });

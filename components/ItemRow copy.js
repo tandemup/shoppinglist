@@ -1,62 +1,62 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { formatUnit } from "../utils/pricing/unitFormat";
 
 export default function ItemRow({ item, onToggle, onEdit }) {
-  const isChecked = item.checked === true;
-
-  const price = item.priceInfo;
-
-  if (!price) return null;
+  const priceInfo = {
+    quantity: Number(item.priceInfo?.quantity) || 1,
+    unit: Number(item.priceInfo?.unit) || 0,
+    total: Number(item.priceInfo?.total) || 0,
+  };
 
   return (
     <Pressable
       onPress={() => onEdit(item)}
-      style={[styles.row, isChecked && styles.rowChecked]}
+      style={[styles.row, item.checked && styles.rowChecked]}
     >
       {/* CHECKBOX */}
       <Pressable
         onPress={() => onToggle(item.id)}
-        hitSlop={8}
         style={styles.checkbox}
+        hitSlop={8}
       >
         <Ionicons
-          name={isChecked ? "checkbox" : "square-outline"}
+          name={item.checked ? "checkbox" : "square-outline"}
           size={22}
-          color={isChecked ? "#2563eb" : "#9ca3af"}
+          color={item.checked ? "#2563eb" : "#999"}
         />
       </Pressable>
 
-      {/* INFO */}
+      {/* INFO CENTRAL */}
       <View style={styles.content}>
-        {/* NOMBRE + PROMO */}
+        {/* NOMBRE + OFERTA */}
         <View style={styles.titleRow}>
-          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.name} numberOfLines={1}>
+            {item.name}
+          </Text>
 
-          {price.promo !== "none" && (
+          {item.offer?.type && (
             <View style={styles.offerBadge}>
-              <Text style={styles.offerText}>{price.promoLabel}</Text>
+              <Text style={styles.offerText}>{item.offer.type}</Text>
             </View>
           )}
         </View>
 
-        {/* DETALLE */}
-        <Text style={styles.subText}>
-          {price.qty} {formatUnit(price.unit)} × {price.unitPrice.toFixed(2)} €
-        </Text>
-
-        {price.savings > 0 && (
-          <Text style={styles.savings}>
-            Ahorro: {price.savings.toFixed(2)} €
+        {/* SUBTEXTO */}
+        {priceInfo && (
+          <Text style={styles.subText}>
+            {priceInfo.quantity} × {Number(priceInfo.unit).toFixed(2)} €
           </Text>
         )}
       </View>
 
-      {/* TOTAL */}
-      <Text style={styles.total}>{price.total.toFixed(2)} €</Text>
+      {/* PRECIO */}
+      {priceInfo && (
+        <Text style={styles.total}>{Number(priceInfo.total).toFixed(2)} €</Text>
+      )}
 
-      <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+      {/* CHEVRON */}
+      <Ionicons name="chevron-forward" size={18} color="#999" />
     </Pressable>
   );
 }
@@ -70,53 +70,55 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginBottom: 8,
   },
+
   rowChecked: {
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#f1f5f9", // fondo tenue
   },
+
   checkbox: {
     marginRight: 8,
   },
+
   content: {
     flex: 1,
     marginRight: 8,
   },
+
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
     flexWrap: "wrap",
+    gap: 6,
   },
+
   name: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#111827",
+    color: "#111",
   },
+
   offerBadge: {
-    backgroundColor: "#16a34a",
+    backgroundColor: "#16a34a", // verde oferta
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
+
   offerText: {
     color: "#fff",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "600",
   },
+
   subText: {
     fontSize: 13,
-    color: "#6b7280",
+    color: "#666",
     marginTop: 2,
   },
-  savings: {
-    fontSize: 12,
-    color: "#15803d",
-    fontWeight: "600",
-    marginTop: 2,
-  },
+
   total: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
     marginRight: 6,
-    color: "#111827",
   },
 });

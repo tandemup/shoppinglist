@@ -16,9 +16,9 @@ import { useStore } from "../context/StoreContext";
 export default function StoreDetailScreen({ route, navigation }) {
   const { storeId, selectForListId } = route.params ?? {};
   const { setStoreForList } = useStore();
-
+  console.log("StoreDetailScreen");
   const store = stores.find((s) => s.id === storeId);
-
+  console.log(store);
   if (!store) {
     return (
       <SafeAreaView style={styles.container}>
@@ -43,9 +43,7 @@ export default function StoreDetailScreen({ route, navigation }) {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.name}>{store.name}</Text>
-
         {store.address && <Text style={styles.section}>{store.address}</Text>}
-
         <Pressable style={styles.mapButton} onPress={openMaps}>
           <Text style={styles.mapButtonText}>🗺️ Abrir en mapas</Text>
         </Pressable>

@@ -1,4 +1,3 @@
-// utils/defaultItem.js
 export const defaultPriceInfo = () => ({
   unitType: "u", // u | kg | l
   qty: 1,
@@ -17,18 +16,4 @@ export const defaultItem = {
   image: null,
   checked: true,
   priceInfo: defaultPriceInfo(),
-};
-
-export const defaultItem1 = {
-  name: "",
-  checked: false,
-  date: null, // Puedes cambiarlo a Date.now() si deseas tracking automático
-  priceInfo: {
-    unitType: "u",
-    unitPrice: 0,
-    qty: 1,
-    promo: "none",
-    total: 0,
-    summary: "",
-  },
 };

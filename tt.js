@@ -1,236 +1,232 @@
-import React, { useState } from "react";
+// screens/ItemDetailScreen.js
+import React, { useState, useEffect } from "react";
 import {
   View,
-  FlatList,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import PrecioPromocion from "../components/PrecioPromocion";
+import { generateId } from "../utils/generateId";
+
+import { defaultItem } from "../utils/defaultItem";
 import { safeAlert } from "../utils/safeAlert";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { defaultPriceInfo } from "../utils/defaultItem";
 
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+export default function ItemDetailScreen({ route, navigation }) {
+  const { item, onSave, onDelete } = route.params;
 
-import ItemRow from "../components/ItemRow";
-import StoreSelector from "../components/StoreSelector";
-import NewItemInput from "../components/NewItemInput";
+  const originalId = item.id;
 
-import { useStore } from "../context/StoreContext";
+  const [itemData, setItemData] = useState({
+    ...defaultItem,
+    barcode: "",
+    aiData: null,
+    ...item,
+    id: originalId,
+  });
 
-export default function ShoppingListScreen({ navigation, route }) {
-  const { listId } = route.params;
-  const { lists, updateListData, archiveList } = useStore();
+  //
+  // 🔁 Cuando volvemos del Scanner → actualizar barcode
+  //
+  useEffect(() => {
+    if (route.params?.scannedBarcode) {
+      setItemData((prev) => ({
+        ...prev,
+        barcode: route.params.scannedBarcode,
+      }));
+    }
+  }, [route.params?.scannedBarcode]);
 
-  const list = lists.find((l) => l.id === listId);
-  const items = list?.items || [];
-  const [footerHeight, setFooterHeight] = useState(0);
-  const insets = useSafeAreaInsets();
-
-  const handleFinish = () => {
-    safeAlert(
-      "Finalizar compra",
-      "Los productos se archivarán y se guardarán en el historial.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Finalizar",
-          style: "destructive",
-          onPress: async () => {
-            await archiveList(listId);
-            navigation.navigate("ShoppingLists");
-          },
-        },
-      ]
-    );
-  };
-
-  // -------------------------
-  // Cambiar tienda
-  // -------------------------
-  const handleChangeStore = async (store) => {
-    await updateListData(listId, (base) => ({
-      ...base,
-      store,
-    }));
-  };
-
-  // -------------------------
-  // Añadir item
-  // -------------------------
-  const addItem = async (name) => {
-    name = name.trim();
-    if (!name) return;
-
-    await updateListData(listId, (base) => ({
-      ...base,
-      items: [
-        {
-          id: Date.now().toString(),
-          name,
-          checked: true, // ← recomendable para tu lógica del total
-          priceInfo: {
-            qty: 1,
-            unitPrice: 0,
-            total: 0,
-            unitType: "u",
-            promo: "none",
-            summary: null,
-          },
-        },
-        ...(base.items || []),
-      ],
-    }));
-  };
-
-  // -------------------------
-  // Marcar / desmarcar
-  // -------------------------
-  const toggleItem = async (id) => {
-    await updateListData(listId, (base) => ({
-      ...base,
-      items: base.items.map((i) =>
-        i.id === id ? { ...i, checked: !i.checked } : i
+  //
+  // ☰ Menú
+  //
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Menu")}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="menu" size={24} color="black" />
+        </TouchableOpacity>
       ),
-    }));
-  };
-
-  // -------------------------
-  // Abrir detalle
-  // -------------------------
-  const openDetail = (item) => {
-    navigation.navigate("ItemDetail", {
-      item,
-      listId,
-      onSave: async (updated) => {
-        await updateListData(listId, (base) => ({
-          ...base,
-          items: base.items.map((i) => (i.id === updated.id ? updated : i)),
-        }));
-      },
-      onDelete: async (id) => {
-        await updateListData(listId, (base) => ({
-          ...base,
-          items: base.items.filter((i) => i.id !== id),
-        }));
-      },
     });
+  }, [navigation]);
+
+  //
+  // 💾 Guardar
+  //
+
+  const handleSave = async () => {
+    if (!itemData.name.trim()) {
+      safeAlert("Nombre vacío", "Introduce un nombre para el producto.");
+      return;
+    }
+
+    // ⭐ Unificar y reparar priceInfo
+    const fixedPriceInfo = {
+      ...defaultPriceInfo(),
+      ...itemData.priceInfo,
+      total: parseFloat(itemData.priceInfo?.total) || 0,
+      qty: parseFloat(itemData.priceInfo?.qty) || 1,
+      unitPrice: parseFloat(itemData.priceInfo?.unitPrice) || 0,
+    };
+
+    const updatedItem = {
+      ...itemData,
+      id: originalId,
+      priceInfo: fixedPriceInfo, // 👈 Aquí aplicamos el fix
+    };
+
+    try {
+      await onSave(updatedItem);
+      requestAnimationFrame(() => navigation.goBack());
+    } catch (err) {
+      console.error(err);
+      safeAlert("Error", "No se pudo guardar.");
+    }
   };
 
-  // -------------------------
-  // Total
-  // -------------------------
-  const total = items
-    .filter((i) => i.checked === true)
-    .reduce((acc, i) => acc + (i.priceInfo?.total || 0), 0);
+  //
+  // 🗑 Eliminar
+  //
+  const handleDelete = () => {
+    safeAlert("Eliminar producto", "¿Seguro que deseas eliminarlo?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await Promise.resolve(onDelete(originalId));
+            requestAnimationFrame(() => navigation.goBack());
+          } catch (err) {
+            console.error(err);
+            safeAlert("Error", "No se pudo eliminar.");
+          }
+        },
+      },
+    ]);
+  };
 
-  // -------------------------
-  // UI
-  // -------------------------
   return (
-    <View style={styles.container}>
-      <StoreSelector
-        navigation={navigation}
-        store={list?.store}
-        onChangeStore={handleChangeStore}
+    <KeyboardAwareScrollView
+      contentContainerStyle={styles.container}
+      enableOnAndroid={true}
+      extraScrollHeight={40}
+    >
+      {/* Nombre */}
+      <Text style={styles.label}>Nombre</Text>
+      <TextInput
+        style={styles.input}
+        value={itemData.name}
+        onChangeText={(text) =>
+          setItemData((prev) => ({ ...prev, name: text }))
+        }
       />
 
-      <NewItemInput onSubmit={addItem} />
-
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: footerHeight }}
-        renderItem={({ item }) => (
-          <ItemRow item={item} onToggle={toggleItem} onEdit={openDetail} />
-        )}
+      {/* Barcode */}
+      <Text style={styles.label}>Código de barras</Text>
+      <TextInput
+        style={styles.input}
+        value={itemData.barcode}
+        onChangeText={(text) =>
+          setItemData((prev) => ({ ...prev, barcode: text }))
+        }
       />
 
-      <View
-        style={[styles.footer, { paddingBottom: insets.bottom }]}
-        onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
-      >
-        <Text style={styles.totalText}>💰 {total.toFixed(2)} €</Text>
-        <TouchableOpacity style={styles.finishBtn} onPress={handleFinish}>
-          <Text style={styles.finishText}>💳 Finalizar compra</Text>
+      {/* Precio y promociones */}
+      <PrecioPromocion
+        value={itemData.priceInfo}
+        onChange={(info) =>
+          setItemData((prev) => ({ ...prev, priceInfo: info }))
+        }
+      />
+
+      {/* Botones */}
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+          <Text style={styles.saveText}>💾 Guardar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+          <Text style={styles.deleteText}>🗑️ Eliminar</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAwareScrollView>
   );
 }
 
-// --------------------------------------------------
-// ESTILOS
-// --------------------------------------------------
+//
+// 🎨 Estilos
+//
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#f8f8f8",
+    flexGrow: 1,
+    padding: 16,
+    backgroundColor: "#fff",
   },
-
-  addRow: {
-    flexDirection: "row",
-    padding: 10,
-  },
-
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "white",
-  },
-
-  addBtn: {
-    marginLeft: 8,
-    backgroundColor: "#4CAF50",
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  addBtnText: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "600",
-    marginTop: -2,
-  },
-
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "white",
-    borderTopWidth: 1,
-    borderColor: "#ddd",
-    paddingTop: 12,
-    paddingHorizontal: 16,
-  },
-
-  totalText: {
-    fontSize: 25, // ← más grande
-    fontWeight: "700", // ← más fuerte
-    textAlign: "right", // ← alineado a la derecha
-    width: "100%", // ← ocupa todo el ancho
-    color: "#222",
-    marginBottom: 8,
-  },
-
-  finishBtn: {
-    backgroundColor: "#007bff",
-    padding: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    marginBottom: 6,
-  },
-
-  finishText: {
-    color: "white",
+  label: {
     fontSize: 16,
     fontWeight: "600",
+    marginBottom: 4,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+
+  // 📷 Botón escanear
+  scanBtn: {
+    backgroundColor: "#2196F3",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    alignItems: "center",
+  },
+  scanBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  actions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  saveBtn: {
+    flex: 1,
+    backgroundColor: "#4CAF50",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginRight: 6,
+  },
+  deleteBtn: {
+    flex: 1,
+    backgroundColor: "#f44336",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    marginLeft: 6,
+  },
+  saveText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  deleteText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
