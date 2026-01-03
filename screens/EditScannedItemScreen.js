@@ -15,8 +15,9 @@ import {
 import {
   updateScannedEntry,
   removeScannedItem,
-} from "../utils/storage/scannerHistory";
-import { safeAlert } from "../utils/safeAlert";
+} from "../services/scannerHistory";
+
+import { safeAlert } from "../utils/core/safeAlert";
 
 export default function EditScannedItemScreen({ route, navigation }) {
   const { item, reload } = route.params;

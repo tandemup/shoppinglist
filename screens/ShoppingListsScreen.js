@@ -4,6 +4,7 @@ import {
   Text,
   FlatList,
   TextInput,
+  Modal,
   StyleSheet,
   Pressable,
 } from "react-native";
@@ -11,13 +12,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ROUTES } from "../navigation/ROUTES";
-import { safeAlert } from "../utils/safeAlert";
+import { safeAlert } from "../utils/core/safeAlert";
 import { useStore } from "../context/StoreContext";
-import { generateId } from "../utils/generateId";
+import { generateId } from "../utils/core/generateId";
 
 export default function ShoppingListsScreen({ navigation }) {
   const { lists = [], addList, deleteList, archiveList } = useStore();
+
   const [newListName, setNewListName] = useState("");
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedList, setSelectedList] = useState(null);
 
   useEffect(() => {
     navigation.setOptions({
@@ -64,27 +68,8 @@ export default function ShoppingListsScreen({ navigation }) {
   };
 
   const handleListMenu = (list) => {
-    safeAlert(list.name, "¿Qué quieres hacer con esta lista?", [
-      {
-        text: "Editar",
-        onPress: () => {
-          navigation.navigate(ROUTES.EDIT_LIST, {
-            listId: list.id,
-          });
-        },
-      },
-      {
-        text: "Archivar",
-        style: "destructive",
-        onPress: () => archiveList(list.id),
-      },
-      {
-        text: "Borrar",
-        style: "destructive",
-        onPress: () => deleteList(list.id),
-      },
-      { text: "Cancelar", style: "cancel" },
-    ]);
+    setSelectedList(list);
+    setMenuVisible(true);
   };
 
   // ────────────────────────────────────────────────
@@ -135,13 +120,67 @@ export default function ShoppingListsScreen({ navigation }) {
         data={activeLists}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={{
-          paddingBottom: 40,
-        }}
+        contentContainerStyle={{ paddingBottom: 40 }}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No tienes listas activas 😊</Text>
         }
       />
+
+      {/* MENÚ EMERGENTE */}
+      {selectedList && (
+        <Modal
+          transparent
+          animationType="fade"
+          visible={menuVisible}
+          onRequestClose={() => setMenuVisible(false)}
+        >
+          <Pressable
+            style={styles.menuOverlay}
+            onPress={() => setMenuVisible(false)}
+          />
+
+          <View style={styles.menuContainer}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                navigation.navigate(ROUTES.EDIT_LIST, {
+                  listId: selectedList.id,
+                });
+              }}
+            >
+              <Text style={styles.menuText}>✏️ Editar</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                archiveList(selectedList.id);
+              }}
+            >
+              <Text style={[styles.menuText, styles.warning]}>📦 Archivar</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                deleteList(selectedList.id);
+              }}
+            >
+              <Text style={[styles.menuText, styles.danger]}>🗑️ Borrar</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.menuItem, styles.cancel]}
+              onPress={() => setMenuVisible(false)}
+            >
+              <Text style={styles.menuText}>Cancelar</Text>
+            </Pressable>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -217,5 +256,46 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 30,
     color: "#888",
+  },
+
+  // MENÚ
+  menuOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.3)",
+  },
+  menuContainer: {
+    position: "absolute",
+    right: 20,
+    top: 120,
+    width: 220,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  menuText: {
+    fontSize: 15,
+  },
+  danger: {
+    color: "#dc2626",
+    fontWeight: "bold",
+  },
+  warning: {
+    color: "#d97706",
+  },
+  cancel: {
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
   },
 });

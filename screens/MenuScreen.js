@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { safeAlert } from "../utils/safeAlert";
+import { safeAlert } from "../utils/core/safeAlert";
 import { ROUTES } from "../navigation/ROUTES";
 
 import {

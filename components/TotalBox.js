@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { NO_PROMO, PROMOTIONS } from "../utils/pricing/PricingEngine";
+import { PricingEngine, PROMOTIONS, NO_PROMO } from "../utils/pricing";
 
 export default function TotalBox({
   qty,

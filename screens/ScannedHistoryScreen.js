@@ -12,13 +12,13 @@ import { ROUTES } from "../navigation/ROUTES";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { safeAlert } from "../utils/safeAlert";
+import { safeAlert } from "../utils/core/safeAlert";
 import BarcodeLink from "../components/BarcodeLink";
 
 import {
   getScannedHistory,
   removeScannedItem,
-} from "../utils/storage/scannerHistory";
+} from "../services/scannerHistory";
 
 export default function ScannedHistoryScreen({ navigation }) {
   //

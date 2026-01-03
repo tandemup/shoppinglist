@@ -5,17 +5,13 @@ import { formatUnit } from "../utils/pricing/unitFormat";
 
 export default function ItemRow({ item, onToggle, onEdit }) {
   const isChecked = item.checked === true;
-
   const price = item.priceInfo;
 
   if (!price) return null;
 
   return (
-    <Pressable
-      onPress={() => onEdit(item)}
-      style={[styles.row, isChecked && styles.rowChecked]}
-    >
-      {/* CHECKBOX */}
+    <View style={[styles.row, !isChecked && styles.rowDiscarded]}>
+      {/* CHECKBOX → SOLO TOGGLE */}
       <Pressable
         onPress={() => onToggle(item.id)}
         hitSlop={8}
@@ -24,15 +20,16 @@ export default function ItemRow({ item, onToggle, onEdit }) {
         <Ionicons
           name={isChecked ? "checkbox" : "square-outline"}
           size={22}
-          color={isChecked ? "#2563eb" : "#9ca3af"}
+          color={isChecked ? "#16a34a" : "#9ca3af"}
         />
       </Pressable>
 
-      {/* INFO */}
+      {/* INFO (NO CLICABLE) */}
       <View style={styles.content}>
-        {/* NOMBRE + PROMO */}
         <View style={styles.titleRow}>
-          <Text style={styles.name}>{item.name}</Text>
+          <Text style={[styles.name, !isChecked && styles.nameDiscarded]}>
+            {item.name}
+          </Text>
 
           {price.promo !== "none" && (
             <View style={styles.offerBadge}>
@@ -41,23 +38,27 @@ export default function ItemRow({ item, onToggle, onEdit }) {
           )}
         </View>
 
-        {/* DETALLE */}
-        <Text style={styles.subText}>
+        <Text style={[styles.subText, !isChecked && styles.textDiscarded]}>
           {price.qty} {formatUnit(price.unit)} × {price.unitPrice.toFixed(2)} €
         </Text>
 
         {price.savings > 0 && (
-          <Text style={styles.savings}>
+          <Text style={[styles.savings, !isChecked && styles.textDiscarded]}>
             Ahorro: {price.savings.toFixed(2)} €
           </Text>
         )}
       </View>
 
       {/* TOTAL */}
-      <Text style={styles.total}>{price.total.toFixed(2)} €</Text>
+      <Text style={[styles.total, !isChecked && styles.textDiscarded]}>
+        {price.total.toFixed(2)} €
+      </Text>
 
-      <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
-    </Pressable>
+      {/* CHEVRON → ABRIR EDITOR */}
+      <Pressable onPress={() => onEdit(item)} hitSlop={10}>
+        <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+      </Pressable>
+    </View>
   );
 }
 
@@ -67,56 +68,76 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderRadius: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     marginBottom: 8,
   },
-  rowChecked: {
-    backgroundColor: "#f1f5f9",
+
+  rowDiscarded: {
+    backgroundColor: "#f3f4f6",
+    opacity: 0.6,
   },
+
   checkbox: {
     marginRight: 8,
   },
+
   content: {
     flex: 1,
     marginRight: 8,
   },
+
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     flexWrap: "wrap",
   },
+
   name: {
     fontSize: 16,
     fontWeight: "500",
     color: "#111827",
   },
-  offerBadge: {
-    backgroundColor: "#16a34a",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+
+  nameDiscarded: {
+    color: "#6b7280",
   },
-  offerText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+
   subText: {
     fontSize: 13,
     color: "#6b7280",
     marginTop: 2,
   },
+
   savings: {
     fontSize: 12,
     color: "#15803d",
     fontWeight: "600",
     marginTop: 2,
   },
+
   total: {
     fontSize: 15,
     fontWeight: "700",
     marginRight: 6,
     color: "#111827",
+  },
+
+  textDiscarded: {
+    color: "#9ca3af",
+  },
+
+  /* 🟨 OFERTA */
+  offerBadge: {
+    backgroundColor: "#fde047",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+
+  offerText: {
+    color: "#000000",
+    fontSize: 12,
+    fontWeight: "700",
   },
 });

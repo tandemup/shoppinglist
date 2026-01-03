@@ -1,4 +1,3 @@
-// screens/ShoppingListScreen.js
 import React, { useMemo } from "react";
 import {
   View,
@@ -13,24 +12,25 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
 import { useStore } from "../context/StoreContext";
-import { useLocation } from "../context/LocationContext";
 import { useStores } from "../context/StoresContext";
+import { useLocation } from "../context/LocationContext";
 
 import StoreSelector from "../components/StoreSelector";
 import NewItemInput from "../components/NewItemInput";
 import ItemRow from "../components/ItemRow";
 
 import { ROUTES } from "../navigation/ROUTES";
-import { defaultPriceInfo } from "../utils/defaultItem";
-import { getDistanceKm } from "../utils/distance";
-import { getOpenStatus } from "../utils/openingHours";
-import { safeAlert } from "../utils/safeAlert";
+import { defaultPriceInfo } from "../utils/core/defaultItem";
+import { getDistanceKm } from "../utils/math/distance";
+import { getOpenStatus } from "../utils/store/openingHours";
+import { safeAlert } from "../utils/core/safeAlert";
 
 export default function ShoppingListScreen() {
   const route = useRoute();
   const navigation = useNavigation();
 
   const { listId } = route.params ?? {};
+
   const { lists, updateListData, archiveList } = useStore();
   const { stores } = useStores();
   const { location } = useLocation();
@@ -50,7 +50,7 @@ export default function ShoppingListScreen() {
   const items = list.items ?? [];
 
   // ────────────────────────────────────────────────
-  // TIENDA ASIGNADA (SOLO DESDE CONTEXTO)
+  // TIENDA ASIGNADA (derivada por ID)
   // ────────────────────────────────────────────────
   const assignedStore = useMemo(() => {
     if (!list.storeId) return null;
@@ -67,6 +67,18 @@ export default function ShoppingListScreen() {
     : null;
 
   // ────────────────────────────────────────────────
+  // SELECCIONAR TIENDA (FLUJO CORRECTO)
+  // ────────────────────────────────────────────────
+  const handleSelectStore = () => {
+    navigation.navigate(ROUTES.STORES_TAB, {
+      screen: ROUTES.STORES_FAVORITES,
+      params: {
+        selectForListId: listId,
+      },
+    });
+  };
+
+  // ────────────────────────────────────────────────
   // ITEMS
   // ────────────────────────────────────────────────
   const handleAddItem = async (name) => {
@@ -79,7 +91,7 @@ export default function ShoppingListScreen() {
         {
           id: Date.now().toString(),
           name: name.trim(),
-          checked: true, // ✅ nuevo item marcado
+          checked: true,
           priceInfo: defaultPriceInfo(),
         },
       ],
@@ -96,7 +108,7 @@ export default function ShoppingListScreen() {
   };
 
   const openDetail = (item) => {
-    navigation.navigate("ItemDetail", {
+    navigation.navigate(ROUTES.ITEM_DETAIL, {
       item,
       listId,
       onSave: async (updated) => {
@@ -115,21 +127,11 @@ export default function ShoppingListScreen() {
   };
 
   // ────────────────────────────────────────────────
-  // SELECCIONAR TIENDA
-  // ────────────────────────────────────────────────
-  const handleSelectStore = () => {
-    navigation.navigate(ROUTES.STORE_SELECT, {
-      selectForListId: listId,
-    });
-  };
-
-  // ────────────────────────────────────────────────
   // TOTAL
   // ────────────────────────────────────────────────
   const total = items.reduce((sum, i) => {
     if (!i.checked) return sum;
-    const p = i.priceInfo;
-    return sum + (Number(p?.total) || 0);
+    return sum + (Number(i.priceInfo?.total) || 0);
   }, 0);
 
   // ────────────────────────────────────────────────
@@ -148,7 +150,7 @@ export default function ShoppingListScreen() {
     const purchased = items.filter((i) => i.checked);
 
     if (purchased.length === 0) {
-      safeAlert("Sin productos", "Marca al menos un producto como comprado", [
+      safeAlert("Sin productos", "Marca al menos un producto", [
         { text: "OK" },
       ]);
       return;
@@ -175,6 +177,9 @@ export default function ShoppingListScreen() {
     );
   };
 
+  // ────────────────────────────────────────────────
+  // RENDER
+  // ────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}

@@ -3,7 +3,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import rawStores from "../data/stores.json";
-import { runPhase0 } from "../utils/devPhase0";
 
 const StoresContext = createContext(null);
 
@@ -53,13 +52,6 @@ export function StoresProvider({ children }) {
             normalizedStores.some((s) => s.id === id)
           );
           setFavorites(validFavorites);
-        }
-
-        if (__DEV__) {
-          runPhase0({
-            stores: normalizedStores,
-            favorites: validFavorites,
-          });
         }
       } catch (e) {
         console.warn("Error loading stores", e);

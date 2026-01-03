@@ -11,7 +11,7 @@ import {
 } from "react-native";
 
 import { parseReal, normalizeReal } from "../utils/number";
-import { PROMOTIONS, calcularPromoTotal } from "../utils/promoCalculator";
+import { PricingEngine, PROMOTIONS, NO_PROMO } from "../utils/pricing";
 
 if (
   Platform.OS === "android" &&

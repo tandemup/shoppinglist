@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { PROMOTIONS, NO_PROMO } from "../utils/pricing/PricingEngine";
+import { PricingEngine, PROMOTIONS, NO_PROMO } from "../utils/pricing";
 
 function OfertaSelector({ expanded, promo, onToggle, onSelect }) {
   const [localPromo, setLocalPromo] = useState(promo);

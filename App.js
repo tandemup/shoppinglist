@@ -6,7 +6,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { StoreProvider } from "./context/StoreContext";
 import { StoresProvider } from "./context/StoresContext";
 import { ConfigProvider } from "./context/ConfigContext";
-import { FavoritesProvider } from "./context/FavoritesContext";
 import { LocationProvider } from "./context/LocationContext";
 
 // Pantalla de carga
@@ -23,17 +22,15 @@ export default function App() {
       <StoresProvider>
         <StoreProvider>
           <LocationProvider>
-            <FavoritesProvider>
-              <NavigationContainer>
-                <RootStack.Navigator screenOptions={{ headerShown: false }}>
-                  {/* Pantalla inicial */}
-                  <RootStack.Screen name="Splash" component={SplashScreen} />
+            <NavigationContainer>
+              <RootStack.Navigator screenOptions={{ headerShown: false }}>
+                {/* Pantalla inicial */}
+                <RootStack.Screen name="Splash" component={SplashScreen} />
 
-                  {/* Tabs principales (Listas, Tiendas, Escanear) */}
-                  <RootStack.Screen name="MainTabs" component={MainTabs} />
-                </RootStack.Navigator>
-              </NavigationContainer>
-            </FavoritesProvider>
+                {/* Tabs principales (Listas, Tiendas, Escanear) */}
+                <RootStack.Screen name="MainTabs" component={MainTabs} />
+              </RootStack.Navigator>
+            </NavigationContainer>
           </LocationProvider>
         </StoreProvider>
       </StoresProvider>

@@ -11,10 +11,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-import { PricingEngine } from "../utils/pricing";
-import { PROMOTIONS } from "../utils/promoCalculator";
+import {
+  PricingEngine,
+  PROMOTIONS,
+  NO_PROMO,
+} from "../utils/pricing/PricingEngine";
 import { formatUnit } from "../utils/pricing/unitFormat";
-import { safeAlert } from "../utils/safeAlert";
+
+import { safeAlert } from "../utils/core/safeAlert";
 
 export default function ItemDetailScreen() {
   const navigation = useNavigation();
