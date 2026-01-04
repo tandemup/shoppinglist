@@ -1,152 +1,168 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import React, { useMemo, useState } from "react";
+import { View, Text, StyleSheet, FlatList } from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";
-import { useStore } from "../context/StoreContext";
 import { useLocation } from "../context/LocationContext";
 
+import StoreRow from "../components/StoreRow";
+import SearchBar from "../components/SearchBar";
+
 import { ROUTES } from "../navigation/ROUTES";
-import { getDistanceKm } from "../utils/math/distance";
 
+/* -------------------------------------------------
+   Screen
+-------------------------------------------------- */
 export default function StoresBrowseScreen() {
-  const navigation = useNavigation();
   const route = useRoute();
+  const navigation = useNavigation();
 
-  const { selectForListId } = route.params ?? {};
+  const { selectForListId } = route.params || {};
 
-  const { stores, favorites, loading, toggleFavorite } = useStores();
-  const { setStoreForList } = useStore();
+  const { stores } = useStores();
   const { location } = useLocation();
 
-  const data = useMemo(() => (Array.isArray(stores) ? stores : []), [stores]);
+  const [query, setQuery] = useState("");
 
-  const handleSelectStore = async (store) => {
+  /* -------------------------------------------------
+     Enriquecer tiendas con distancia + ordenar
+  -------------------------------------------------- */
+  const orderedStores = useMemo(() => {
+    return [...stores]
+      .map((store) => {
+        if (location && store.location?.latitude && store.location?.longitude) {
+          const distanceKm = getDistanceKm(
+            location.latitude,
+            location.longitude,
+            store.location.latitude,
+            store.location.longitude
+          );
+
+          return { ...store, distanceKm };
+        }
+
+        return store;
+      })
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [stores, location]);
+
+  /* -------------------------------------------------
+     Filtrar por búsqueda
+  -------------------------------------------------- */
+  const filteredStores = useMemo(() => {
+    if (!query.trim()) return orderedStores;
+
+    const q = query.toLowerCase();
+    return orderedStores.filter((store) =>
+      (store.name || "").toLowerCase().includes(q)
+    );
+  }, [orderedStores, query]);
+
+  /* -------------------------------------------------
+     Selección / navegación
+  -------------------------------------------------- */
+  const handlePressStore = (store) => {
+    // Modo selección para lista
     if (selectForListId) {
-      await setStoreForList(selectForListId, store.id);
-
       navigation.navigate(ROUTES.SHOPPING_TAB, {
         screen: ROUTES.SHOPPING_LIST,
-        params: { listId: selectForListId },
+        params: {
+          listId: selectForListId,
+          selectedStore: store,
+        },
       });
       return;
     }
 
+    // Navegación normal
     navigation.navigate(ROUTES.STORE_DETAIL, {
       storeId: store.id,
     });
   };
 
-  const renderItem = ({ item }) => {
-    const isFav = favorites.includes(item.id);
-
-    const distanceKm =
-      location && item.location ? getDistanceKm(location, item.location) : null;
-
-    const addressLine = [item.address, item.zipcode, item.city]
-      .filter(Boolean)
-      .join(", ");
-
-    return (
-      <Pressable
-        style={styles.storeRow}
-        onPress={() => handleSelectStore(item)}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={styles.storeName}>{item.name}</Text>
-
-          {!!addressLine && <Text style={styles.address}>{addressLine}</Text>}
-
-          {distanceKm != null && (
-            <Text style={styles.distance}>📍 {distanceKm.toFixed(1)} km</Text>
-          )}
-        </View>
-
-        <Pressable onPress={() => toggleFavorite(item.id)}>
-          <Text style={[styles.star, isFav && styles.starActive]}>★</Text>
-        </Pressable>
-      </Pressable>
-    );
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <Text>Cargando tiendas…</Text>
-      </View>
-    );
-  }
+  /* -------------------------------------------------
+     Render
+  -------------------------------------------------- */
+  const renderItem = ({ item }) => (
+    <StoreRow store={item} onPress={() => handlePressStore(item)} />
+  );
 
   return (
-    <View style={{ flex: 1 }}>
-      {selectForListId && (
-        <Pressable
-          style={styles.backBtn}
-          onPress={() =>
-            navigation.navigate(ROUTES.SHOPPING_TAB, {
-              screen: ROUTES.SHOPPING_LIST,
-              params: { listId: selectForListId },
-            })
-          }
-        >
-          <Text style={styles.backText}>← Volver a la lista</Text>
-        </Pressable>
-      )}
-
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-      />
-    </View>
+    <FlatList
+      data={filteredStores}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      ListHeaderComponent={
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          placeholder="Buscar tienda…"
+          style={styles.search}
+        />
+      }
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>No se encontraron tiendas</Text>
+          <Text style={styles.emptySubtitle}>Prueba con otro nombre</Text>
+        </View>
+      }
+    />
   );
 }
 
+/* -------------------------------------------------
+   Helpers
+-------------------------------------------------- */
+const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = (v) => (v * Math.PI) / 180;
+  const R = 6371;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
-  storeRow: {
-    flexDirection: "row",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
+  container: {
+    flex: 1,
+    backgroundColor: "#f6f6f6",
   },
-  storeName: {
+
+  content: {
+    padding: 12,
+    paddingBottom: 24,
+  },
+
+  search: {
+    marginBottom: 12,
+  },
+
+  emptyContainer: {
+    padding: 24,
+    alignItems: "center",
+  },
+
+  emptyTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#222",
+    color: "#333",
+    marginBottom: 6,
   },
-  address: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 2,
-  },
-  distance: {
-    fontSize: 12,
-    color: "#2563eb",
-    marginTop: 4,
-  },
-  star: {
-    fontSize: 22,
-    color: "#ccc",
-    paddingHorizontal: 8,
-  },
-  starActive: {
-    color: "#facc15",
-  },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backBtn: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fafafa",
-  },
-  backText: {
+
+  emptySubtitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#2563eb",
+    color: "#666",
+    textAlign: "center",
   },
 });

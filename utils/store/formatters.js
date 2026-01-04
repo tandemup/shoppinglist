@@ -58,3 +58,40 @@ export const getStoreStatusBadge = (store, date = new Date()) => {
     ? { label: "Abierto", color: "#2ecc71" }
     : { label: "Cerrado", color: "#e74c3c" };
 };
+
+/**
+ * Formatea una tienda de forma segura para UI genérica
+ * (listas, selects, fallback defensivo)
+ */
+export const formatStoreLabel = (store) => {
+  if (!store) return "";
+
+  // Si ya es string → usar tal cual
+  if (typeof store === "string") return store;
+
+  // Evitar objetos no imprimibles (mapas, overlays, etc.)
+  if (
+    store.icon !== undefined ||
+    store.zone !== undefined ||
+    store.radius !== undefined ||
+    store.color !== undefined
+  ) {
+    return "";
+  }
+
+  // Nombre estándar
+  if (typeof store.name === "string") return store.name;
+
+  return "";
+};
+
+export function formatCurrency(value, currency = "EUR", locale = "es-ES") {
+  const amount = Number(value) || 0;
+
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}

@@ -13,7 +13,7 @@ import { ROUTES } from "../navigation/ROUTES";
 
 import { useStore } from "../context/StoreContext";
 import { Ionicons } from "@expo/vector-icons";
-import { formatStore } from "../utils/formatStore";
+import { formatStore } from "../utils/store/formatters";
 
 export default function ArchivedListsScreen({ navigation }) {
   const { archivedLists, reload } = useStore();

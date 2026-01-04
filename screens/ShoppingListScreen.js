@@ -1,287 +1,217 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Pressable,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
+import { useLists } from "../context/ListsContext";
 import { useStore } from "../context/StoreContext";
 import { useStores } from "../context/StoresContext";
-import { useLocation } from "../context/LocationContext";
 
 import StoreSelector from "../components/StoreSelector";
-import NewItemInput from "../components/NewItemInput";
 import ItemRow from "../components/ItemRow";
+import SearchCombinedBar from "../components/SearchCombinedBar";
 
 import { ROUTES } from "../navigation/ROUTES";
-import { defaultPriceInfo } from "../utils/core/defaultItem";
-import { getDistanceKm } from "../utils/math/distance";
-import { getOpenStatus } from "../utils/store/openingHours";
-import { safeAlert } from "../utils/core/safeAlert";
+import { formatCurrency } from "../utils/store/formatters";
 
+/* -------------------------------------------------
+   Screen
+-------------------------------------------------- */
 export default function ShoppingListScreen() {
   const route = useRoute();
   const navigation = useNavigation();
 
-  const { listId } = route.params ?? {};
+  const { listId, selectedStore } = route.params || {};
 
-  const { lists, updateListData, archiveList } = useStore();
-  const { stores } = useStores();
-  const { location } = useLocation();
-
-  if (!lists || !listId) return null;
+  /* ---------------------------
+     Contexts
+  ----------------------------*/
+  const { lists, addItem, updateItem } = useLists();
+  const { setStoreForList, getStoreIdForList } = useStore();
+  const { getStoreById } = useStores();
 
   const list = lists.find((l) => l.id === listId);
 
-  if (!list) {
-    return (
-      <SafeAreaView style={styles.center}>
-        <Text>Lista no encontrada</Text>
-      </SafeAreaView>
-    );
-  }
+  /* ---------------------------
+     Tienda asignada
+  ----------------------------*/
+  useEffect(() => {
+    if (!selectedStore || !listId) return;
 
-  const items = list.items ?? [];
+    setStoreForList(listId, selectedStore.id);
 
-  // ────────────────────────────────────────────────
-  // TIENDA ASIGNADA (derivada por ID)
-  // ────────────────────────────────────────────────
+    // 🔥 LIMPIAR el parámetro para evitar bucle
+    navigation.setParams({ selectedStore: undefined });
+  }, [selectedStore, listId, setStoreForList, navigation]);
+
   const assignedStore = useMemo(() => {
-    if (!list.storeId) return null;
-    return stores.find((s) => s.id === list.storeId) ?? null;
-  }, [list.storeId, stores]);
+    if (selectedStore) return selectedStore;
 
-  const distanceKm =
-    assignedStore && location
-      ? getDistanceKm(location, assignedStore.location)
-      : null;
+    const storeId = getStoreIdForList(listId);
+    if (!storeId) return null;
 
-  const openStatus = assignedStore?.hours
-    ? getOpenStatus(assignedStore.hours)
-    : null;
+    return getStoreById(storeId);
+  }, [selectedStore, listId, getStoreIdForList, getStoreById]);
 
-  // ────────────────────────────────────────────────
-  // SELECCIONAR TIENDA (FLUJO CORRECTO)
-  // ────────────────────────────────────────────────
+  /* ---------------------------
+     Handlers SearchCombinedBar
+  ----------------------------*/
+  const handleCreateNew = (name) => {
+    addItem(listId, { name });
+  };
+
+  const handleAddFromHistory = (historicItem) => {
+    addItem(listId, {
+      name: historicItem.name,
+      priceInfo: historicItem.priceInfo,
+      checked: true,
+    });
+  };
+
+  const handleAddFromScan = (scanItem) => {
+    addItem(listId, {
+      name: scanItem.name,
+      priceInfo: scanItem.priceInfo,
+      checked: true,
+    });
+  };
+
+  /* ---------------------------
+     Handlers ItemRow
+  ----------------------------*/
+  const handleToggleItem = (itemId) => {
+    const item = list.items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    updateItem(listId, itemId, {
+      checked: !item.checked,
+    });
+  };
+
+  const handleEditItem = (itemId) => {
+    navigation.navigate(ROUTES.ITEM_DETAIL, {
+      listId,
+      itemId,
+    });
+  };
+
+  /* ---------------------------
+     StoreSelector handler
+     (IMPORTANTE)
+  ----------------------------*/
   const handleSelectStore = () => {
     navigation.navigate(ROUTES.STORES_TAB, {
-      screen: ROUTES.STORES_FAVORITES,
+      screen: ROUTES.STORES_BROWSE,
       params: {
         selectForListId: listId,
       },
     });
   };
 
-  // ────────────────────────────────────────────────
-  // ITEMS
-  // ────────────────────────────────────────────────
-  const handleAddItem = async (name) => {
-    if (!name?.trim()) return;
+  /* ---------------------------
+     Total
+  ----------------------------*/
+  const total = useMemo(() => {
+    if (!list) return 0;
 
-    await updateListData(listId, (base) => ({
-      ...base,
-      items: [
-        ...(base.items || []),
-        {
-          id: Date.now().toString(),
-          name: name.trim(),
-          checked: true,
-          priceInfo: defaultPriceInfo(),
-        },
-      ],
-    }));
-  };
+    return list.items
+      .filter((i) => i.checked)
+      .reduce((sum, i) => sum + (i.priceInfo?.total ?? 0), 0);
+  }, [list]);
 
-  const toggleItem = async (id) => {
-    await updateListData(listId, (base) => ({
-      ...base,
-      items: base.items.map((i) =>
-        i.id === id ? { ...i, checked: !i.checked } : i
-      ),
-    }));
-  };
-
-  const openDetail = (item) => {
-    navigation.navigate(ROUTES.ITEM_DETAIL, {
-      item,
-      listId,
-      onSave: async (updated) => {
-        await updateListData(listId, (base) => ({
-          ...base,
-          items: base.items.map((i) => (i.id === updated.id ? updated : i)),
-        }));
-      },
-      onDelete: async (id) => {
-        await updateListData(listId, (base) => ({
-          ...base,
-          items: base.items.filter((i) => i.id !== id),
-        }));
-      },
-    });
-  };
-
-  // ────────────────────────────────────────────────
-  // TOTAL
-  // ────────────────────────────────────────────────
-  const total = items.reduce((sum, i) => {
-    if (!i.checked) return sum;
-    return sum + (Number(i.priceInfo?.total) || 0);
-  }, 0);
-
-  // ────────────────────────────────────────────────
-  // FINALIZAR COMPRA
-  // ────────────────────────────────────────────────
-  const handleFinish = () => {
-    if (!list.storeId) {
-      safeAlert(
-        "Tienda no seleccionada",
-        "Selecciona una tienda antes de finalizar la compra",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-
-    const purchased = items.filter((i) => i.checked);
-
-    if (purchased.length === 0) {
-      safeAlert("Sin productos", "Marca al menos un producto", [
-        { text: "OK" },
-      ]);
-      return;
-    }
-
-    safeAlert(
-      "Finalizar compra",
-      "Se archivarán únicamente los productos marcados.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Finalizar",
-          style: "destructive",
-          onPress: async () => {
-            await updateListData(listId, (base) => ({
-              ...base,
-              items: purchased,
-            }));
-            await archiveList(listId);
-            navigation.navigate(ROUTES.SHOPPING_LISTS);
-          },
-        },
-      ]
+  if (!list) {
+    return (
+      <View style={styles.center}>
+        <Text>Lista no encontrada</Text>
+      </View>
     );
-  };
+  }
 
-  // ────────────────────────────────────────────────
-  // RENDER
-  // ────────────────────────────────────────────────
+  /* ---------------------------
+     Render
+  ----------------------------*/
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.container}>
-        <StoreSelector
-          store={assignedStore}
-          distanceKm={distanceKm}
-          openStatus={openStatus}
-          onPress={handleSelectStore}
-        />
-
-        {!list.archived && <NewItemInput onSubmit={handleAddItem} />}
-
-        {list.archived && (
-          <Text style={styles.archivedText}>Esta lista está archivada</Text>
+      <FlatList
+        data={list.items}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ItemRow
+            item={item}
+            onToggle={() => handleToggleItem(item.id)}
+            onEdit={() => handleEditItem(item.id)}
+          />
         )}
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={
+          <>
+            {/* Selector de tienda */}
+            <StoreSelector store={assignedStore} onPress={handleSelectStore} />
 
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 160 }}
-        >
-          {items.length === 0 && (
-            <Text style={styles.emptyText}>
-              No hay productos en esta lista 😊
-            </Text>
-          )}
-
-          {items.map((item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              onToggle={toggleItem}
-              onEdit={openDetail}
+            {/* Buscador combinado */}
+            <SearchCombinedBar
+              currentList={list}
+              onCreateNew={handleCreateNew}
+              onAddFromHistory={handleAddFromHistory}
+              onAddFromScan={handleAddFromScan}
             />
-          ))}
-        </ScrollView>
-      </View>
-
-      {!list.archived && items.length > 0 && (
-        <View style={styles.footer}>
-          <Text style={styles.total}>Total: {total.toFixed(2)} €</Text>
-
-          <Pressable
-            style={[styles.finishBtn, !list.storeId && styles.disabled]}
-            onPress={handleFinish}
-            disabled={!list.storeId}
-          >
-            <Text style={styles.finishText}>Finalizar compra</Text>
-          </Pressable>
-        </View>
-      )}
+          </>
+        }
+        ListFooterComponent={
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalLabel}>Total estimado</Text>
+            <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
+          </View>
+        }
+      />
     </KeyboardAvoidingView>
   );
 }
 
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  content: {
     padding: 16,
+    paddingBottom: 32,
   },
+
+  totalContainer: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    elevation: 2,
+  },
+
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  totalValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#2e7d32",
+  },
+
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  archivedText: {
-    color: "#888",
-    marginBottom: 8,
-  },
-  emptyText: {
-    textAlign: "center",
-    color: "#666",
-    marginTop: 24,
-  },
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: 16,
-    borderTopWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
-  },
-  total: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  finishBtn: {
-    backgroundColor: "#2563eb",
-    padding: 14,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  finishText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  disabled: {
-    backgroundColor: "#bbb",
   },
 });

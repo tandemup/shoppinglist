@@ -1,337 +1,213 @@
-//SearchCombinedBar
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
-  TextInput,
-  FlatList,
   Text,
-  TouchableOpacity,
+  TextInput,
   StyleSheet,
+  Pressable,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { searchItemsAcrossLists } from "../utils/searchHelpers";
-import { getScannedHistory } from "../utils/storage/scannerHistory";
+import { formatCurrency } from "../utils/store/formatters";
+import { formatUnit } from "../utils/pricing/unitFormat";
 
+/* -------------------------------------------------
+   SearchCombinedBar
+-------------------------------------------------- */
 export default function SearchCombinedBar({
   currentList,
-  onSelectHistoryItem,
-  onCreateItem,
+  onCreateNew,
+  onAddFromHistory,
+  onAddFromScan,
 }) {
   const [query, setQuery] = useState("");
-  const [localResults, setLocalResults] = useState([]);
-  const [historyResults, setHistoryResults] = useState([]);
-  const [scanResults, setScanResults] = useState([]);
 
-  //
-  // 🔎 BÚSQUEDA GLOBAL
-  //
-  const handleSearch = async (text) => {
-    setQuery(text);
+  /* -------------------------------------------------
+     Helpers
+  -------------------------------------------------- */
+  const normalize = (s = "") =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
 
-    if (text.trim().length < 2) {
-      setLocalResults([]);
-      setHistoryResults([]);
-      setScanResults([]);
-      return;
-    }
+  const matches = (name) => normalize(name).includes(normalize(query));
 
-    const q = text.toLowerCase();
+  const isInCurrentList = (name) =>
+    currentList?.items?.some((i) => normalize(i.name) === normalize(name));
 
-    // 1️⃣ Coincidencias en la lista actual
-    const local = currentList.items.filter((i) =>
-      (i.name || "").toLowerCase().includes(q)
+  /* -------------------------------------------------
+     Sources (placeholder / props futuras)
+     En el futuro: historial, escaneos, favoritos…
+  -------------------------------------------------- */
+  const historyItems = currentList?.history || [];
+  const scanItems = currentList?.scanHistory || [];
+
+  /* -------------------------------------------------
+     Filtered results
+  -------------------------------------------------- */
+  const filteredHistory = useMemo(() => {
+    if (!query) return [];
+    return historyItems.filter(
+      (i) => matches(i.name) && !isInCurrentList(i.name)
     );
+  }, [query, historyItems, currentList]);
 
-    // 2️⃣ Coincidencias históricas
-    const history = await searchItemsAcrossLists(text);
-    const filteredHistory = history.filter(
-      (r) => String(r.listId) !== String(currentList.id)
+  const filteredScans = useMemo(() => {
+    if (!query) return [];
+    return scanItems.filter((i) => matches(i.name) && !isInCurrentList(i.name));
+  }, [query, scanItems, currentList]);
+
+  const canCreateNew = query.trim().length > 1 && !isInCurrentList(query);
+
+  /* -------------------------------------------------
+     Render helpers
+  -------------------------------------------------- */
+  const renderItem = ({ item }, onPress) => {
+    const priceInfo = item.priceInfo || {};
+
+    return (
+      <Pressable style={styles.resultRow} onPress={() => onPress(item)}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.itemName}>{item.name}</Text>
+
+          {priceInfo.unitPrice != null && (
+            <Text style={styles.itemMeta}>
+              {formatCurrency(priceInfo.unitPrice)} /{" "}
+              {formatUnit(priceInfo.unit)}
+            </Text>
+          )}
+        </View>
+
+        <Ionicons name="add-circle-outline" size={22} color="#2e7d32" />
+      </Pressable>
     );
-
-    // 3️⃣ Historial de escaneos
-    const scanned = await getScannedHistory();
-    const scanMatches = scanned.filter(
-      (s) =>
-        (s.name || "").toLowerCase().includes(q) ||
-        (s.barcode || "").toLowerCase().includes(q)
-    );
-
-    setLocalResults(local);
-    setHistoryResults(filteredHistory);
-    setScanResults(scanMatches);
   };
 
-  //
-  // 🧮 FORMATOS Y DIFERENCIAS
-  //
-  const getUnitLabel = (item) => {
-    const u = item?.priceInfo?.unitType || "unidad";
-    if (u === "kg") return "€/kg";
-    if (u === "l") return "€/l";
-    return "€/u";
-  };
-
-  const getUnitPriceDiff = (name, pastUnitPrice) => {
-    const found = currentList.items.find(
-      (i) => i.name.trim().toLowerCase() === name.trim().toLowerCase()
-    );
-
-    if (!found || !found.priceInfo?.unitPrice) return null;
-
-    const current = parseFloat(found.priceInfo.unitPrice);
-    const diff = current - parseFloat(pastUnitPrice || 0);
-
-    if (diff === 0) return { symbol: "=", color: "#777", value: "0.00" };
-    if (diff > 0)
-      return { symbol: "↑", color: "#e53935", value: `+${diff.toFixed(2)}` };
-
-    return { symbol: "↓", color: "#43a047", value: diff.toFixed(2) };
-  };
-
-  //
-  // 🔍 Detectar “no results”
-  //
-  const noResults =
-    query.trim().length >= 2 &&
-    localResults.length === 0 &&
-    historyResults.length === 0 &&
-    scanResults.length === 0;
-
-  //
-  // RENDER
-  //
+  /* -------------------------------------------------
+     Render
+  -------------------------------------------------- */
   return (
     <View style={styles.container}>
-      <View style={styles.searchBox}>
-        <Ionicons name="search" size={18} color="#777" style={styles.icon} />
+      {/* -------- Input -------- */}
+      <View style={styles.inputRow}>
+        <Ionicons name="search" size={18} color="#666" />
         <TextInput
           style={styles.input}
           placeholder="Añadir producto…"
-          placeholderTextColor="#999"
           value={query}
-          onChangeText={handleSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-          clearButtonMode="while-editing"
+          onChangeText={setQuery}
         />
       </View>
 
-      {(localResults.length > 0 ||
-        historyResults.length > 0 ||
-        scanResults.length > 0 ||
-        noResults) && (
-        <FlatList
-          data={[
-            ...(localResults.length > 0
-              ? [{ header: "📋 En esta lista" }, ...localResults]
-              : []),
-
-            ...(historyResults.length > 0
-              ? [{ header: "🕓 En listas anteriores" }, ...historyResults]
-              : []),
-
-            ...(scanResults.length > 0
-              ? [{ header: "📷 En historial de escaneos" }, ...scanResults]
-              : []),
-          ]}
-          keyExtractor={(item, index) => item.id || `header-${index}`}
-          style={styles.resultsBox}
-          renderItem={({ item }) => {
-            //
-            // HEADER
-            //
-            if (item.header) {
-              return <Text style={styles.header}>{item.header}</Text>;
-            }
-
-            //
-            // 1️⃣ Coincidencia en LISTA ACTUAL
-            //
-            if (!item.listName && !item.source) {
-              return (
-                <TouchableOpacity
-                  style={[styles.resultRow, styles.currentRow]}
-                  onPress={() => onSelectHistoryItem(item)}
-                >
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.listInfo}>
-                    💰 {item.priceInfo?.unitPrice?.toFixed?.(2) ?? "—"}{" "}
-                    {getUnitLabel(item)}
-                  </Text>
-                </TouchableOpacity>
-              );
-            }
-
-            //
-            // 2️⃣ Resultado en historial de ESCANEOS
-            //
-            if (item.source === "scanner") {
-              return (
-                <TouchableOpacity
-                  style={[styles.resultRow, { backgroundColor: "#FFF7ED" }]}
-                  onPress={() => onSelectHistoryItem(item)}
-                >
-                  <Text style={styles.itemName}>
-                    {item.isBook ? "📚 " : ""}
-                    {item.name}
-                  </Text>
-                  <Text style={styles.listInfo}>Código: {item.barcode}</Text>
-                </TouchableOpacity>
-              );
-            }
-
-            //
-            // 3️⃣ Resultado HISTÓRICO (listas antiguas)
-            //
-            const historicItem = item.item;
-            const pastUnit = historicItem.priceInfo?.unitPrice ?? 0;
-            const diff = getUnitPriceDiff(historicItem.name, pastUnit);
-
-            return (
-              <TouchableOpacity
-                style={[styles.resultRow, styles.historyRow]}
-                onPress={() => onSelectHistoryItem(historicItem)}
-              >
-                <Text style={styles.itemName}>{historicItem.name}</Text>
-
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={styles.listInfo}>
-                    💰 {pastUnit.toFixed(2)} {getUnitLabel(historicItem)} · 🧾{" "}
-                    {item.listName}
-                  </Text>
-
-                  {diff && (
-                    <Text
-                      style={[
-                        styles.diffText,
-                        { marginLeft: 6, color: diff.color },
-                      ]}
-                    >
-                      {diff.symbol} {diff.value} {getUnitLabel(historicItem)}
-                    </Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
+      {/* -------- Crear nuevo -------- */}
+      {canCreateNew && (
+        <Pressable
+          style={styles.createRow}
+          onPress={() => {
+            onCreateNew?.(query.trim());
+            setQuery("");
           }}
-          ListFooterComponent={() =>
-            noResults ? (
-              <TouchableOpacity
-                style={styles.createRow}
-                onPress={() => {
-                  const name = query.trim();
-                  onCreateItem?.(name);
+        >
+          <Ionicons name="add" size={20} color="#fff" />
+          <Text style={styles.createText}>Crear “{query.trim()}”</Text>
+        </Pressable>
+      )}
 
-                  // limpiar
-                  setQuery("");
-                  setLocalResults([]);
-                  setHistoryResults([]);
-                  setScanResults([]);
-                }}
-              >
-                <Text style={styles.createText}>➕ Crear “{query.trim()}”</Text>
-              </TouchableOpacity>
-            ) : null
-          }
-        />
+      {/* -------- Historial -------- */}
+      {filteredHistory.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Historial</Text>
+          <FlatList
+            data={filteredHistory}
+            keyExtractor={(i) => i.id}
+            renderItem={(props) => renderItem(props, onAddFromHistory)}
+          />
+        </>
+      )}
+
+      {/* -------- Escaneos -------- */}
+      {filteredScans.length > 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Escaneados</Text>
+          <FlatList
+            data={filteredScans}
+            keyExtractor={(i) => i.id}
+            renderItem={(props) => renderItem(props, onAddFromScan)}
+          />
+        </>
       )}
     </View>
   );
 }
 
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
-    position: "relative",
-    zIndex: 30,
-    marginHorizontal: 5,
+    marginTop: 12,
+    marginBottom: 8,
   },
 
-  /* 🔍 Barra de búsqueda */
-  searchBox: {
+  inputRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 10,
-    height: 40,
-    marginBottom: 6,
-  },
-
-  icon: {
-    marginRight: 6,
+    paddingVertical: 8,
+    elevation: 2,
   },
 
   input: {
     flex: 1,
+    marginLeft: 8,
     fontSize: 15,
-    color: "#333",
-    paddingVertical: 0, // evita saltos verticales en Android
   },
 
-  /* 📦 Resultados */
-  resultsBox: {
-    backgroundColor: "#fff",
+  createRow: {
+    marginTop: 8,
+    backgroundColor: "#2e7d32",
     borderRadius: 10,
-    borderColor: "#ddd",
-    borderWidth: 1,
-    maxHeight: 300,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
 
-  header: {
-    fontWeight: "700",
-    fontSize: 14,
-    color: "#333",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "#f3f3f3",
+  createText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+
+  sectionTitle: {
+    marginTop: 12,
+    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#666",
   },
 
   resultRow: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     borderBottomWidth: 1,
-    borderColor: "#eee",
-  },
-
-  currentRow: {
-    backgroundColor: "#E8F5E9",
-  },
-
-  historyRow: {
-    backgroundColor: "#F9FAFB",
+    borderBottomColor: "#eee",
   },
 
   itemName: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "500",
+    color: "#222",
   },
 
-  listInfo: {
-    fontSize: 13,
-    color: "#555",
-    marginTop: 2,
-  },
-
-  diffText: {
+  itemMeta: {
     fontSize: 12,
-    fontWeight: "700",
-  },
-
-  /* ➕ Crear nuevo item */
-  createRow: {
-    padding: 12,
-    backgroundColor: "#E3F2FD",
-    borderTopWidth: 1,
-    borderColor: "#ddd",
-  },
-
-  createText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1976D2",
-    textAlign: "center",
+    color: "#666",
   },
 });

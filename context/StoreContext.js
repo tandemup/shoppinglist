@@ -1,83 +1,110 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const StoreContext = createContext();
-const STORAGE_KEY = "@shopping_lists";
+/* -------------------------------------------------
+   Context
+-------------------------------------------------- */
+const StoreContext = createContext(null);
 
-export const useStore = () => useContext(StoreContext);
-
+/* -------------------------------------------------
+   Provider
+-------------------------------------------------- */
 export function StoreProvider({ children }) {
-  const [lists, setLists] = useState([]);
-  const [loading, setLoading] = useState(true);
+  /**
+   * Mapa:
+   * {
+   *   [listId]: storeId
+   * }
+   */
+  const [storesByList, setStoresByList] = useState({});
+  const [isReady, setIsReady] = useState(false);
 
-  // ────────────────────────────────────────────────
-  // CARGAR LISTAS
-  // ────────────────────────────────────────────────
+  const STORAGE_KEY = "@storesByList";
+
+  /* -------------------------------------------------
+     Rehidratación
+  -------------------------------------------------- */
   useEffect(() => {
-    const loadLists = async () => {
+    const load = async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (stored) setLists(JSON.parse(stored));
-      } catch (e) {
-        console.warn("Error loading lists", e);
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          setStoresByList(JSON.parse(raw));
+        }
+      } catch (err) {
+        console.warn("Error loading StoreContext", err);
       } finally {
-        setLoading(false);
+        setIsReady(true);
       }
     };
 
-    loadLists();
+    load();
   }, []);
 
-  // ────────────────────────────────────────────────
-  // PERSISTENCIA
-  // ────────────────────────────────────────────────
-  const persist = async (nextLists) => {
-    setLists(nextLists);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextLists));
+  /* -------------------------------------------------
+     Persistencia
+  -------------------------------------------------- */
+  useEffect(() => {
+    if (!isReady) return;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(storesByList));
+  }, [storesByList, isReady]);
+
+  /* -------------------------------------------------
+     API pública
+  -------------------------------------------------- */
+  const setStoreForList = (listId, storeId) => {
+    if (!listId) return;
+    setStoresByList((prev) => ({
+      ...prev,
+      [listId]: storeId,
+    }));
   };
 
-  // ────────────────────────────────────────────────
-  // ACCIONES
-  // ────────────────────────────────────────────────
-  const addList = async (list) => {
-    await persist([list, ...lists]);
+  const clearStoreForList = (listId) => {
+    setStoresByList((prev) => {
+      const copy = { ...prev };
+      delete copy[listId];
+      return copy;
+    });
   };
 
-  const deleteList = async (listId) => {
-    await persist(lists.filter((l) => l.id !== listId));
+  const getStoreIdForList = (listId) => {
+    return storesByList[listId] || null;
   };
 
-  const archiveList = async (listId) => {
-    await persist(
-      lists.map((l) => (l.id === listId ? { ...l, archived: true } : l))
-    );
-  };
+  /* -------------------------------------------------
+     Memo
+  -------------------------------------------------- */
+  const value = useMemo(
+    () => ({
+      isReady,
+      storesByList,
 
-  // ✅ SOLO guardamos storeId
-  const setStoreForList = async (listId, storeId) => {
-    await persist(lists.map((l) => (l.id === listId ? { ...l, storeId } : l)));
-  };
-
-  // ✅ FUNCIÓN CLAVE (ANTES FALTABA)
-  const updateListData = async (listId, updater) => {
-    await persist(lists.map((l) => (l.id === listId ? updater(l) : l)));
-  };
+      setStoreForList,
+      clearStoreForList,
+      getStoreIdForList,
+    }),
+    [isReady, storesByList]
+  );
 
   return (
-    <StoreContext.Provider
-      value={{
-        lists,
-        loading,
-        addList,
-        deleteList,
-        archiveList,
-        setStoreForList,
-        updateListData,
-      }}
-    >
-      {children}
-    </StoreContext.Provider>
+    <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
   );
 }
 
-export default StoreContext;
+/* -------------------------------------------------
+   Hook
+-------------------------------------------------- */
+export function useStore() {
+  const ctx = useContext(StoreContext);
+  if (!ctx) {
+    throw new Error("useStore must be used inside StoreProvider");
+  }
+  return ctx;
+}

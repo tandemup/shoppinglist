@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ROUTES } from "./ROUTES";
 import ShoppingStack from "./ShoppingStack";
@@ -29,13 +30,19 @@ export default function MainTabs() {
       <Tab.Screen
         name={ROUTES.STORES_TAB}
         component={StoresStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+
+            navigation.navigate(ROUTES.STORES_TAB, {
+              screen: ROUTES.STORES_HOME,
+            });
+          },
+        })}
         options={{
+          title: "Tiendas",
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="store-outline"
-              color={color}
-              size={size}
-            />
+            <Ionicons name="storefront-outline" size={size} color={color} />
           ),
         }}
       />

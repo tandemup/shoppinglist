@@ -7,14 +7,14 @@ import {
   StyleSheet,
 } from "react-native";
 
-export default function NewItemInput({ onSubmit }) {
+export default function NewItemInput({ onAdd }) {
   const [value, setValue] = useState("");
 
   const handleSubmit = () => {
     const name = value.trim();
     if (!name) return;
 
-    onSubmit(name); // delegar al padre
+    onAdd(name); // ✅ nombre correcto
     setValue(""); // limpiar input
   };
 
@@ -43,7 +43,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     padding: 10,
   },
-
   input: {
     flex: 1,
     borderWidth: 1,
@@ -53,7 +52,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: "white",
   },
-
   addBtn: {
     marginLeft: 8,
     backgroundColor: "#4CAF50",
@@ -63,7 +61,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   addBtnText: {
     color: "white",
     fontSize: 22,

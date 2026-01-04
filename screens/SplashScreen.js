@@ -22,7 +22,7 @@ export default function SplashScreen({ navigation }) {
 
     // ⏳ Después de un breve tiempo, pasar al Tab principal
     const timer = setTimeout(() => {
-      navigation.replace("MainTabs"); // reemplaza el stack actual
+      navigation.replace("Main"); // reemplaza el stack actual
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -40,7 +40,11 @@ export default function SplashScreen({ navigation }) {
         <Text style={styles.subtitle}>Tu lista de compras inteligente</Text>
       </Animated.View>
 
-      <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 40 }} />
+      <ActivityIndicator
+        size="large"
+        color="#007AFF"
+        style={{ marginTop: 40 }}
+      />
     </View>
   );
 }

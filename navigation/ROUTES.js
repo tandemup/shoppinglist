@@ -16,6 +16,8 @@ export const ROUTES = {
   STORES_FAVORITES: "StoresFavorites",
   STORE_DETAIL: "StoreDetail",
   STORE_MAP: "StoreMap",
+  STORES_NEARBY: "StoresNearby",
+  STORE_INFO: "StoreInfo",
 
   // Archive
   ARCHIVED_LISTS: "ArchivedLists",

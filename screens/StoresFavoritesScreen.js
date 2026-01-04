@@ -1,127 +1,85 @@
-import React, { useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import React, { useMemo } from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";
-import { useStore } from "../context/StoreContext";
+import StoreRow from "../components/StoreRow";
+
 import { ROUTES } from "../navigation/ROUTES";
 
 export default function StoresFavoritesScreen() {
-  const navigation = useNavigation();
   const route = useRoute();
+  const navigation = useNavigation();
 
-  const { selectForListId } = route.params ?? {};
+  const { selectForListId } = route.params || {};
 
-  const { stores, favorites, loading } = useStores();
-  const { setStoreForList } = useStore();
+  const { stores, favoriteStoreIds } = useStores();
 
-  // 🧠 DERIVACIÓN CORRECTA (NUNCA undefined)
+  /* ---------------------------
+     Tiendas favoritas
+  ----------------------------*/
   const favoriteStores = useMemo(() => {
-    if (!Array.isArray(stores) || !Array.isArray(favorites)) return [];
-    return stores.filter((s) => favorites.includes(s.id));
-  }, [stores, favorites]);
+    return stores.filter((s) => favoriteStoreIds.includes(s.id));
+  }, [stores, favoriteStoreIds]);
 
-  // 🔁 REDIRECCIÓN AUTOMÁTICA
-  useEffect(() => {
-    if (!loading && selectForListId && favoriteStores.length === 0) {
-      navigation.replace(ROUTES.STORES_BROWSE, {
-        selectForListId,
-      });
-    }
-  }, [loading, selectForListId, favoriteStores, navigation]);
-
-  // ────────────────────────────────────────────────
-  // SELECCIONAR TIENDA
-  // ────────────────────────────────────────────────
-  const handleSelectStore = async (store) => {
+  /* ---------------------------
+     Handlers
+  ----------------------------*/
+  const handlePressStore = (store) => {
+    // Caso 1: estamos seleccionando tienda para una lista
     if (selectForListId) {
-      await setStoreForList(selectForListId, store.id);
-
       navigation.navigate(ROUTES.SHOPPING_TAB, {
         screen: ROUTES.SHOPPING_LIST,
-        params: { listId: selectForListId },
+        params: {
+          listId: selectForListId,
+          selectedStore: store,
+        },
       });
-
       return;
     }
 
+    // Caso 2: navegación normal a detalle
     navigation.navigate(ROUTES.STORE_DETAIL, {
       storeId: store.id,
     });
   };
 
-  // ────────────────────────────────────────────────
-  // RENDER ITEM
-  // ────────────────────────────────────────────────
-  const renderItem = ({ item }) => (
-    <Pressable style={styles.storeRow} onPress={() => handleSelectStore(item)}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.storeName}>{item.name}</Text>
-        {!!item.address && (
-          <Text style={styles.storeAddress}>{item.address}</Text>
-        )}
-      </View>
-      <Text style={styles.chevron}>›</Text>
-    </Pressable>
-  );
-
-  // ────────────────────────────────────────────────
-  // EMPTY STATE (solo modo normal)
-  // ────────────────────────────────────────────────
-  if (!loading && favoriteStores.length === 0 && !selectForListId) {
+  /* ---------------------------
+     Empty state
+  ----------------------------*/
+  if (favoriteStores.length === 0) {
     return (
-      <View style={styles.center}>
+      <View style={styles.emptyContainer}>
         <Text style={styles.emptyTitle}>No tienes tiendas favoritas</Text>
         <Text style={styles.emptySubtitle}>
-          Marca ⭐ una tienda para que aparezca aquí
+          Marca una tienda con ⭐ para que aparezca aquí
         </Text>
-
-        <Pressable
-          style={styles.browseBtn}
-          onPress={() => navigation.navigate(ROUTES.STORES_BROWSE)}
-        >
-          <Text style={styles.browseText}>Buscar tiendas</Text>
-        </Pressable>
       </View>
     );
   }
 
-  // ────────────────────────────────────────────────
-  // LISTADO
-  // ────────────────────────────────────────────────
   return (
-    <FlatList
-      data={favoriteStores}
-      keyExtractor={(item) => item.id}
-      renderItem={renderItem}
-    />
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {favoriteStores.map((store) => (
+        <StoreRow
+          key={store.id}
+          store={store}
+          onPress={() => handlePressStore(store)}
+        />
+      ))}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  storeRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
+  container: {
+    flex: 1,
+    backgroundColor: "#f6f6f6",
   },
-  storeName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#222",
+  content: {
+    padding: 12,
   },
-  storeAddress: {
-    fontSize: 13,
-    color: "#666",
-    marginTop: 2,
-  },
-  chevron: {
-    fontSize: 24,
-    color: "#999",
-  },
-  center: {
+  emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -130,22 +88,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
+    color: "#333",
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
     color: "#666",
     textAlign: "center",
-    marginBottom: 24,
-  },
-  browseBtn: {
-    backgroundColor: "#2563eb",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  browseText: {
-    color: "#fff",
-    fontWeight: "600",
   },
 });

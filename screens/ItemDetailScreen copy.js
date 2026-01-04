@@ -11,37 +11,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-import { useLists } from "../context/ListsContext";
-
-import { PricingEngine, PROMOTIONS } from "../utils/pricing/PricingEngine";
+import {
+  PricingEngine,
+  PROMOTIONS,
+  NO_PROMO,
+} from "../utils/pricing/PricingEngine";
 import { formatUnit } from "../utils/pricing/unitFormat";
+
 import { safeAlert } from "../utils/core/safeAlert";
 
 export default function ItemDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const { item, onSave, onDelete } = route.params;
 
-  const { listId, itemId } = route.params || {};
-
-  const { lists, updateItem, deleteItem } = useLists();
-
-  const list = lists.find((l) => l.id === listId);
-  const item = list?.items.find((i) => i.id === itemId);
-
-  /* ---------------------------
-     Guardas
-  ----------------------------*/
-  if (!item) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text>Producto no encontrado</Text>
-      </SafeAreaView>
-    );
-  }
-
-  /* ---------------------------
-     Estado local (strings)
-  ----------------------------*/
+  // ────────────────────────────────────────────────
+  // ESTADO (⚠️ qty y unitPrice como STRING)
+  // ────────────────────────────────────────────────
   const [name, setName] = useState(item.name ?? "");
   const [barcode, setBarcode] = useState(item.barcode ?? "");
 
@@ -49,12 +35,13 @@ export default function ItemDetailScreen() {
   const [unitPrice, setUnitPrice] = useState(
     String(item.priceInfo?.unitPrice ?? "0")
   );
+
   const [unit, setUnit] = useState(item.priceInfo?.unit ?? "u");
   const [promo, setPromo] = useState(item.priceInfo?.promo ?? "none");
 
-  /* ---------------------------
-     Cálculo de precios
-  ----------------------------*/
+  // ────────────────────────────────────────────────
+  // CÁLCULO CENTRAL (aquí sí convertimos a number)
+  // ────────────────────────────────────────────────
   const priceInfo = useMemo(() => {
     return PricingEngine.calculate({
       qty: Number(qty.replace(",", ".")) || 0,
@@ -65,31 +52,29 @@ export default function ItemDetailScreen() {
     });
   }, [qty, unit, unitPrice, promo]);
 
+  // ────────────────────────────────────────────────
   useEffect(() => {
     navigation.setOptions({ title: "Editar producto" });
   }, [navigation]);
 
-  /* ---------------------------
-     Guardar
-  ----------------------------*/
+  // ────────────────────────────────────────────────
   const handleSave = () => {
     if (!name.trim()) {
       safeAlert("Nombre vacío", "El producto debe tener un nombre");
       return;
     }
 
-    updateItem(listId, itemId, {
+    onSave({
+      ...item,
       name: name.trim(),
       barcode: barcode.trim(),
+      checked: item.checked ?? true,
       priceInfo,
     });
 
     navigation.goBack();
   };
 
-  /* ---------------------------
-     Eliminar
-  ----------------------------*/
   const handleDelete = () => {
     safeAlert(
       "Eliminar producto",
@@ -99,8 +84,8 @@ export default function ItemDetailScreen() {
         {
           text: "Eliminar",
           style: "destructive",
-          onPress: () => {
-            deleteItem(listId, itemId);
+          onPress: async () => {
+            await onDelete(item.id);
             navigation.goBack();
           },
         },
@@ -108,9 +93,7 @@ export default function ItemDetailScreen() {
     );
   };
 
-  /* ---------------------------
-     Render
-  ----------------------------*/
+  // ────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
@@ -145,7 +128,7 @@ export default function ItemDetailScreen() {
           ))}
         </View>
 
-        {/* CANTIDAD + PRECIO */}
+        {/* CANTIDAD + PRECIO EN MISMA FILA */}
         <View style={styles.inlineRow}>
           <View style={styles.inlineField}>
             <Text style={styles.label}>Cantidad ({formatUnit(unit)})</Text>
@@ -168,7 +151,7 @@ export default function ItemDetailScreen() {
           </View>
         </View>
 
-        {/* PROMOS */}
+        {/* PROMOCIONES */}
         <Text style={styles.label}>Ofertas</Text>
         <View style={styles.promoRow}>
           {Object.entries(PROMOTIONS).map(([key, p]) => (
@@ -219,9 +202,9 @@ export default function ItemDetailScreen() {
   );
 }
 
-/* ---------------------------
-   Estilos
-----------------------------*/
+// ────────────────────────────────────────────────
+// ESTILOS (solo añadimos inlineRow)
+// ────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
   label: { fontWeight: "600", marginBottom: 6, marginTop: 16 },
@@ -246,8 +229,13 @@ const styles = StyleSheet.create({
   unitText: { color: "#111", fontWeight: "500" },
   unitTextActive: { color: "#fff" },
 
-  inlineRow: { flexDirection: "row", gap: 12 },
-  inlineField: { flex: 1 },
+  inlineRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  inlineField: {
+    flex: 1,
+  },
 
   promoRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   promoBtn: {

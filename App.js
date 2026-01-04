@@ -1,39 +1,51 @@
-// App.js — Navegación reorganizada 2025
-
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { StoreProvider } from "./context/StoreContext";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+
+/* -----------------------------
+   Context Providers
+------------------------------ */
 import { StoresProvider } from "./context/StoresContext";
-import { ConfigProvider } from "./context/ConfigContext";
+import { StoreProvider } from "./context/StoreContext";
+import { ListsProvider } from "./context/ListsContext";
 import { LocationProvider } from "./context/LocationContext";
 
-// Pantalla de carga
+/* -----------------------------
+   Screens
+------------------------------ */
 import SplashScreen from "./screens/SplashScreen";
 
-// Navegación principal (tabs + stacks)
+/* -----------------------------
+   Navigation
+------------------------------ */
 import MainTabs from "./navigation/MainTabs";
 
 const RootStack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <ConfigProvider>
+    <SafeAreaProvider>
       <StoresProvider>
         <StoreProvider>
-          <LocationProvider>
-            <NavigationContainer>
-              <RootStack.Navigator screenOptions={{ headerShown: false }}>
-                {/* Pantalla inicial */}
-                <RootStack.Screen name="Splash" component={SplashScreen} />
+          <ListsProvider>
+            <LocationProvider>
+              <NavigationContainer>
+                <StatusBar style="auto" />
 
-                {/* Tabs principales (Listas, Tiendas, Escanear) */}
-                <RootStack.Screen name="MainTabs" component={MainTabs} />
-              </RootStack.Navigator>
-            </NavigationContainer>
-          </LocationProvider>
+                <RootStack.Navigator screenOptions={{ headerShown: false }}>
+                  {/* Splash inicial */}
+                  <RootStack.Screen name="Splash" component={SplashScreen} />
+
+                  {/* Tabs principales */}
+                  <RootStack.Screen name="Main" component={MainTabs} />
+                </RootStack.Navigator>
+              </NavigationContainer>
+            </LocationProvider>
+          </ListsProvider>
         </StoreProvider>
       </StoresProvider>
-    </ConfigProvider>
+    </SafeAreaProvider>
   );
 }

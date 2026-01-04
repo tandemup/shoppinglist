@@ -1,95 +1,146 @@
-// context/StoresContext.js
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import rawStores from "../data/stores.json";
+import storesData from "../data/stores.json";
 
+/* -------------------------------------------------
+   Context
+-------------------------------------------------- */
 const StoresContext = createContext(null);
 
-export const useStores = () => {
-  const ctx = useContext(StoresContext);
-  if (!ctx) {
-    throw new Error("useStores debe usarse dentro de StoresProvider");
-  }
-  return ctx;
-};
+/* -------------------------------------------------
+   Storage keys
+-------------------------------------------------- */
+const STORES_KEY = "@stores";
+const FAVORITES_KEY = "@favoriteStoreIds";
+const STORES_INIT_KEY = "@stores_initialized";
 
-const FAVORITES_KEY = "@favorite_stores";
-
-// ────────────────────────────────────────────────
-// NORMALIZACIÓN DE TIENDAS
-// ────────────────────────────────────────────────
-const normalizeStores = (stores) =>
-  stores.filter(Boolean).map((store, index) => {
-    const id = store.id ?? store.osm_id ?? store["@id"] ?? `store-${index}`;
-
-    return {
-      ...store,
-      id: String(id), // 🔑 SIEMPRE string y nunca null
-    };
-  });
-
+/* -------------------------------------------------
+   Provider
+-------------------------------------------------- */
 export function StoresProvider({ children }) {
   const [stores, setStores] = useState([]);
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [favoriteStoreIds, setFavoriteStoreIds] = useState([]);
+  const [isReady, setIsReady] = useState(false);
 
-  // ────────────────────────────────────────────────
-  // CARGAR TIENDAS + FAVORITAS
-  // ────────────────────────────────────────────────
+  /* -------------------------------------------------
+     Initial load (JSON only once)
+  -------------------------------------------------- */
   useEffect(() => {
-    const load = async () => {
+    const init = async () => {
       try {
-        const normalizedStores = normalizeStores(rawStores);
-        setStores(normalizedStores);
+        const initialized = await AsyncStorage.getItem(STORES_INIT_KEY);
 
-        const favRaw = await AsyncStorage.getItem(FAVORITES_KEY);
-        let validFavorites = [];
+        // 🟢 First run → load from JSON
+        if (!initialized) {
+          setStores(storesData);
 
-        if (favRaw) {
-          const parsed = JSON.parse(favRaw);
-          validFavorites = parsed.filter((id) =>
-            normalizedStores.some((s) => s.id === id)
-          );
-          setFavorites(validFavorites);
+          await AsyncStorage.setItem(STORES_KEY, JSON.stringify(storesData));
+          await AsyncStorage.setItem(STORES_INIT_KEY, "true");
         }
+        // 🔵 Next runs → load from storage
+        else {
+          const storedStores = await AsyncStorage.getItem(STORES_KEY);
+
+          if (storedStores) {
+            setStores(JSON.parse(storedStores));
+          }
+        }
+
+        // Load favorites
+        const storedFavorites = await AsyncStorage.getItem(FAVORITES_KEY);
+        if (storedFavorites) {
+          setFavoriteStoreIds(JSON.parse(storedFavorites));
+        }
+
+        setIsReady(true);
       } catch (e) {
-        console.warn("Error loading stores", e);
-      } finally {
-        setLoading(false);
+        console.error("Error initializing stores", e);
+        setIsReady(true);
       }
     };
 
-    load();
+    init();
   }, []);
-  // ────────────────────────────────────────────────
-  // FAVORITAS
-  // ────────────────────────────────────────────────
-  const toggleFavorite = async (storeId) => {
-    const id = String(storeId);
-    const next = favorites.includes(id)
-      ? favorites.filter((fid) => fid !== id)
-      : [...favorites, id];
 
-    setFavorites(next);
-    await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+  /* -------------------------------------------------
+     Persist stores
+  -------------------------------------------------- */
+  useEffect(() => {
+    if (!isReady) return;
+
+    AsyncStorage.setItem(STORES_KEY, JSON.stringify(stores));
+  }, [stores, isReady]);
+
+  /* -------------------------------------------------
+     Persist favorites
+  -------------------------------------------------- */
+  useEffect(() => {
+    if (!isReady) return;
+
+    AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteStoreIds));
+  }, [favoriteStoreIds, isReady]);
+
+  /* -------------------------------------------------
+     API
+  -------------------------------------------------- */
+
+  const setAllStores = (list) => {
+    setStores(Array.isArray(list) ? list : []);
   };
 
-  const isFavorite = (storeId) => favorites.includes(String(storeId));
+  const getStoreById = (storeId) => {
+    return stores.find((s) => s.id === storeId) || null;
+  };
+
+  const isFavorite = (storeId) => {
+    return favoriteStoreIds.includes(storeId);
+  };
+
+  const toggleFavoriteStore = (storeId) => {
+    setFavoriteStoreIds((prev) =>
+      prev.includes(storeId)
+        ? prev.filter((id) => id !== storeId)
+        : [...prev, storeId]
+    );
+  };
+
+  /* -------------------------------------------------
+     Memoized value
+  -------------------------------------------------- */
+  const value = useMemo(
+    () => ({
+      stores,
+      favoriteStoreIds,
+      isReady,
+
+      setAllStores,
+      getStoreById,
+
+      isFavorite,
+      toggleFavoriteStore,
+    }),
+    [stores, favoriteStoreIds, isReady]
+  );
 
   return (
-    <StoresContext.Provider
-      value={{
-        stores,
-        loading,
-        favorites,
-        isFavorite,
-        toggleFavorite,
-      }}
-    >
-      {children}
-    </StoresContext.Provider>
+    <StoresContext.Provider value={value}>{children}</StoresContext.Provider>
   );
 }
 
-export default StoresContext;
+/* -------------------------------------------------
+   Hook
+-------------------------------------------------- */
+export function useStores() {
+  const ctx = useContext(StoresContext);
+  if (!ctx) {
+    throw new Error("useStores must be used inside StoresProvider");
+  }
+  return ctx;
+}
