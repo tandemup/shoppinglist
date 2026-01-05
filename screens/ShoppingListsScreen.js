@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
   FlatList,
   TextInput,
   Pressable,
 } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import Entypo from "@expo/vector-icons/Entypo";
 import { useNavigation } from "@react-navigation/native";
-
 import { safeAlert } from "../utils/core/safeAlert";
 import { useLists } from "../context/ListsContext";
+import { ROUTES } from "../navigation/ROUTES";
 
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
@@ -26,6 +29,23 @@ export default function ShoppingListsScreen() {
   /* =====================================================
      Header
   ===================================================== */
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate(ROUTES.STORES_TAB, {
+              screen: ROUTES.STORES_HOME,
+            })
+          }
+          style={{ paddingHorizontal: 16 }}
+        >
+          <Ionicons name="menu-outline" size={24} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   useEffect(() => {
     navigation.setOptions({
       title: "Listas de la compra",
@@ -80,7 +100,6 @@ export default function ShoppingListsScreen() {
   ===================================================== */
   const renderItem = ({ item }) => (
     <Pressable style={styles.card} onPress={() => handleOpenList(item.id)}>
-      {/* Fila superior: nombre + menú */}
       <View style={styles.cardHeader}>
         <Text style={styles.name}>{item.name}</Text>
 
@@ -111,7 +130,7 @@ export default function ShoppingListsScreen() {
           onChangeText={setName}
         />
         <Pressable style={styles.addButton} onPress={handleAddList}>
-          <Ionicons name="add" size={24} color="#fff" />
+          <Entypo name="add-to-list" size={24} color="green" />
         </Pressable>
       </View>
 
@@ -167,7 +186,9 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: "#3B82F6",
+    borderWidth: "thin",
+    borderColor: "green",
+    backgroundColor: "clear",
     alignItems: "center",
     justifyContent: "center",
   },

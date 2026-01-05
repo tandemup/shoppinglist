@@ -90,12 +90,12 @@ export default function SearchCombinedBar({
   -------------------------------------------------- */
   return (
     <View style={styles.container}>
-      {/* -------- Input -------- */}
       <View style={styles.inputRow}>
         <Ionicons name="search" size={18} color="#666" />
         <TextInput
           style={styles.input}
           placeholder="Añadir producto…"
+          placeholderTextColor="#999"
           value={query}
           onChangeText={setQuery}
         />

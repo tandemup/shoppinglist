@@ -1,8 +1,9 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useLayoutEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  TouchableOpacity,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +18,7 @@ import StoreSelector from "../components/StoreSelector";
 import ItemRow from "../components/ItemRow";
 import SearchCombinedBar from "../components/SearchCombinedBar";
 
+import { Ionicons } from "@expo/vector-icons";
 import { ROUTES } from "../navigation/ROUTES";
 import { formatCurrency } from "../utils/store/formatters";
 
@@ -41,14 +43,26 @@ export default function ShoppingListScreen() {
   /* ---------------------------
      Tienda asignada
   ----------------------------*/
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate(ROUTES.STORES_TAB)}
+          style={{ paddingHorizontal: 16 }}
+        >
+          <Ionicons name="menu-outline" size={24} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   useEffect(() => {
     if (!selectedStore || !listId) return;
 
     setStoreForList(listId, selectedStore.id);
 
-    // 🔥 LIMPIAR el parámetro para evitar bucle
     navigation.setParams({ selectedStore: undefined });
-  }, [selectedStore, listId, setStoreForList, navigation]);
+  }, [selectedStore, listId]);
 
   const assignedStore = useMemo(() => {
     if (selectedStore) return selectedStore;
@@ -107,9 +121,10 @@ export default function ShoppingListScreen() {
   ----------------------------*/
   const handleSelectStore = () => {
     navigation.navigate(ROUTES.STORES_TAB, {
-      screen: ROUTES.STORES_BROWSE,
+      screen: ROUTES.STORES_FAVORITES,
       params: {
         selectForListId: listId,
+        mode: "select",
       },
     });
   };
@@ -154,10 +169,7 @@ export default function ShoppingListScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <>
-            {/* Selector de tienda */}
             <StoreSelector store={assignedStore} onPress={handleSelectStore} />
-
-            {/* Buscador combinado */}
             <SearchCombinedBar
               currentList={list}
               onCreateNew={handleCreateNew}

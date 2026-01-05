@@ -1,10 +1,11 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import StoreRow from "../components/StoreRow";
+import React, { useMemo, useEffect } from "react";
+import { View, Text, StyleSheet, FlatList } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";
 import { useLocation } from "../context/LocationContext";
+
+import StoreRow from "../components/StoreRow";
 import { ROUTES } from "../navigation/ROUTES";
 
 /* -------------------------------------------------
@@ -12,72 +13,90 @@ import { ROUTES } from "../navigation/ROUTES";
 -------------------------------------------------- */
 export default function StoresNearbyScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
+
+  const { mode, selectForListId } = route.params || {};
+  const isSelectMode = mode === "select";
 
   const { stores } = useStores();
-  const { location, requestLocation, isLoading, error } = useLocation();
+  const { location } = useLocation();
 
   /* -------------------------------------------------
-     Estados sin localización
+     Header (modo selección)
   -------------------------------------------------- */
-  if (!location) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.title}>Mostrar tiendas cercanas</Text>
-
-        <Text style={styles.subtitle}>
-          Necesitamos acceder a tu ubicación para ordenar las tiendas por
-          distancia.
-        </Text>
-
-        {error && <Text style={styles.error}>{error}</Text>}
-
-        <Pressable
-          style={styles.button}
-          onPress={requestLocation}
-          disabled={isLoading}
-        >
-          <Text style={styles.buttonText}>
-            {isLoading ? "Obteniendo ubicación…" : "Usar mi ubicación"}
-          </Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  if (!stores?.length) {
-    return (
-      <View style={styles.center}>
-        <Text>No hay tiendas disponibles</Text>
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (isSelectMode) {
+      navigation.setOptions({
+        title: "Seleccionar tienda",
+      });
+    }
+  }, [isSelectMode, navigation]);
 
   /* -------------------------------------------------
-     Tiendas con distancia (ordenadas + limitadas)
+     Calcular distancia y ordenar
   -------------------------------------------------- */
   const nearbyStores = useMemo(() => {
-    return stores
-      .filter((s) => s.location?.latitude && s.location?.longitude)
-      .map((store) => {
-        const distanceKm = getDistanceKm(
-          location.latitude,
-          location.longitude,
-          store.location.latitude,
-          store.location.longitude
-        );
+    if (!location) return [];
 
-        return { ...store, distanceKm };
+    return [...stores]
+      .map((store) => {
+        if (store.location?.latitude && store.location?.longitude) {
+          const distanceKm = getDistanceKm(
+            location.latitude,
+            location.longitude,
+            store.location.latitude,
+            store.location.longitude
+          );
+
+          return { ...store, distanceKm };
+        }
+
+        return null;
       })
-      .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, 10); // ⬅️ SOLO LAS MÁS CERCANAS
+      .filter(Boolean)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
   }, [stores, location]);
 
   /* -------------------------------------------------
-     Render item
+     Selección / navegación
+  -------------------------------------------------- */
+  const handlePressStore = (store) => {
+    if (isSelectMode && selectForListId) {
+      navigation.navigate(ROUTES.SHOPPING_TAB, {
+        screen: ROUTES.SHOPPING_LIST,
+        params: {
+          listId: selectForListId,
+          selectedStore: store,
+        },
+      });
+      return;
+    }
+
+    navigation.navigate(ROUTES.STORE_DETAIL, {
+      storeId: store.id,
+    });
+  };
+
+  /* -------------------------------------------------
+     Render
   -------------------------------------------------- */
   const renderItem = ({ item }) => (
-    <StoreRow store={item} onPress={() => handlePressStore(item)} />
+    <StoreRow
+      store={item}
+      onPress={() => handlePressStore(item)}
+      selectable={isSelectMode}
+    />
   );
+
+  if (!location) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.infoText}>
+          Activa la ubicación para ver tiendas cercanas
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <FlatList
@@ -85,6 +104,13 @@ export default function StoresNearbyScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       contentContainerStyle={styles.content}
+      ListEmptyComponent={
+        <View style={styles.center}>
+          <Text style={styles.infoText}>
+            No se encontraron tiendas cercanas
+          </Text>
+        </View>
+      }
     />
   );
 }
@@ -110,6 +136,11 @@ const getDistanceKm = (lat1, lon1, lat2, lon2) => {
    Styles
 -------------------------------------------------- */
 const styles = StyleSheet.create({
+  content: {
+    padding: 12,
+    paddingBottom: 24,
+  },
+
   center: {
     flex: 1,
     alignItems: "center",
@@ -117,79 +148,9 @@ const styles = StyleSheet.create({
     padding: 24,
   },
 
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-
-  subtitle: {
-    fontSize: 14,
+  infoText: {
+    fontSize: 15,
     color: "#666",
     textAlign: "center",
-    marginBottom: 16,
-  },
-
-  error: {
-    color: "#c62828",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-
-  button: {
-    backgroundColor: "#1976d2",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-
-  list: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-
-  header: {
-    marginBottom: 12,
-    fontSize: 14,
-    color: "#555",
-  },
-
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginBottom: 10,
-    elevation: 2,
-  },
-
-  info: {
-    flex: 1,
-  },
-
-  name: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#222",
-  },
-
-  city: {
-    marginTop: 2,
-    fontSize: 13,
-    color: "#666",
-  },
-
-  distance: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#2e7d32",
-    marginLeft: 8,
   },
 });

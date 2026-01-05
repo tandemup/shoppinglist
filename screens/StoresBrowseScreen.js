@@ -17,7 +17,8 @@ export default function StoresBrowseScreen() {
   const route = useRoute();
   const navigation = useNavigation();
 
-  const { selectForListId } = route.params || {};
+  const { selectForListId, mode } = route.params || {};
+  const isSelectMode = mode === "select";
 
   const { stores } = useStores();
   const { location } = useLocation();
@@ -62,8 +63,7 @@ export default function StoresBrowseScreen() {
      Selección / navegación
   -------------------------------------------------- */
   const handlePressStore = (store) => {
-    // Modo selección para lista
-    if (selectForListId) {
+    if (isSelectMode && selectForListId) {
       navigation.navigate(ROUTES.SHOPPING_TAB, {
         screen: ROUTES.SHOPPING_LIST,
         params: {
@@ -74,7 +74,6 @@ export default function StoresBrowseScreen() {
       return;
     }
 
-    // Navegación normal
     navigation.navigate(ROUTES.STORE_DETAIL, {
       storeId: store.id,
     });

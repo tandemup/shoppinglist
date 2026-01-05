@@ -1,33 +1,48 @@
-import React, { useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
-import { useRoute, useNavigation } from "@react-navigation/native";
+import React, { useMemo, useEffect } from "react";
+import { View, Text, StyleSheet, FlatList } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";
 import StoreRow from "../components/StoreRow";
-
+import PrimaryButton from "../components/PrimaryButton"; // ajusta si usas otro
 import { ROUTES } from "../navigation/ROUTES";
 
+/* -------------------------------------------------
+   Screen
+-------------------------------------------------- */
 export default function StoresFavoritesScreen() {
-  const route = useRoute();
   const navigation = useNavigation();
+  const route = useRoute();
 
-  const { selectForListId } = route.params || {};
+  const { mode, selectForListId } = route.params || {};
+  const isSelectMode = mode === "select";
 
-  const { stores, favoriteStoreIds } = useStores();
+  const { stores } = useStores();
 
-  /* ---------------------------
-     Tiendas favoritas
-  ----------------------------*/
-  const favoriteStores = useMemo(() => {
-    return stores.filter((s) => favoriteStoreIds.includes(s.id));
-  }, [stores, favoriteStoreIds]);
+  /* -------------------------------------------------
+     Favoritas
+  -------------------------------------------------- */
+  const favoriteStores = useMemo(
+    () => stores.filter((s) => s.favorite),
+    [stores]
+  );
 
-  /* ---------------------------
+  /* -------------------------------------------------
+     Header (modo selección)
+  -------------------------------------------------- */
+  useEffect(() => {
+    if (isSelectMode) {
+      navigation.setOptions({
+        title: "Seleccionar tienda",
+      });
+    }
+  }, [isSelectMode, navigation]);
+
+  /* -------------------------------------------------
      Handlers
-  ----------------------------*/
+  -------------------------------------------------- */
   const handlePressStore = (store) => {
-    // Caso 1: estamos seleccionando tienda para una lista
-    if (selectForListId) {
+    if (isSelectMode && selectForListId) {
       navigation.navigate(ROUTES.SHOPPING_TAB, {
         screen: ROUTES.SHOPPING_LIST,
         params: {
@@ -38,62 +53,86 @@ export default function StoresFavoritesScreen() {
       return;
     }
 
-    // Caso 2: navegación normal a detalle
     navigation.navigate(ROUTES.STORE_DETAIL, {
       storeId: store.id,
     });
   };
 
-  /* ---------------------------
-     Empty state
-  ----------------------------*/
-  if (favoriteStores.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No tienes tiendas favoritas</Text>
-        <Text style={styles.emptySubtitle}>
-          Marca una tienda con ⭐ para que aparezca aquí
-        </Text>
-      </View>
-    );
-  }
+  const handleExploreStores = () => {
+    navigation.navigate(ROUTES.STORES_BROWSE, {
+      mode: "select",
+      selectForListId,
+    });
+  };
+
+  /* -------------------------------------------------
+     Render
+  -------------------------------------------------- */
+  const renderItem = ({ item }) => (
+    <StoreRow
+      store={item}
+      onPress={() => handlePressStore(item)}
+      selectable={isSelectMode}
+    />
+  );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {favoriteStores.map((store) => (
-        <StoreRow
-          key={store.id}
-          store={store}
-          onPress={() => handlePressStore(store)}
-        />
-      ))}
-    </ScrollView>
+    <FlatList
+      data={favoriteStores}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      contentContainerStyle={styles.content}
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>No tienes tiendas favoritas</Text>
+          <Text style={styles.emptySubtitle}>
+            Marca una tienda como favorita para acceder rápidamente desde tus
+            listas
+          </Text>
+
+          {isSelectMode && (
+            <PrimaryButton
+              title="Explorar tiendas"
+              onPress={handleExploreStores}
+              style={styles.exploreButton}
+            />
+          )}
+        </View>
+      }
+    />
   );
 }
 
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f6f6f6",
-  },
   content: {
     padding: 12,
+    paddingBottom: 24,
   },
+
   emptyContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
     padding: 24,
+    alignItems: "center",
   },
+
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
     color: "#333",
     marginBottom: 8,
+    textAlign: "center",
   },
+
   emptySubtitle: {
     fontSize: 14,
     color: "#666",
     textAlign: "center",
+    marginBottom: 16,
+  },
+
+  exploreButton: {
+    marginTop: 8,
   },
 });
