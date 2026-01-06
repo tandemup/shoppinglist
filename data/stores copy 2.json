@@ -10,7 +10,8 @@
       "longitude": -5.6829704
     },
     "hours": "",
-    "source": "osm"
+    "source": "osm",
+    "favorite": true
   },
   {
     "id": "osm-256367236",
@@ -23,7 +24,8 @@
       "longitude": -5.8495642
     },
     "hours": "",
-    "source": "osm"
+    "source": "osm",
+    "favorite": true
   },
   {
     "id": "osm-256367249",
@@ -36,7 +38,8 @@
       "longitude": -5.8492206
     },
     "hours": "",
-    "source": "osm"
+    "source": "osm",
+    "favorite": true
   },
   {
     "id": "osm-415295042",
@@ -49,7 +52,8 @@
       "longitude": -4.7582444
     },
     "hours": "",
-    "source": "osm"
+    "source": "osm",
+    "favorite": true
   },
   {
     "id": "osm-441919378",
@@ -62,6 +66,7 @@
       "longitude": -5.8203296
     },
     "hours": "",
-    "source": "osm"
+    "source": "osm",
+    "favorite": true
   }
 ]

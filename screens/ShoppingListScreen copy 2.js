@@ -26,7 +26,7 @@ export default function ShoppingListScreen() {
   const route = useRoute();
   const navigation = useNavigation();
 
-  const { listId } = route.params || {};
+  const { listId, selectedStore } = route.params || {};
 
   /* ---------------------------
      Contexts
@@ -35,7 +35,7 @@ export default function ShoppingListScreen() {
   const { getStoreById } = useStores();
 
   /* ---------------------------
-     Lista ACTIVA (fuente única)
+     Lista ACTIVA (única fuente válida)
   ----------------------------*/
   const list = useMemo(
     () => activeLists.find((l) => l.id === listId),
@@ -43,7 +43,7 @@ export default function ShoppingListScreen() {
   );
 
   /* ---------------------------
-     Guard clause
+     Guard clause CRÍTICA
   ----------------------------*/
   useEffect(() => {
     if (!list) {
@@ -60,22 +60,12 @@ export default function ShoppingListScreen() {
   }
 
   /* ---------------------------
-     Tienda asignada
+     Tienda asignada (solo lectura)
   ----------------------------*/
   const assignedStore = useMemo(() => {
     if (!list.storeId) return null;
     return getStoreById(list.storeId);
   }, [list.storeId, getStoreById]);
-
-  /* ---------------------------
-     Handlers StoreSelector
-  ----------------------------*/
-  const handleSelectStore = () => {
-    navigation.navigate(ROUTES.STORES_TAB, {
-      screen: ROUTES.STORES_HOME,
-      params: { listId },
-    });
-  };
 
   /* ---------------------------
      Handlers SearchCombinedBar
@@ -149,12 +139,7 @@ export default function ShoppingListScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <>
-            <StoreSelector
-              store={assignedStore}
-              disabled={list.archived}
-              onPress={handleSelectStore}
-            />
-
+            <StoreSelector store={assignedStore} disabled />
             <SearchCombinedBar
               currentList={list}
               onCreateNew={handleCreateNew}

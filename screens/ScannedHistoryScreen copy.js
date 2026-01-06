@@ -5,6 +5,7 @@ import {
   TextInput,
   FlatList,
   StyleSheet,
+  Image,
   TouchableOpacity,
 } from "react-native";
 import { ROUTES } from "../navigation/ROUTES";
@@ -19,8 +20,6 @@ import {
   removeScannedItem,
 } from "../services/scannerHistory";
 
-import { useIsFocused } from "@react-navigation/native";
-
 export default function ScannedHistoryScreen({ navigation }) {
   //
   // 📌 ESTADOS
@@ -28,8 +27,6 @@ export default function ScannedHistoryScreen({ navigation }) {
   const [scannedItems, setScannedItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredItems, setFilteredItems] = useState([]);
-
-  const isFocused = useIsFocused();
 
   //
   // 🍔 MENÚ HAMBURGUESA
@@ -48,13 +45,11 @@ export default function ScannedHistoryScreen({ navigation }) {
   }, [navigation]);
 
   //
-  // 🔄 CARGAR HISTORIAL (al montar y al volver)
+  // 🔄 CARGAR ELEMENTOS ESCANEADOS REALES
   //
   useEffect(() => {
-    if (isFocused) {
-      loadScannedHistory();
-    }
-  }, [isFocused]);
+    loadScannedHistory();
+  }, []);
 
   const loadScannedHistory = async () => {
     try {
@@ -62,6 +57,7 @@ export default function ScannedHistoryScreen({ navigation }) {
 
       const onlyScanned = all.filter((i) => i.source === "scanner");
 
+      // Ordenar por fecha descendente
       onlyScanned.sort(
         (a, b) =>
           new Date(b.scannedAt).valueOf() - new Date(a.scannedAt).valueOf()
@@ -97,7 +93,7 @@ export default function ScannedHistoryScreen({ navigation }) {
   }, [searchQuery, scannedItems]);
 
   //
-  // 🗑 BORRAR ITEM
+  // 🗑 LONG PRESS PARA BORRAR UN ITEM
   //
   const handleDelete = (item) => {
     safeAlert("Eliminar", `¿Deseas eliminar este escaneo?\n\n${item.name}`, [
@@ -106,19 +102,24 @@ export default function ScannedHistoryScreen({ navigation }) {
         text: "Eliminar",
         style: "destructive",
         onPress: async () => {
-          await removeScannedItem(item.barcode);
-          loadScannedHistory();
+          await removeScannedItem(item.barcode); // ← ✔ CORREGIDO
+          loadScannedHistory(); // Recargar
         },
       },
     ]);
   };
 
   //
-  // 🎨 ITEM
+  // 🎨 RENDER DE CADA ITEM
   //
   const renderItem = ({ item }) => (
     <TouchableOpacity
-      onPress={() => navigation.navigate(ROUTES.EDIT_SCANNED_ITEM, { item })}
+      onPress={() =>
+        navigation.navigate(ROUTES.EDIT_SCANNED_ITEM, {
+          item,
+          reload: loadScannedHistory, // ⭐ PASAMOS LA FUNCIÓN
+        })
+      }
       onLongPress={() => handleDelete(item)}
       activeOpacity={0.8}
     >
@@ -128,7 +129,6 @@ export default function ScannedHistoryScreen({ navigation }) {
             {item.isBook ? "📚 " : ""}
             {item.name}
           </Text>
-
           {item.barcode && (
             <View style={{ marginTop: 4 }}>
               <BarcodeLink barcode={item.barcode} label="Buscar código" />
@@ -147,6 +147,7 @@ export default function ScannedHistoryScreen({ navigation }) {
           )}
         </View>
 
+        {/* ⭐ FLECHA DE NAVEGACIÓN */}
         <Ionicons
           name="chevron-forward"
           size={26}
@@ -158,12 +159,13 @@ export default function ScannedHistoryScreen({ navigation }) {
   );
 
   //
-  // 🖥 RENDER
+  // 🖥 RENDER PRINCIPAL
   //
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Text style={styles.title}>Historial de Escaneos</Text>
 
+      {/* 🔎 Barra de búsqueda */}
       <View style={styles.searchContainer}>
         <Ionicons
           name="search"
@@ -180,10 +182,11 @@ export default function ScannedHistoryScreen({ navigation }) {
         />
       </View>
 
+      {/* 📋 Lista filtrada */}
       <FlatList
         data={filteredItems}
         renderItem={renderItem}
-        keyExtractor={(item, index) => item.barcode ?? `scan-${index}`}
+        keyExtractor={(item) => item.barcode} // ← ✔ CORREGIDO
         contentContainerStyle={{ paddingBottom: 50 }}
         ListEmptyComponent={
           <Text style={styles.empty}>No se encontraron resultados</Text>
@@ -194,7 +197,7 @@ export default function ScannedHistoryScreen({ navigation }) {
 }
 
 //
-// 🎨 ESTILOS (sin cambios)
+// 🎨 ESTILOS
 //
 const styles = StyleSheet.create({
   container: {
@@ -230,6 +233,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
 
+  // ⭐ Estilo especial para libros
   cardBook: {
     backgroundColor: "#E0F2FF",
     borderColor: "#60A5FA",
@@ -239,6 +243,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  barcode: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
   },
 
   count: {
@@ -254,6 +264,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
+  // 🔎 Barra de búsqueda
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",

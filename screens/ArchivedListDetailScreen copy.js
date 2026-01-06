@@ -1,9 +1,11 @@
-import React, { useMemo } from "react";
+//ArchivedListDetailScreen.js
+
+import React, { useState, useEffect } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import dayjs from "dayjs";
+import { useStore } from "../context/StoreContext";
 
-import { useLists } from "../context/ListsContext";
+import dayjs from "dayjs";
 import BarcodeLink from "../components/BarcodeLink";
 
 // ============================================================
@@ -12,7 +14,7 @@ import BarcodeLink from "../components/BarcodeLink";
 function HeaderCard({ list, date, total, styles }) {
   return (
     <View style={styles.headerCard}>
-      <Text style={styles.title}>{list.name}</Text>
+      <Text style={styles.title}>{list.title}</Text>
 
       <View style={styles.inline}>
         <Ionicons name="calendar-outline" size={16} color="#6B7280" />
@@ -36,8 +38,61 @@ function HeaderCard({ list, date, total, styles }) {
 }
 
 // ============================================================
-// COMPONENTE: ITEM
+// COMPONENTE: ITEM DE LISTA
 // ============================================================
+function ItemName({ name, styles }) {
+  return <Text style={styles.name}>{name}</Text>;
+}
+
+function ItemQty({ qty, unit, styles }) {
+  return (
+    <View style={styles.inline}>
+      <Ionicons name="cart-outline" size={14} color="#6B7280" />
+      <Text style={styles.qty}>
+        {qty} {unit}
+      </Text>
+    </View>
+  );
+}
+
+function ItemUnitPrice({ unitPrice, unit, styles }) {
+  if (unitPrice == null) return null;
+
+  return (
+    <Text style={styles.unitPrice}>
+      {unitPrice.toFixed(2)} € / {unit}
+    </Text>
+  );
+}
+
+function ItemPromo({ summary, hasPromo, styles }) {
+  if (!hasPromo || !summary) return null;
+
+  return <Text style={styles.promo}>{summary}</Text>;
+}
+
+function ItemBarcode({ barcode }) {
+  if (!barcode) return null;
+
+  return (
+    <View style={{ marginTop: 4 }}>
+      <BarcodeLink
+        barcode={barcode}
+        label={<Text style={{ color: "#6B7280" }}>Código:</Text>}
+        styleType="subtle"
+      />
+    </View>
+  );
+}
+
+function ItemTotal({ total, styles }) {
+  return (
+    <View style={styles.totalBox}>
+      <Text style={styles.totalText}>{total.toFixed(2)} €</Text>
+    </View>
+  );
+}
+
 function ItemCard({ item, styles }) {
   const qty = item.priceInfo?.qty ?? 1;
   const unit = item.priceInfo?.unitType ?? "u";
@@ -49,37 +104,18 @@ function ItemCard({ item, styles }) {
   return (
     <View style={styles.card}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.name}>{item.name}</Text>
+        <ItemName name={item.name} styles={styles} />
 
-        <View style={styles.inline}>
-          <Ionicons name="cart-outline" size={14} color="#6B7280" />
-          <Text style={styles.qty}>
-            {qty} {unit}
-          </Text>
-        </View>
+        <ItemQty qty={qty} unit={unit} styles={styles} />
 
-        {unitPrice != null && (
-          <Text style={styles.unitPrice}>
-            {unitPrice.toFixed(2)} € / {unit}
-          </Text>
-        )}
+        <ItemUnitPrice unitPrice={unitPrice} unit={unit} styles={styles} />
 
-        {hasPromo && summary && <Text style={styles.promo}>{summary}</Text>}
+        <ItemPromo summary={summary} hasPromo={hasPromo} styles={styles} />
 
-        {item.barcode && (
-          <View style={{ marginTop: 4 }}>
-            <BarcodeLink
-              barcode={item.barcode}
-              label={<Text style={{ color: "#6B7280" }}>Código:</Text>}
-              styleType="subtle"
-            />
-          </View>
-        )}
+        <ItemBarcode barcode={item.barcode} />
       </View>
 
-      <View style={styles.totalBox}>
-        <Text style={styles.totalText}>{total.toFixed(2)} €</Text>
-      </View>
+      <ItemTotal total={total} styles={styles} />
     </View>
   );
 }
@@ -87,30 +123,22 @@ function ItemCard({ item, styles }) {
 // ============================================================
 // PANTALLA PRINCIPAL
 // ============================================================
-export default function ArchivedListDetailScreen({ route }) {
-  const { listId } = route.params;
 
-  const { archivedLists } = useLists();
-
-  const list = useMemo(
-    () => archivedLists.find((l) => l.id === listId),
-    [archivedLists, listId]
-  );
-
-  if (!list) {
-    return (
-      <View style={styles.screen}>
-        <Text>Lista no encontrada</Text>
-      </View>
-    );
-  }
-
-  const date = dayjs(list.archivedAt ?? list.createdAt).format("D MMMM YYYY");
-
+export default function ArchivedListDetailScreen({ route, navigation }) {
+  const { list } = route.params;
+  const date = dayjs(list.createdAt).format("D MMMM YYYY");
   const total = list.items.reduce(
     (acc, i) => acc + (i.priceInfo?.total ?? 0),
     0
   );
+  const { reload } = useStore();
+
+  useEffect(() => {
+    reload();
+
+    const unsub = navigation.addListener("focus", reload);
+    return unsub;
+  }, [navigation]);
 
   return (
     <View style={styles.screen}>
@@ -127,7 +155,7 @@ export default function ArchivedListDetailScreen({ route }) {
 }
 
 // ============================================================
-// ESTILOS (sin cambios)
+// ESTILOS
 // ============================================================
 const styles = StyleSheet.create({
   screen: {
@@ -136,6 +164,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
   },
 
+  // HEADER
   headerCard: {
     backgroundColor: "#FFFFFF",
     padding: 16,
@@ -188,6 +217,7 @@ const styles = StyleSheet.create({
     color: "#059669",
   },
 
+  // ITEM
   card: {
     backgroundColor: "#FFFFFF",
     padding: 14,

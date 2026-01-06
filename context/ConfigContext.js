@@ -1,3 +1,11 @@
+/**
+ * ConfigContext
+ *
+ * Contexto global de configuración de la aplicación.
+ * Centraliza flags, preferencias del usuario y ajustes generales
+ * que afectan al comportamiento global de la app.
+ */
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 

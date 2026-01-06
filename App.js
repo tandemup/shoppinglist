@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import { StoresProvider } from "./context/StoresContext";
 import { StoreProvider } from "./context/StoreContext";
 import { ListsProvider } from "./context/ListsContext";
+import { PurchasesProvider } from "./context/PurchasesContext";
 import { LocationProvider } from "./context/LocationContext";
 
 /* -----------------------------
@@ -30,19 +31,21 @@ export default function App() {
       <StoresProvider>
         <StoreProvider>
           <ListsProvider>
-            <LocationProvider>
-              <NavigationContainer>
-                <StatusBar style="auto" />
+            <PurchasesProvider>
+              <LocationProvider>
+                <NavigationContainer>
+                  <StatusBar style="auto" />
 
-                <RootStack.Navigator screenOptions={{ headerShown: false }}>
-                  {/* Splash inicial */}
-                  <RootStack.Screen name="Splash" component={SplashScreen} />
+                  <RootStack.Navigator screenOptions={{ headerShown: false }}>
+                    {/* Splash inicial */}
+                    <RootStack.Screen name="Splash" component={SplashScreen} />
 
-                  {/* Tabs principales */}
-                  <RootStack.Screen name="Main" component={MainTabs} />
-                </RootStack.Navigator>
-              </NavigationContainer>
-            </LocationProvider>
+                    {/* Tabs principales */}
+                    <RootStack.Screen name="Main" component={MainTabs} />
+                  </RootStack.Navigator>
+                </NavigationContainer>
+              </LocationProvider>
+            </PurchasesProvider>
           </ListsProvider>
         </StoreProvider>
       </StoresProvider>

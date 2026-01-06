@@ -5,16 +5,11 @@ import { useNavigation } from "@react-navigation/native";
 
 import { ROUTES } from "../navigation/ROUTES";
 
-/* -------------------------------------------------
-   Menu Item
--------------------------------------------------- */
-function MenuItem({ icon, title, subtitle, onPress }) {
-  return (
-    <Pressable
-      style={styles.menuItem}
-      onPress={onPress}
-      accessibilityRole="button"
-    >
+export default function StoresHomeScreen() {
+  const navigation = useNavigation();
+
+  const MenuItem = ({ icon, title, subtitle, onPress }) => (
+    <Pressable style={styles.menuItem} onPress={onPress}>
       <View style={styles.iconContainer}>
         <Ionicons name={icon} size={26} color="#2e7d32" />
       </View>
@@ -27,13 +22,6 @@ function MenuItem({ icon, title, subtitle, onPress }) {
       <Ionicons name="chevron-forward" size={22} color="#999" />
     </Pressable>
   );
-}
-
-/* -------------------------------------------------
-   Screen
--------------------------------------------------- */
-export default function StoresHomeScreen() {
-  const navigation = useNavigation();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -70,9 +58,6 @@ export default function StoresHomeScreen() {
   );
 }
 
-/* -------------------------------------------------
-   Styles
--------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -80,7 +65,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 24,
   },
   header: {
     fontSize: 22,

@@ -1,12 +1,10 @@
 // screens/StoreSelectScreen.js
-import React, { useMemo } from "react";
+import React from "react";
 import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";
-import { useConfig } from "../context/ConfigContext";
-
-import StoreCard from "../components/StoreCard";
+import StoreRow from "../components/StoreRow";
 import { ROUTES } from "../navigation/ROUTES";
 
 export default function StoreSelectScreen() {
@@ -14,21 +12,8 @@ export default function StoreSelectScreen() {
   const route = useRoute();
 
   const { selectForListId } = route.params ?? {};
+  const { favoriteStores } = useStores();
 
-  const { stores } = useStores();
-  const { favoriteStoreIds } = useConfig();
-
-  // ────────────────────────────────────────────────
-  // SOLO TIENDAS FAVORITAS
-  // ────────────────────────────────────────────────
-  const favoriteStores = useMemo(() => {
-    if (!stores?.length || !favoriteStoreIds?.length) return [];
-    return stores.filter((s) => favoriteStoreIds.includes(s.id));
-  }, [stores, favoriteStoreIds]);
-
-  // ────────────────────────────────────────────────
-  // SELECCIONAR TIENDA → VOLVER
-  // ────────────────────────────────────────────────
   const handleSelectStore = (store) => {
     navigation.navigate(ROUTES.SHOPPING_LIST, {
       listId: selectForListId,
@@ -36,10 +21,7 @@ export default function StoreSelectScreen() {
     });
   };
 
-  // ────────────────────────────────────────────────
-  // SIN FAVORITAS → UX
-  // ────────────────────────────────────────────────
-  if (favoriteStores.length === 0) {
+  if (!favoriteStores || favoriteStores.length === 0) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyTitle}>No tienes tiendas favoritas</Text>
@@ -53,9 +35,7 @@ export default function StoreSelectScreen() {
           onPress={() =>
             navigation.navigate(ROUTES.STORES_TAB, {
               screen: ROUTES.STORES,
-              params: {
-                selectForListId,
-              },
+              params: { mode: "select", selectForListId },
             })
           }
         >
@@ -65,24 +45,20 @@ export default function StoreSelectScreen() {
     );
   }
 
-  // ────────────────────────────────────────────────
-  // LISTADO FAVORITAS
-  // ────────────────────────────────────────────────
   return (
     <FlatList
       data={favoriteStores}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
       renderItem={({ item }) => (
-        <StoreCard store={item} onPress={() => handleSelectStore(item)} />
+        <StoreRow store={item} onPress={() => handleSelectStore(item)} />
       )}
     />
   );
 }
-
 const styles = StyleSheet.create({
   list: {
-    padding: 16,
+    paddingVertical: 8,
   },
   emptyContainer: {
     flex: 1,

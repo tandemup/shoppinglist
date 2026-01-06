@@ -1,179 +1,168 @@
-// PurchaseHistoryScreen.js — Versión para mostrar productos individuales
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
-  FlatList,
   StyleSheet,
+  FlatList,
   TextInput,
   Pressable,
 } from "react-native";
-import dayjs from "dayjs";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useStore } from "../context/StoreContext";
-import BarcodeLink from "../components/BarcodeLink";
+import { usePurchases } from "../context/PurchasesContext";
+import { ROUTES } from "../navigation/ROUTES";
+import { formatCurrency } from "../utils/store/formatters";
 
-export default function PurchaseHistoryScreen({ navigation }) {
-  const [items, setItems] = useState([]);
+export default function PurchaseHistoryScreen() {
+  const navigation = useNavigation();
+  const { purchaseHistory = [] } = usePurchases();
   const [search, setSearch] = useState("");
 
-  const { purchaseHistory, reload } = useStore();
+  /* ---------------------------
+     Filtro robusto
+  ----------------------------*/
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
 
-  // Cargar historial al entrar
-  useEffect(() => {
-    reload();
+    if (!q) return purchaseHistory;
 
-    const unsub = navigation.addListener("focus", () => {
-      reload();
+    return purchaseHistory.filter((p) => {
+      const storeName =
+        typeof p.store === "string" ? p.store : p.store?.name ?? "";
+
+      const dateText = p.date ? new Date(p.date).toLocaleDateString() : "";
+
+      return (
+        storeName.toLowerCase().includes(q) ||
+        dateText.toLowerCase().includes(q)
+      );
     });
+  }, [purchaseHistory, search]);
 
-    return unsub;
-  }, [navigation]);
-
-  // Convertimos el historial en una lista plana para mostrar productos
-  useEffect(() => {
-    if (!purchaseHistory) return;
-
-    // Cada entrada dentro de purchaseHistory ya es un producto individual
-    setItems(
-      [...purchaseHistory].sort((a, b) =>
-        (b.purchasedAt ?? "").localeCompare(a.purchasedAt ?? "")
-      )
-    );
-  }, [purchaseHistory]);
-
-  // ---------------------------------------------
-  // FILTRO
-  // ---------------------------------------------
-  const visible = items.filter((i) =>
-    `${i.name} ${i.store ?? ""} ${i.barcode ?? ""}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  );
-
-  // ---------------------------------------------
-  // CARD DEL PRODUCTO INDIVIDUAL
-  // ---------------------------------------------
-  const ProductCard = ({ item }) => {
-    const date = dayjs(item.purchasedAt).format("D MMM YYYY");
-    const qty = item.priceInfo?.qty ?? 1;
-    const unit = item.priceInfo?.unitType ?? "u";
-    const unitPrice = item.priceInfo?.unitPrice ?? null;
-
-    return (
-      <Pressable style={styles.card}>
-        {/* FECHA */}
-        <Text style={styles.dateText}>{date}</Text>
-
-        {/* NOMBRE */}
-        <Text style={styles.productName}>{item.name}</Text>
-
-        {/* TIENDA */}
-        {item.store ? (
-          <View style={styles.storeRow}>
-            <Ionicons name="storefront-outline" size={16} color="#6B7280" />
-            <Text style={styles.storeText}>{item.store}</Text>
-          </View>
-        ) : null}
-
-        {/* CÓDIGO DE BARRAS */}
-        {item.barcode ? (
-          <View style={{ marginTop: 6 }}>
-            <BarcodeLink barcode={item.barcode} label="Código:" />
-          </View>
-        ) : null}
-
-        {/* CANTIDAD Y PRECIO UNITARIO */}
-        <View style={{ marginTop: 6 }}>
-          <Text style={styles.unitInfo}>
-            {qty} {unit}
-            {unitPrice != null && ` • ${unitPrice.toFixed(2)} €/ ${unit}`}
-          </Text>
-        </View>
-      </Pressable>
-    );
+  const openDetail = (purchase) => {
+    navigation.navigate(ROUTES.PURCHASE_DETAIL, { purchase });
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Historial de Compras</Text>
+    <View style={styles.screen}>
+      <Text style={styles.title}>Historial de compras</Text>
 
       <TextInput
-        placeholder="Buscar producto, tienda o código…"
-        placeholderTextColor="#999"
+        style={styles.search}
+        placeholder="Buscar por tienda o fecha"
         value={search}
         onChangeText={setSearch}
-        style={styles.searchInput}
+        autoCorrect={false}
+        clearButtonMode="while-editing"
       />
 
       <FlatList
-        data={visible}
+        data={filtered}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ProductCard item={item} />}
-        contentContainerStyle={{ paddingVertical: 10 }}
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={filtered.length === 0 && styles.emptyContainer}
+        renderItem={({ item }) => (
+          <Pressable style={styles.card} onPress={() => openDetail(item)}>
+            <View>
+              <Text style={styles.store}>
+                {typeof item.store === "string" ? item.store : item.store?.name}
+              </Text>
+
+              <Text style={styles.date}>
+                {item.date ? new Date(item.date).toLocaleDateString() : ""}
+              </Text>
+            </View>
+
+            <NoteTotal items={item.items} />
+          </Pressable>
+        )}
+        ListEmptyComponent={
+          <Text style={styles.empty}>No hay compras registradas</Text>
+        }
       />
     </View>
   );
 }
 
-// --------------------------------------------------
-// ESTILOS
-// --------------------------------------------------
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+function NoteTotal({ items }) {
+  const total = (items ?? []).reduce(
+    (sum, i) => sum + (i.priceInfo?.total ?? 0),
+    0
+  );
 
-  header: {
-    fontSize: 26,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 20,
+  return (
+    <View style={styles.totalBox}>
+      <Ionicons name="receipt-outline" size={18} color="#059669" />
+      <Text style={styles.totalText}>{formatCurrency(total)}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#F9FAFB",
   },
 
-  searchInput: {
-    backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 8,
+  title: {
+    fontSize: 24,
+    fontWeight: "800",
     marginBottom: 12,
+  },
+
+  search: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
 
   card: {
     backgroundColor: "#fff",
     padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-
-  dateText: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 6,
-  },
-
-  productName: {
-    fontSize: 17,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-
-  storeRow: {
+    borderRadius: 14,
+    marginBottom: 12,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+
+  store: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  date: {
+    color: "#6B7280",
     marginTop: 2,
   },
 
-  storeText: {
-    marginLeft: 6,
-    fontSize: 14,
-    color: "#4B5563",
+  totalBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
 
-  unitInfo: {
-    fontSize: 14,
-    color: "#374151",
+  totalText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#059669",
+  },
+
+  emptyContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+
+  empty: {
+    textAlign: "center",
+    color: "#9CA3AF",
   },
 });

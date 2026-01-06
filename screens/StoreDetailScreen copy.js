@@ -17,14 +17,12 @@ import {
   formatStoreOpeningText,
 } from "../utils/store";
 
-import { ROUTES } from "../navigation/ROUTES";
-
 export default function StoreDetailScreen({ route }) {
   const navigation = useNavigation();
+  const { updateListStore } = useLists();
 
   const { storeId, listId } = route.params || {};
   const { stores } = useStores();
-  const { updateListStore } = useLists();
 
   const store = useMemo(
     () => stores.find((s) => s.id === storeId),
@@ -42,13 +40,11 @@ export default function StoreDetailScreen({ route }) {
   const handleSelectStore = () => {
     if (!listId) return;
 
-    // 1️⃣ Asignar tienda a la lista
     updateListStore(listId, store.id);
 
-    // 2️⃣ Volver explícitamente a ShoppingListScreen
-    navigation.navigate(ROUTES.SHOPPING_LIST, {
-      listId,
-    });
+    // Volvemos al flujo original
+    navigation.getParent()?.goBack(); // sale de StoreDetail
+    navigation.getParent()?.goBack(); // sale de StoresTab
   };
 
   return (

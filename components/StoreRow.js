@@ -1,79 +1,74 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useStores } from "../context/StoresContext";
+import { formatDistance } from "../utils/math/formatDistance";
 
-/* -------------------------------------------------
-   Component
--------------------------------------------------- */
-export default function StoreRow({ store, onPress, selectable = false }) {
-  const { toggleFavoriteStore, isFavoriteStore } = useStores();
+export default function StoreRow({ store, onPress }) {
+  const {
+    favoriteStoreIds = [],
+    toggleFavoriteStore,
+    isFavoriteStore,
+  } = useStores();
 
-  const isFavorite = isFavoriteStore(store.id);
+  const isFavorite =
+    typeof isFavoriteStore === "function"
+      ? isFavoriteStore(store.id)
+      : favoriteStoreIds.includes(store.id);
+
+  const handleToggleFavorite = () => {
+    if (typeof toggleFavoriteStore === "function") {
+      toggleFavoriteStore(store.id);
+    }
+  };
 
   return (
-    <TouchableOpacity
-      style={[styles.container, selectable && styles.selectable]}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      {/* Info */}
-      <View style={styles.info}>
+    <View style={styles.container}>
+      {/* Área navegable */}
+      <Pressable
+        style={styles.info}
+        onPress={onPress}
+        android_ripple={{ color: "#eee" }}
+      >
         <Text style={styles.name}>{store.name}</Text>
 
-        {store.city ? <Text style={styles.meta}>{store.city}</Text> : null}
-
-        {store.distanceKm != null && (
-          <Text style={styles.distance}>
-            {store.distanceKm < 1
-              ? `${Math.round(store.distanceKm * 1000)} m`
-              : `${store.distanceKm.toFixed(1)} km`}
+        {(store.city || store.distance != null) && (
+          <Text style={styles.meta}>
+            {store.city || ""}
+            {store.distance != null && ` · ${formatDistance(store.distance)}`}
           </Text>
         )}
-      </View>
+      </Pressable>
 
-      {/* Favorite */}
-      <TouchableOpacity
-        onPress={() => toggleFavoriteStore(store.id)}
-        hitSlop={8}
+      {/* Botón favorito */}
+      <Pressable
+        onPress={handleToggleFavorite}
+        hitSlop={10}
+        style={styles.starButton}
       >
         <Ionicons
           name={isFavorite ? "star" : "star-outline"}
           size={22}
-          color={isFavorite ? "#f5b301" : "#ccc"}
+          color={isFavorite ? "#f5c518" : "#bbb"}
         />
-      </TouchableOpacity>
-    </TouchableOpacity>
+      </Pressable>
+    </View>
   );
 }
-
-/* -------------------------------------------------
-   Styles
--------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: 14,
-    marginBottom: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
     backgroundColor: "#fff",
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-
-  selectable: {
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
   },
 
   info: {
     flex: 1,
-    marginRight: 12,
   },
 
   name: {
@@ -83,15 +78,13 @@ const styles = StyleSheet.create({
   },
 
   meta: {
-    marginTop: 2,
+    marginTop: 4,
     fontSize: 13,
     color: "#666",
   },
 
-  distance: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#2e7d32",
-    fontWeight: "500",
+  starButton: {
+    paddingLeft: 12,
+    justifyContent: "center",
   },
 });

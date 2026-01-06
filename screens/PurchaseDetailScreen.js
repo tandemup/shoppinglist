@@ -1,202 +1,157 @@
-// screens/PurchaseDetailScreen.js
 import React, { useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from "react-native";
-import { ROUTES } from "../navigation/ROUTES";
-
-import { SafeAreaView } from "react-native-safe-area-context";
-
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { safeAlert } from "../utils/safeAlert";
-import { createList } from "../utils/storage/listStorage";
 
-export default function PurchaseDetailScreen({ route, navigation }) {
+import { useLists } from "../context/ListsContext";
+import { usePurchases } from "../context/PurchasesContext";
+import { ROUTES } from "../navigation/ROUTES";
+import { formatCurrency } from "../utils/store/formatters";
+
+export default function PurchaseDetailScreen() {
+  const route = useRoute();
+  const navigation = useNavigation();
   const { purchase } = route.params;
+  const { addPurchase } = usePurchases();
 
-  if (!purchase) {
-    return (
-      <View style={styles.center}>
-        <Text style={{ color: "#888" }}>No se pudo cargar la compra.</Text>
-      </View>
-    );
-  }
+  const { createList, addItem } = useLists();
 
-  // ---------------------------
-  // TOTAL CALCULADO
-  // ---------------------------
+  /* ---------------------------
+     Total
+  ----------------------------*/
   const total = useMemo(() => {
-    return purchase.items
-      .reduce((acc, item) => {
-        const p = item.priceInfo || {};
-        const n =
-          p.total ?? parseFloat(p.unitPrice || 0) * parseFloat(p.qty || 1);
-
-        return acc + (isNaN(n) ? 0 : n);
-      }, 0)
-      .toFixed(2);
+    return (purchase.items ?? []).reduce(
+      (sum, i) => sum + (i.priceInfo?.total ?? 0),
+      0
+    );
   }, [purchase.items]);
 
-  // ---------------------------
-  // RECREAR LISTA A PARTIR DE ESTA COMPRA
-  // ---------------------------
-  const recreateList = async () => {
-    safeAlert(
-      "Recrear lista",
-      "¿Deseas crear una nueva lista con los productos de esta compra?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Crear lista",
-          style: "destructive",
-          onPress: async () => {
-            const newList = await createList(
-              "Recreada • " + purchase.store,
-              purchase.store
-            );
+  /* ---------------------------
+     Repetir compra
+  ----------------------------*/
+  const handleRepeatPurchase = () => {
+    const newList = createList(`Recreada • ${purchase.store}`);
 
-            // Items nuevos (con nuevos IDs)
-            const clonedItems = purchase.items.map((item) => ({
-              ...item,
-              id: Math.random().toString(36).slice(2), // nuevo ID simple
-              checked: false,
-            }));
+    (purchase.items ?? []).forEach((item) => {
+      addItem(newList.id, {
+        name: item.name,
+        priceInfo: item.priceInfo,
+        checked: true,
+      });
+    });
 
-            newList.items = clonedItems;
-
-            safeAlert(
-              "Lista creada",
-              "La nueva lista se ha generado correctamente."
-            );
-
-            navigation.navigate(ROUTES.SHOPPING_LIST, {
-              listId: newList.id,
-            });
-          },
-        },
-      ]
-    );
-  };
-
-  // ---------------------------
-  // ITEM UI
-  // ---------------------------
-  const renderItem = ({ item }) => {
-    const p = item.priceInfo;
-
-    return (
-      <View style={styles.item}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.itemName}>{item.name}</Text>
-
-          {p?.summary ? (
-            <Text style={styles.detail}>{p.summary}</Text>
-          ) : (
-            <Text style={styles.detail}>
-              {p.qty} × {p.unitPrice.toFixed(2)} €/ {p.unitType} ={" "}
-              {p.total.toFixed(2)} €
-            </Text>
-          )}
-        </View>
-
-        <Text style={styles.itemPrice}>{p.total.toFixed(2)} €</Text>
-      </View>
-    );
+    navigation.replace(ROUTES.SHOPPING_LIST, {
+      listId: newList.id,
+    });
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.container}>
-        {/* CABECERA */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={26} color="#333" />
-          </TouchableOpacity>
-
-          <Text style={styles.headerTitle}>Compra en {purchase.store}</Text>
-
-          <View style={{ width: 26 }} />
-        </View>
-
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{purchase.store}</Text>
         <Text style={styles.date}>{purchase.date}</Text>
-
-        {/* TOTAL */}
-        <View style={styles.totalBox}>
-          <Text style={styles.totalLabel}>Total gastado</Text>
-          <Text style={styles.totalValue}>{total} €</Text>
-        </View>
-
-        {/* LISTA DE PRODUCTOS */}
-        <FlatList
-          data={purchase.items}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        />
-
-        {/* BOTÓN RECREAR LISTA */}
-        <TouchableOpacity style={styles.recreateBtn} onPress={recreateList}>
-          <Text style={styles.recreateText}>Recrear esta lista 🧾</Text>
-        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+      <FlatList
+        data={purchase.items}
+        keyExtractor={(item, index) => item.id ?? `item-${index}`}
+        renderItem={({ item }) => (
+          <View style={styles.row}>
+            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.price}>
+              {formatCurrency(item.priceInfo?.total ?? 0)}
+            </Text>
+          </View>
+        )}
+        ListFooterComponent={
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
+          </View>
+        }
+      />
+
+      <Pressable style={styles.button} onPress={handleRepeatPurchase}>
+        <Ionicons name="refresh-outline" size={20} color="#fff" />
+        <Text style={styles.buttonText}>Repetir compra</Text>
+      </Pressable>
+    </View>
   );
 }
 
-// ---------------------------
-// ESTILOS
-// ---------------------------
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 16 },
+  screen: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#F3F4F6",
+  },
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 16,
   },
-  headerTitle: {
-    fontSize: 20,
+
+  title: {
+    fontSize: 22,
     fontWeight: "700",
   },
 
-  date: { color: "#555", marginBottom: 14 },
+  date: {
+    color: "#6B7280",
+    marginTop: 4,
+  },
 
-  totalBox: {
-    backgroundColor: "#E3F2FD",
+  row: {
+    backgroundColor: "#fff",
     padding: 14,
     borderRadius: 12,
-    borderColor: "#BBDEFB",
-    borderWidth: 1,
-    marginBottom: 20,
-  },
-  totalLabel: { fontSize: 16, color: "#333" },
-  totalValue: { fontSize: 32, fontWeight: "bold", marginTop: 4 },
-
-  item: {
+    marginBottom: 8,
     flexDirection: "row",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: "#eee",
+    justifyContent: "space-between",
   },
 
-  itemName: { fontSize: 16, fontWeight: "600", color: "#111" },
-  detail: { color: "#777", fontSize: 12, marginTop: 2 },
-  itemPrice: { fontSize: 16, fontWeight: "700", marginLeft: 10 },
+  name: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
 
-  recreateBtn: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+  price: {
+    fontWeight: "600",
+  },
+
+  totalRow: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  totalValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#059669",
+  },
+
+  button: {
+    marginTop: 20,
     backgroundColor: "#2563EB",
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
   },
-  recreateText: { color: "white", fontWeight: "700", fontSize: 16 },
+
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });

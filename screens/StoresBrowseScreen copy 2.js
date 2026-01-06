@@ -26,50 +26,55 @@ export default function StoresBrowseScreen() {
 
   const [query, setQuery] = useState("");
 
+  /* -------------------------------------------------
+     Enriquecer tiendas con distancia + ordenar
+  -------------------------------------------------- */
   const orderedStores = useMemo(() => {
     const enriched = stores.map((store) => {
-      if (
-        location &&
-        store.location?.latitude != null &&
-        store.location?.longitude != null
-      ) {
-        const distance = distanceMetersBetween(
-          location.latitude,
-          location.longitude,
-          store.location.latitude,
-          store.location.longitude
-        );
+      if (location && store.location?.latitude && store.location?.longitude) {
+        const distanceMeters =
+          getDistanceKm(
+            location.latitude,
+            location.longitude,
+            store.location.latitude,
+            store.location.longitude
+          ) * 1000;
 
-        return { ...store, distance };
+        return { ...store, distance: distanceMeters };
       }
 
-      return { ...store, distance: null };
+      return store;
     });
 
-    // ⚠️ ordenar SIEMPRE sobre copia
+    // 📍 Si hay distancia, ordenar por cercanía
     if (location) {
-      return [...enriched].sort((a, b) => {
+      return enriched.sort((a, b) => {
         if (a.distance == null) return 1;
         if (b.distance == null) return -1;
         return a.distance - b.distance;
       });
     }
 
-    return [...enriched].sort((a, b) =>
-      (a.name || "").localeCompare(b.name || "")
-    );
+    // 🔤 Fallback: ordenar por nombre
+    return enriched.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   }, [stores, location]);
 
+  /* -------------------------------------------------
+     Filtrar por búsqueda
+  -------------------------------------------------- */
   const filteredStores = useMemo(() => {
     if (!query.trim()) return orderedStores;
+
     const q = query.toLowerCase();
-    return orderedStores.filter((s) =>
-      (s.name || "").toLowerCase().includes(q)
+    return orderedStores.filter((store) =>
+      (store.name || "").toLowerCase().includes(q)
     );
   }, [orderedStores, query]);
 
+  /* -------------------------------------------------
+     Selección / navegación
+  -------------------------------------------------- */
   const handlePressStore = (store) => {
-    // 🛒 Modo selección para lista
     if (isSelectMode && selectForListId) {
       navigation.navigate(ROUTES.SHOPPING_TAB, {
         screen: ROUTES.SHOPPING_LIST,
@@ -81,12 +86,14 @@ export default function StoresBrowseScreen() {
       return;
     }
 
-    // 🏬 Modo exploración
     navigation.navigate(ROUTES.STORE_DETAIL, {
       storeId: store.id,
     });
   };
 
+  /* -------------------------------------------------
+     Render
+  -------------------------------------------------- */
   return (
     <FlatList
       data={filteredStores}
@@ -108,12 +115,33 @@ export default function StoresBrowseScreen() {
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTitle}>No se encontraron tiendas</Text>
+          <Text style={styles.emptySubtitle}>Prueba con otro nombre</Text>
         </View>
       }
     />
   );
 }
 
+/* -------------------------------------------------
+   Helpers
+-------------------------------------------------- */
+const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = (v) => (v * Math.PI) / 180;
+  const R = 6371;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -139,5 +167,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     marginBottom: 6,
+  },
+
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
   },
 });

@@ -1,10 +1,17 @@
+// components/StoreSelector.js
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function StoreSelector({ store, onPress, disabled = false }) {
-  const content = (
-    <>
+  const Container = disabled ? View : TouchableOpacity;
+
+  return (
+    <Container
+      style={[styles.box, disabled && styles.disabledBox]}
+      onPress={!disabled ? onPress : undefined}
+      activeOpacity={disabled ? 1 : 0.7}
+    >
       <Ionicons
         name="storefront"
         size={20}
@@ -34,23 +41,10 @@ export default function StoreSelector({ store, onPress, disabled = false }) {
       </View>
 
       {!disabled && <Ionicons name="chevron-forward" size={20} color="#777" />}
-    </>
-  );
-
-  if (disabled) {
-    return <View style={[styles.box, styles.disabledBox]}>{content}</View>;
-  }
-
-  return (
-    <TouchableOpacity style={styles.box} onPress={onPress} activeOpacity={0.7}>
-      {content}
-    </TouchableOpacity>
+    </Container>
   );
 }
 
-/* -------------------------------------------------
-   Styles
--------------------------------------------------- */
 const styles = StyleSheet.create({
   box: {
     flexDirection: "row",

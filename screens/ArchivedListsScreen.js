@@ -1,35 +1,22 @@
-// ArchivedListsScreen.js
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  Linking,
-  Platform,
 } from "react-native";
-import { ROUTES } from "../navigation/ROUTES";
-
-import { useStore } from "../context/StoreContext";
 import { Ionicons } from "@expo/vector-icons";
+
+import { ROUTES } from "../navigation/ROUTES";
+import { useLists } from "../context/ListsContext";
 import { formatStore } from "../utils/store/formatters";
 
 export default function ArchivedListsScreen({ navigation }) {
-  const { archivedLists, reload } = useStore();
+  const { archivedLists } = useLists();
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    reload();
-
-    const unsub = navigation.addListener("focus", () => {
-      reload();
-    });
-
-    return unsub;
-  }, [navigation]);
-
-  const filtered = archivedLists
+  const filtered = (archivedLists ?? [])
     .filter((l) => {
       const q = search.toLowerCase();
       return (
@@ -37,18 +24,24 @@ export default function ArchivedListsScreen({ navigation }) {
         formatStore(l.store)?.toLowerCase().includes(q)
       );
     })
-    .sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+    .sort(
+      (a, b) =>
+        new Date(b.archivedAt || b.createdAt) -
+        new Date(a.archivedAt || a.createdAt)
+    );
 
   const openDetails = (list) => {
-    navigation.navigate(ROUTES.ARCHIVED_LIST_DETAIL, { list });
+    navigation.navigate(ROUTES.ARCHIVED_LIST_DETAIL, {
+      listId: list.id,
+    });
   };
 
   const openStore = (store) => {
     if (!store) return;
 
-    navigation.navigate(ROUTES.TIENDAS, {
-      store: store,
-      from: "archivedLists",
+    navigation.navigate(ROUTES.STORES_TAB, {
+      screen: ROUTES.STORES_HOME,
+      params: { store, from: "archivedLists" },
     });
   };
 
@@ -127,7 +120,6 @@ export default function ArchivedListsScreen({ navigation }) {
     );
   };
 
-  // RENDER ITEM AHORA ES SÚPER LIMPIO
   const renderItem = ({ item }) => <ArchivedListCard list={item} />;
 
   return (
@@ -137,7 +129,7 @@ export default function ArchivedListsScreen({ navigation }) {
       <FlatList
         data={filtered}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item.id ?? `archived-list-${index}`}
         contentContainerStyle={{ paddingBottom: 60 }}
       />
     </View>
@@ -202,6 +194,7 @@ const styles = StyleSheet.create({
 
   productsText: { fontSize: 15, color: "#444" },
   price: { fontSize: 20, fontWeight: "700", color: "#16a34a" },
+
   storeLink: {
     flexDirection: "row",
     alignItems: "center",
@@ -210,7 +203,7 @@ const styles = StyleSheet.create({
 
   storeText: {
     fontSize: 14,
-    color: "#2563eb", // azul link
+    color: "#2563eb",
     fontWeight: "500",
   },
 });

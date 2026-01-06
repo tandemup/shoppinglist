@@ -28,13 +28,13 @@ export default function ShoppingStack() {
       <Stack.Screen
         name={ROUTES.SHOPPING_LISTS}
         component={ShoppingListsScreen}
-        options={{ title: "Listas de la compra" }}
+        options={{ title: "Shopping Lists" }}
       />
 
       <Stack.Screen
         name={ROUTES.SHOPPING_LIST}
         component={ShoppingListScreen}
-        options={{ title: "Lista de la compra" }}
+        options={{ title: "Shopping List" }}
       />
 
       <Stack.Screen
@@ -46,7 +46,7 @@ export default function ShoppingStack() {
       <Stack.Screen
         name={ROUTES.STORES_HOME}
         component={StoresScreen}
-        options={{ title: "Seleccionar tienda" }}
+        options={{ title: "Tiendas" }}
       />
 
       <Stack.Screen
@@ -64,7 +64,7 @@ export default function ShoppingStack() {
       <Stack.Screen
         name={ROUTES.ARCHIVED_LISTS}
         component={ArchivedListsScreen}
-        options={{ title: "Archivadas" }}
+        options={{ title: "Listas Archivadas" }}
       />
 
       <Stack.Screen
@@ -94,7 +94,7 @@ export default function ShoppingStack() {
       <Stack.Screen
         name={ROUTES.MENU}
         component={MenuScreen}
-        options={{ title: "Menú" }}
+        options={{ title: "Main Menu" }}
       />
     </Stack.Navigator>
   );

@@ -1,3 +1,11 @@
+/**
+ * LocationContext
+ *
+ * Contexto encargado de gestionar la localización del usuario.
+ * Proporciona coordenadas actuales y utilidades relacionadas con la ubicación,
+ * utilizadas principalmente para calcular distancias y buscar tiendas cercanas.
+ */
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import * as Location from "expo-location";
 import { Alert, Platform } from "react-native";

@@ -20,53 +20,58 @@ import {
 import { safeAlert } from "../utils/core/safeAlert";
 
 export default function EditScannedItemScreen({ route, navigation }) {
-  const { item } = route.params;
+  const { item, reload } = route.params;
 
   const barcode = item.barcode;
 
   const [name, setName] = useState(item.name ?? "");
   const [brand, setBrand] = useState(item.brand ?? "");
   const [url, setUrl] = useState(item.url ?? "");
-  const [imageUrl, setImageUrl] = useState(item.imageUrl ?? "");
-  const [notes, setNotes] = useState(item.notes ?? "");
+  const [imageUrl, setImageUrl] = useState(item.imageUrl || "");
+  const [notes, setNotes] = useState(item.notes || "");
 
-  /* -------------------------------------------------
-     Guardar cambios
-  -------------------------------------------------- */
+  //
+  // 💾 Guardar cambios
+  //
   const save = async () => {
-    if (!name.trim()) {
-      safeAlert("Nombre requerido", "El producto debe tener un nombre");
-      return;
-    }
-
     await updateScannedEntry(barcode, {
+      ...item,
       name: name.trim(),
       brand: brand.trim(),
       url: url.trim(),
-      imageUrl: imageUrl.trim(),
-      notes: notes.trim(),
+      barcode,
+      imageUrl,
+      notes,
     });
 
+    if (reload) reload();
     navigation.goBack();
   };
 
-  /* -------------------------------------------------
-     Eliminar item
-  -------------------------------------------------- */
+  //
+  // 🗑 Borrar este item
+  //
   const removeItem = () => {
-    safeAlert("Eliminar", `¿Deseas eliminar este escaneo?\n\n${name}`, [
+    console.log("removeItem");
+    safeAlert("Eliminar", `¿Deseas eliminar este escaneo?\n\n${item.name}`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
         style: "destructive",
         onPress: async () => {
-          await removeScannedItem(barcode);
+          console.log("onPress");
+          await removeScannedItem(barcode); // ✔ corregido
+          console.log("reload");
+          if (reload) reload();
           navigation.goBack();
         },
       },
     ]);
   };
 
+  //
+  // UI
+  //
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -78,13 +83,11 @@ export default function EditScannedItemScreen({ route, navigation }) {
       >
         <Text style={styles.title}>Editar producto</Text>
 
-        {/* CÓDIGO */}
         <Text style={styles.label}>Código de barras</Text>
         <View style={styles.codeBox}>
           <Text style={styles.codeText}>{barcode}</Text>
         </View>
 
-        {/* NOMBRE */}
         <Text style={styles.label}>Nombre</Text>
         <TextInput
           style={styles.input}
@@ -93,7 +96,6 @@ export default function EditScannedItemScreen({ route, navigation }) {
           placeholder="Nombre del producto"
         />
 
-        {/* MARCA */}
         <Text style={styles.label}>Marca</Text>
         <TextInput
           style={styles.input}
@@ -102,7 +104,6 @@ export default function EditScannedItemScreen({ route, navigation }) {
           placeholder="Marca"
         />
 
-        {/* URL */}
         <Text style={styles.label}>URL</Text>
         <TextInput
           style={styles.input}
@@ -116,9 +117,27 @@ export default function EditScannedItemScreen({ route, navigation }) {
         <Text style={styles.label}>Imagen del producto</Text>
 
         {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} />
+          <Image
+            source={{ uri: imageUrl }}
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: 8,
+              marginBottom: 10,
+            }}
+          />
         ) : (
-          <View style={styles.noImage}>
+          <View
+            style={{
+              width: 120,
+              height: 120,
+              backgroundColor: "#ddd",
+              borderRadius: 8,
+              marginBottom: 10,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
             <Text style={{ color: "#666" }}>Sin imagen</Text>
           </View>
         )}
@@ -128,7 +147,6 @@ export default function EditScannedItemScreen({ route, navigation }) {
           onChangeText={setImageUrl}
           placeholder="URL de la imagen"
           style={styles.input}
-          autoCapitalize="none"
         />
 
         {/* NOTAS */}
@@ -141,12 +159,12 @@ export default function EditScannedItemScreen({ route, navigation }) {
           style={[styles.input, { height: 80 }]}
         />
 
-        {/* GUARDAR */}
+        {/* BOTÓN GUARDAR */}
         <Pressable style={styles.saveButton} onPress={save}>
           <Text style={styles.saveText}>Guardar cambios</Text>
         </Pressable>
 
-        {/* BORRAR */}
+        {/* BOTÓN BORRAR */}
         <Pressable style={styles.deleteButton} onPress={removeItem}>
           <Text style={styles.deleteText}>Borrar</Text>
         </Pressable>
@@ -155,23 +173,21 @@ export default function EditScannedItemScreen({ route, navigation }) {
   );
 }
 
-/* -------------------------------------------------
-   🎨 ESTILOS
--------------------------------------------------- */
+//
+// 🎨 ESTILOS
+//
 const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 40,
     backgroundColor: "#FAFAFA",
   },
-
   title: {
     fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 20,
   },
-
   label: {
     marginTop: 10,
     fontWeight: "600",
@@ -185,7 +201,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#aabbee",
   },
-
   codeText: {
     fontSize: 16,
     fontWeight: "700",
@@ -201,32 +216,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  image: {
-    width: 120,
-    height: 120,
-    borderRadius: 8,
-    marginBottom: 10,
-    marginTop: 6,
-  },
-
-  noImage: {
-    width: 120,
-    height: 120,
-    backgroundColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 10,
-    marginTop: 6,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
   saveButton: {
     backgroundColor: "#2563eb",
     padding: 12,
     marginTop: 30,
     borderRadius: 6,
   },
-
   saveText: {
     color: "white",
     textAlign: "center",
@@ -239,7 +234,6 @@ const styles = StyleSheet.create({
     marginTop: 15,
     borderRadius: 6,
   },
-
   deleteText: {
     color: "white",
     textAlign: "center",
