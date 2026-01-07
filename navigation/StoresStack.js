@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./ROUTES";
 
 import StoresHomeScreen from "../screens/StoresHomeScreen";
+import StoreSelectScreen from "../screens/StoreSelectScreen";
 import StoresBrowseScreen from "../screens/StoresBrowseScreen";
 import StoresFavoritesScreen from "../screens/StoresFavoritesScreen";
 import StoresNearbyScreen from "../screens/StoresNearbyScreen";
@@ -25,6 +26,8 @@ export default function StoresStack() {
       {/* ─────────────────────────────── */}
       {/* LISTADOS */}
       {/* ─────────────────────────────── */}
+      <Stack.Screen name={ROUTES.STORE_SELECT} component={StoreSelectScreen} />
+
       <Stack.Screen
         name={ROUTES.STORES_BROWSE}
         component={StoresBrowseScreen}

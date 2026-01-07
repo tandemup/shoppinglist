@@ -134,15 +134,15 @@ export function ListsProvider({ children }) {
           ? {
               ...list,
               items: [
-                ...list.items,
                 {
                   id: generateId(),
                   name: item?.name ?? "",
                   quantity: item?.quantity ?? 1,
                   unitPrice: item?.unitPrice ?? 0,
-                  checked: item?.checked ?? false, // importante
+                  checked: item?.checked ?? true, // ✅ marcado por defecto
                   promo: item?.promo ?? null,
                 },
+                ...list.items, // ✅ al principio
               ],
             }
           : list

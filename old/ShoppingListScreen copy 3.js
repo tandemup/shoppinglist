@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -71,10 +71,9 @@ export default function ShoppingListScreen() {
      Handlers StoreSelector
   ----------------------------*/
   const handleSelectStore = () => {
-    if (list.archived) return;
-
-    navigation.navigate(ROUTES.STORE_SELECT, {
-      selectForListId: listId,
+    navigation.navigate(ROUTES.STORES_TAB, {
+      screen: ROUTES.STORE_SELECT,
+      params: { selectForListId: listId },
     });
   };
 
@@ -137,34 +136,40 @@ export default function ShoppingListScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <StoreSelector
-        store={assignedStore}
-        onPress={handleSelectStore}
-        disabled={list.archived}
-      />
-
-      <SearchCombinedBar
-        currentList={list}
-        onCreateNew={handleCreateNew}
-        onAddFromHistory={handleAddFromHistory}
-        onAddFromScan={handleAddFromScan}
-      />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {list.items.map((item) => (
+      <FlatList
+        data={list.items}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
           <ItemRow
-            key={item.id}
             item={item}
             onToggle={() => handleToggleItem(item.id)}
             onEdit={() => handleEditItem(item.id)}
           />
-        ))}
-      </ScrollView>
+        )}
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={
+          <>
+            <StoreSelector
+              store={assignedStore}
+              onPress={handleSelectStore}
+              disabled={list.archived}
+            />
 
-      <View style={styles.totalContainer}>
-        <Text style={styles.totalLabel}>Total estimado</Text>
-        <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
-      </View>
+            <SearchCombinedBar
+              currentList={list}
+              onCreateNew={handleCreateNew}
+              onAddFromHistory={handleAddFromHistory}
+              onAddFromScan={handleAddFromScan}
+            />
+          </>
+        }
+        ListFooterComponent={
+          <View style={styles.totalContainer}>
+            <Text style={styles.totalLabel}>Total estimado</Text>
+            <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
+          </View>
+        }
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -173,10 +178,6 @@ export default function ShoppingListScreen() {
    Styles
 -------------------------------------------------- */
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
-
   content: {
     padding: 16,
     paddingBottom: 32,
@@ -200,9 +201,9 @@ const styles = StyleSheet.create({
   },
 
   totalValue: {
-    fontSize: 23,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#333",
+    color: "#2e7d32",
   },
 
   center: {

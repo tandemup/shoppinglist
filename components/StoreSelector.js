@@ -52,15 +52,36 @@ export default function StoreSelector({ store, onPress, disabled = false }) {
    Styles
 -------------------------------------------------- */
 const styles = StyleSheet.create({
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    marginHorizontal: 16,
+    marginTop: 12,
+
+    // sombra iOS
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+
+    // sombra Android
+    elevation: 2,
+  },
+
   box: {
     flexDirection: "row",
     alignItems: "flex-start",
     padding: 16,
+    margin: 16,
     backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#ddd",
-    marginVertical: 12,
   },
 
   disabledBox: {

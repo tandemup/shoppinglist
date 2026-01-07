@@ -28,6 +28,19 @@ export default function ItemDetailScreen() {
   const list = lists.find((l) => l.id === listId);
   const item = list?.items.find((i) => i.id === itemId);
 
+  const UNIT_HINTS1 = {
+    u: "Unidad (pieza individual)",
+    kg: "Peso en kilogramos",
+    g: "Peso en gramos",
+    l: "Volumen en litros",
+  };
+  const UNIT_HINTS = {
+    u: "🧩 Unidad (pieza individual)",
+    kg: "⚖️ Peso en kilogramos",
+    g: "⚖️ Peso en gramos",
+    l: "🧃 Volumen en litros",
+  };
+
   /* ---------------------------
      Guardas
   ----------------------------*/
@@ -128,7 +141,10 @@ export default function ItemDetailScreen() {
         />
 
         {/* UNIDAD */}
-        <Text style={styles.label}>Unidad</Text>
+        <View style={styles.unitRow}>
+          <Text style={styles.label}>Unidad</Text>
+          <Text style={styles.unitHint}>{UNIT_HINTS[unit]}</Text>
+        </View>
         <View style={styles.unitRow}>
           {["u", "kg", "g", "l"].map((u) => (
             <Pressable
@@ -145,7 +161,6 @@ export default function ItemDetailScreen() {
           ))}
         </View>
 
-        {/* CANTIDAD + PRECIO */}
         <View style={styles.inlineRow}>
           <View style={styles.inlineField}>
             <Text style={styles.label}>Cantidad ({formatUnit(unit)})</Text>
@@ -158,7 +173,9 @@ export default function ItemDetailScreen() {
           </View>
 
           <View style={styles.inlineField}>
-            <Text style={styles.label}>€/u</Text>
+            <Text style={styles.label}>
+              Precio {priceInfo.currency}/{formatUnit(unit)}
+            </Text>
             <TextInput
               style={styles.input}
               keyboardType="decimal-pad"
@@ -297,4 +314,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   deleteText: { color: "#fff", fontWeight: "600" },
+  unitHint: {
+    marginTop: 16,
+    marginBottom: 6,
+    fontSize: 13,
+    color: "#64748b",
+  },
 });

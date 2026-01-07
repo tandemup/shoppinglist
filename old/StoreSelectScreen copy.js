@@ -4,8 +4,6 @@ import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";
-import { useLists } from "../context/ListsContext";
-
 import StoreRow from "../components/StoreRow";
 import { ROUTES } from "../navigation/ROUTES";
 
@@ -14,18 +12,13 @@ export default function StoreSelectScreen() {
   const route = useRoute();
 
   const { selectForListId } = route.params ?? {};
-
   const { favoriteStores } = useStores();
-  const { updateListStore } = useLists();
 
   const handleSelectStore = (store) => {
-    if (!selectForListId) return;
-
-    // 1️⃣ Asignar tienda a la lista
-    updateListStore(selectForListId, store.id);
-
-    // 2️⃣ Cerrar selector y volver al flujo anterior
-    navigation.goBack();
+    navigation.navigate(ROUTES.SHOPPING_LIST, {
+      listId: selectForListId,
+      selectedStore: store,
+    });
   };
 
   if (!favoriteStores || favoriteStores.length === 0) {
@@ -63,7 +56,6 @@ export default function StoreSelectScreen() {
     />
   );
 }
-
 const styles = StyleSheet.create({
   list: {
     paddingVertical: 8,
@@ -94,16 +86,5 @@ const styles = StyleSheet.create({
   exploreText: {
     color: "#fff",
     fontWeight: "600",
-  },
-  unitHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 16,
-    marginBottom: 6,
-  },
-  unitHintInline: {
-    fontSize: 13,
-    color: "#64748b", // gris suave
   },
 });

@@ -1,144 +1,178 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   View,
-  Text,
   TextInput,
-  StyleSheet,
-  Pressable,
   FlatList,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-
-import { formatCurrency } from "../utils/store/formatters";
-import { formatUnit } from "../utils/pricing/unitFormat";
+import { useProductSuggestions } from "../context/ProductSuggestionsContext";
+import { useProductLearning } from "../context/ProductLearningContext";
 
 /* -------------------------------------------------
-   SearchCombinedBar
+   Badge
+-------------------------------------------------- */
+const Badge = ({ label, color }) => (
+  <View
+    style={[
+      styles.badge,
+      { backgroundColor: color + "20", borderColor: color },
+    ]}
+  >
+    <Text style={[styles.badgeText, { color }]}>{label}</Text>
+  </View>
+);
+
+/* -------------------------------------------------
+   Component
 -------------------------------------------------- */
 export default function SearchCombinedBar({
   currentList,
-  onCreateNew,
   onAddFromHistory,
   onAddFromScan,
+  onCreateNew,
 }) {
-  const [query, setQuery] = useState("");
+  const { query, search, suggestions, storeFilter, setStoreFilter, clear } =
+    useProductSuggestions();
+  const { recordSelection } = useProductLearning();
 
-  /* -------------------------------------------------
-     Helpers
-  -------------------------------------------------- */
-  const normalize = (s = "") =>
-    s
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+  /* ---------------------------
+     Selection handler
+  ----------------------------*/
+  const handleSelect = (item) => {
+    recordSelection(item.name);
 
-  const matches = (name) => normalize(name).includes(normalize(query));
+    if (item.type === "create") {
+      onCreateNew?.(item.name);
+      clear();
+      return;
+    }
 
-  const isInCurrentList = (name) =>
-    currentList?.items?.some((i) => normalize(i.name) === normalize(name));
+    const normalized = {
+      name: item.name,
+      priceInfo: item.priceInfo ?? null,
+    };
 
-  /* -------------------------------------------------
-     Sources (placeholder / props futuras)
-     En el futuro: historial, escaneos, favoritos…
-  -------------------------------------------------- */
-  const historyItems = currentList?.history || [];
-  const scanItems = currentList?.scanHistory || [];
+    if (item.type === "history") {
+      onAddFromHistory?.(normalized);
+    }
 
-  /* -------------------------------------------------
-     Filtered results
-  -------------------------------------------------- */
-  const filteredHistory = useMemo(() => {
-    if (!query) return [];
-    return historyItems.filter(
-      (i) => matches(i.name) && !isInCurrentList(i.name)
-    );
-  }, [query, historyItems, currentList]);
+    if (item.type === "scan") {
+      onAddFromScan?.(normalized);
+    }
 
-  const filteredScans = useMemo(() => {
-    if (!query) return [];
-    return scanItems.filter((i) => matches(i.name) && !isInCurrentList(i.name));
-  }, [query, scanItems, currentList]);
-
-  const canCreateNew = query.trim().length > 1 && !isInCurrentList(query);
-
-  /* -------------------------------------------------
-     Render helpers
-  -------------------------------------------------- */
-  const renderItem = ({ item }, onPress) => {
-    const priceInfo = item.priceInfo || {};
-
-    return (
-      <Pressable style={styles.resultRow} onPress={() => onPress(item)}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.itemName}>{item.name}</Text>
-
-          {priceInfo.unitPrice != null && (
-            <Text style={styles.itemMeta}>
-              {formatCurrency(priceInfo.unitPrice)} /{" "}
-              {formatUnit(priceInfo.unit)}
-            </Text>
-          )}
-        </View>
-
-        <Ionicons name="add-circle-outline" size={22} color="#2e7d32" />
-      </Pressable>
-    );
+    clear();
   };
 
-  /* -------------------------------------------------
+  /* ---------------------------
      Render
-  -------------------------------------------------- */
+  ----------------------------*/
   return (
     <View style={styles.container}>
-      <View style={styles.inputRow}>
-        <Ionicons name="search" size={18} color="#666" />
-        <TextInput
-          style={styles.input}
-          placeholder="Añadir producto…"
-          placeholderTextColor="#999"
-          value={query}
-          onChangeText={setQuery}
+      <TextInput
+        style={styles.input}
+        placeholder="🔍 Buscar producto (actual o histórico)…"
+        placeholderTextColor="#999"
+        value={query}
+        onChangeText={search}
+        onSubmitEditing={() => {
+          if (query.trim()) {
+            recordSelection(query.trim());
+            onCreateNew?.(query.trim());
+            clear();
+          }
+        }}
+        returnKeyType="done"
+      />
+
+      <View style={styles.filtersRow}>
+        <FilterButton
+          label="Todas"
+          active={!storeFilter}
+          onPress={() => setStoreFilter(null)}
+        />
+        <FilterButton
+          label="Lidl"
+          active={storeFilter === "Lidl"}
+          onPress={() => setStoreFilter("Lidl")}
+        />
+        <FilterButton
+          label="Carrefour"
+          active={storeFilter === "Carrefour"}
+          onPress={() => setStoreFilter("Carrefour")}
         />
       </View>
 
-      {/* -------- Crear nuevo -------- */}
-      {canCreateNew && (
-        <Pressable
-          style={styles.createRow}
-          onPress={() => {
-            onCreateNew?.(query.trim());
-            setQuery("");
+      {suggestions.length > 0 && (
+        <FlatList
+          style={styles.resultsBox}
+          data={suggestions}
+          keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => {
+            if (item.type === "create") {
+              return (
+                <TouchableOpacity
+                  style={[styles.resultRow, styles.createRow]}
+                  onPress={() => handleSelect(item)}
+                >
+                  <Text style={styles.createText}>➕ Crear "{item.name}"</Text>
+                </TouchableOpacity>
+              );
+            }
+
+            const badges = [];
+            if (item.type === "history")
+              badges.push({ label: "HIST", color: "#2563eb" });
+            if (item.frequency >= 5)
+              badges.push({ label: `×${item.frequency}`, color: "#7c3aed" });
+            if (item.recencyScore >= 5)
+              badges.push({ label: "REC", color: "#0ea5e9" });
+
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.resultRow,
+                  item.type === "history"
+                    ? styles.historyRow
+                    : styles.currentRow,
+                ]}
+                onPress={() => handleSelect(item)}
+              >
+                <View style={styles.badgesRow}>
+                  {badges.map((b) => (
+                    <Badge
+                      key={`${item.id}-${b.label}`}
+                      label={b.label}
+                      color={b.color}
+                    />
+                  ))}
+                </View>
+
+                <Text style={styles.itemName}>{item.name}</Text>
+              </TouchableOpacity>
+            );
           }}
-        >
-          <Ionicons name="add" size={20} color="#fff" />
-          <Text style={styles.createText}>Crear “{query.trim()}”</Text>
-        </Pressable>
-      )}
-
-      {/* -------- Historial -------- */}
-      {filteredHistory.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Historial</Text>
-          <FlatList
-            data={filteredHistory}
-            keyExtractor={(i) => i.id}
-            renderItem={(props) => renderItem(props, onAddFromHistory)}
-          />
-        </>
-      )}
-
-      {/* -------- Escaneos -------- */}
-      {filteredScans.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>Escaneados</Text>
-          <FlatList
-            data={filteredScans}
-            keyExtractor={(i) => i.id}
-            renderItem={(props) => renderItem(props, onAddFromScan)}
-          />
-        </>
+        />
       )}
     </View>
+  );
+}
+
+/* -------------------------------------------------
+   Filter button
+-------------------------------------------------- */
+function FilterButton({ label, active, onPress }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.filterBtn, active && styles.filterBtnActive]}
+    >
+      <Text style={[styles.filterText, active && styles.filterTextActive]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
   );
 }
 
@@ -147,67 +181,80 @@ export default function SearchCombinedBar({
 -------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
-    marginTop: 12,
-    marginBottom: 8,
+    position: "relative",
+    zIndex: 30,
+    marginHorizontal: 16,
   },
-
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    elevation: 2,
-  },
-
   input: {
-    flex: 1,
-    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: "#fff",
+    marginBottom: 6,
     fontSize: 15,
   },
-
-  createRow: {
-    marginTop: 8,
-    backgroundColor: "#2e7d32",
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+  filtersRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-
-  createText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-
-  sectionTitle: {
-    marginTop: 12,
+    gap: 8,
     marginBottom: 6,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#666",
   },
-
+  filterBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "#f3f4f6",
+  },
+  filterBtnActive: {
+    backgroundColor: "#2563eb",
+  },
+  filterText: {
+    fontSize: 12,
+    color: "#374151",
+    fontWeight: "500",
+  },
+  filterTextActive: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  resultsBox: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderColor: "#ddd",
+    borderWidth: 1,
+    maxHeight: 300,
+  },
   resultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderColor: "#eee",
   },
-
+  historyRow: { backgroundColor: "#f9fafb" },
+  currentRow: { backgroundColor: "#e8f5e9" },
+  createRow: { backgroundColor: "#ecfeff" },
+  createText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0ea5e9",
+  },
+  badgesRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 2,
+  },
   itemName: {
     fontSize: 15,
-    fontWeight: "500",
-    color: "#222",
+    fontWeight: "600",
   },
-
-  itemMeta: {
-    fontSize: 12,
-    color: "#666",
+  badge: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
   },
 });

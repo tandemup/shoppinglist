@@ -55,9 +55,14 @@ export const StoresProvider = ({ children }) => {
     );
   };
 
-  // ⭐ Alias semántico (el que usa StoreRow)
+  // ⭐ Alias semántico (compatibilidad)
   const toggleFavoriteStore = (storeId) => {
     toggleFavorite(storeId);
+  };
+
+  // ⭐ Obtener store por ID (🔥 FALTABA)
+  const getStoreById = (storeId) => {
+    return stores.find((s) => s.id === storeId) || null;
   };
 
   // ⭐ IDs de favoritas
@@ -80,6 +85,7 @@ export const StoresProvider = ({ children }) => {
         toggleFavorite,
         toggleFavoriteStore,
         isFavoriteStore,
+        getStoreById, // 👈 EXPORTADO
       }}
     >
       {children}
