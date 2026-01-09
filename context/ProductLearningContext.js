@@ -16,20 +16,31 @@ const STORAGE_KEY = "@productLearning";
 export function ProductLearningProvider({ children }) {
   const [learning, setLearning] = useState({});
 
+  /* ---------------------------
+     Load
+  ----------------------------*/
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
       if (raw) setLearning(JSON.parse(raw));
     });
   }, []);
 
+  /* ---------------------------
+     Persist
+  ----------------------------*/
   useEffect(() => {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(learning));
   }, [learning]);
 
+  /* ---------------------------
+     API
+  ----------------------------*/
   const recordSelection = (name) => {
+    if (!name) return;
+
     setLearning((prev) => {
       const key = name.toLowerCase();
-      const curr = prev[key] ?? { selects: 0 };
+      const curr = prev[key] ?? { selects: 0, lastSelect: null };
 
       return {
         ...prev,

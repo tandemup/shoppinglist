@@ -20,7 +20,6 @@ import {
 } from "../utils/storage";
 
 import { useStore } from "../context/StoreContext";
-
 export default function MenuScreen({ navigation }) {
   const { config, setGeneralEngine, setBookEngine } = useStore();
 
@@ -100,22 +99,43 @@ export default function MenuScreen({ navigation }) {
           <Row
             icon="list"
             label="Mis listas"
-            onPress={() => navigation.navigate(ROUTES.SHOPPING_LISTS)}
+            onPress={() =>
+              navigation.navigate(ROUTES.SHOPPING_TAB, {
+                screen: ROUTES.SHOPPING_LISTS,
+              })
+            }
           />
           <Row
             icon="archive"
             label="Listas archivadas"
-            onPress={() => navigation.navigate(ROUTES.ARCHIVED_LISTS)}
+            onPress={() =>
+              navigation.navigate(ROUTES.SHOPPING_TAB, {
+                screen: ROUTES.ARCHIVED_LISTS,
+              })
+            }
           />
           <Row
             icon="receipt"
             label="Historial de compras"
-            onPress={() => navigation.navigate(ROUTES.PURCHASE_HISTORY)}
+            onPress={() =>
+              navigation.navigate(ROUTES.SHOPPING_TAB, {
+                screen: ROUTES.PURCHASE_HISTORY,
+              })
+            }
           />
           <Row
             icon="barcode"
             label="Historial de escaneos"
-            onPress={() => navigation.navigate(ROUTES.SCANNED_HISTORY)}
+            onPress={() =>
+              navigation.navigate(ROUTES.SHOPPING_TAB, {
+                screen: ROUTES.SCANNED_HISTORY,
+              })
+            }
+          />
+          <Row
+            icon="analytics-outline"
+            label="Debug · Aprendizaje"
+            onPress={() => navigation.navigate(ROUTES.PRODUCT_LEARNING_DEBUG)}
           />
         </View>
 

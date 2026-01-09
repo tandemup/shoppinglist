@@ -32,18 +32,6 @@ export default function ShoppingListsScreen() {
   /* =====================================================
      Header
   ===================================================== */
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate(ROUTES.MENU)}
-          style={{ paddingHorizontal: 16 }}
-        >
-          <Ionicons name="menu-outline" size={24} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
 
   useEffect(() => {
     navigation.setOptions({

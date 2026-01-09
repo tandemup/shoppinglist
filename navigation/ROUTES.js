@@ -3,6 +3,7 @@ export const ROUTES = {
   SHOPPING_TAB: "ShoppingTab",
   STORES_TAB: "StoresTab",
   SCANNER_TAB: "ScannerTab",
+  MENU_TAB: "MenuTab",
 
   // Shopping stack
   SHOPPING_LISTS: "ShoppingLists",
@@ -32,4 +33,7 @@ export const ROUTES = {
 
   // Menu
   MENU: "Menu",
+
+  // Debug
+  PRODUCT_LEARNING_DEBUG: "ProductLearningDebug",
 };

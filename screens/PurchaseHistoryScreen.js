@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from "react";
+// PurchaseHistoryScreen.js
+
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,50 +9,139 @@ import {
   TextInput,
   Pressable,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
-import { usePurchases } from "../context/PurchasesContext";
+import { useLists } from "../context/ListsContext";
+import { useStores } from "../context/StoresContext";
 import { ROUTES } from "../navigation/ROUTES";
 import { formatCurrency } from "../utils/store/formatters";
 
+/* -------------------------------------------------
+   Screen
+-------------------------------------------------- */
 export default function PurchaseHistoryScreen() {
   const navigation = useNavigation();
-  const { purchaseHistory = [] } = usePurchases();
+  const { purchaseHistory } = useLists();
+  const { getStoreById } = useStores();
+
   const [search, setSearch] = useState("");
 
   /* ---------------------------
-     Filtro robusto
+     Agrupar por producto
+  ----------------------------*/
+  const grouped = useMemo(() => {
+    const map = {};
+
+    purchaseHistory.forEach((p) => {
+      const key = p.name.toLowerCase();
+
+      if (!map[key]) {
+        map[key] = {
+          name: p.name,
+          purchases: [],
+        };
+      }
+
+      map[key].purchases.push(p);
+    });
+
+    return Object.values(map);
+  }, [purchaseHistory]);
+
+  /* ---------------------------
+     Filtro
   ----------------------------*/
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
+    if (!q) return grouped;
 
-    if (!q) return purchaseHistory;
+    return grouped.filter((g) => g.name.toLowerCase().includes(q));
+  }, [grouped, search]);
 
-    return purchaseHistory.filter((p) => {
-      const storeName =
-        typeof p.store === "string" ? p.store : p.store?.name ?? "";
+  /* ---------------------------
+     Render item
+  ----------------------------*/
+  const renderItem = ({ item }) => {
+    if (!item?.purchases || item.purchases.length === 0) {
+      return null;
+    }
 
-      const dateText = p.date ? new Date(p.date).toLocaleDateString() : "";
+    const sorted = [...item.purchases].sort(
+      (a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt)
+    );
 
-      return (
-        storeName.toLowerCase().includes(q) ||
-        dateText.toLowerCase().includes(q)
-      );
-    });
-  }, [purchaseHistory, search]);
+    const last = sorted[0];
+    if (!last) return null;
 
-  const openDetail = (purchase) => {
-    navigation.navigate(ROUTES.PURCHASE_DETAIL, { purchase });
+    const store = last.storeId ? getStoreById(last.storeId) : null;
+
+    const openSearch = (query) => {
+      const url = `https://www.google.com/search?q=${encodeURIComponent(
+        query
+      )}`;
+      Linking.openURL(url);
+    };
+
+    return (
+      <Pressable
+        style={styles.card}
+        onPress1={() =>
+          navigation.navigate(ROUTES.PURCHASE_HISTORY_DETAIL, {
+            productName: item.name,
+            purchases: item.purchases,
+          })
+        }
+      >
+        <View style={{ flex: 1 }}>
+          {/* Nombre */}
+          <Text style={styles.name}>{item.name}</Text>
+
+          {/* Meta */}
+          <Text style={styles.meta}>
+            {item.purchases.length} compras ·{" "}
+            {last.purchasedAt
+              ? new Date(last.purchasedAt).toLocaleDateString()
+              : "—"}
+          </Text>
+
+          {/* Barcode */}
+          {last.barcode && (
+            <Pressable onPress={() => openSearch(`EAN ${last.barcode}`)}>
+              <Text style={styles.link}>Código: {last.barcode}</Text>
+            </Pressable>
+          )}
+
+          {/* Tienda */}
+          {store?.name && (
+            <Pressable onPress={() => openSearch(`${item.name} ${store.name}`)}>
+              <Text style={styles.link}>Última tienda: {store.name}</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* Precio */}
+        <View style={styles.priceBox}>
+          <Ionicons name="pricetag-outline" size={18} color="#059669" />
+          <Text style={styles.price}>
+            {formatCurrency(last.priceInfo?.total ?? 0)}
+          </Text>
+        </View>
+      </Pressable>
+    );
   };
 
+  /* ---------------------------
+     Render
+  ----------------------------*/
   return (
     <View style={styles.screen}>
       <Text style={styles.title}>Historial de compras</Text>
 
       <TextInput
         style={styles.search}
-        placeholder="Buscar por tienda o fecha"
+        placeholder="Buscar producto…"
+        placeholderTextColor="#9CA3AF"
         value={search}
         onChangeText={setSearch}
         autoCorrect={false}
@@ -59,46 +150,21 @@ export default function PurchaseHistoryScreen() {
 
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.name}
+        renderItem={renderItem}
         keyboardDismissMode="on-drag"
         contentContainerStyle={filtered.length === 0 && styles.emptyContainer}
-        renderItem={({ item }) => (
-          <Pressable style={styles.card} onPress={() => openDetail(item)}>
-            <View>
-              <Text style={styles.store}>
-                {typeof item.store === "string" ? item.store : item.store?.name}
-              </Text>
-
-              <Text style={styles.date}>
-                {item.date ? new Date(item.date).toLocaleDateString() : ""}
-              </Text>
-            </View>
-
-            <NoteTotal items={item.items} />
-          </Pressable>
-        )}
         ListEmptyComponent={
-          <Text style={styles.empty}>No hay compras registradas</Text>
+          <Text style={styles.empty}>No hay historial todavía</Text>
         }
       />
     </View>
   );
 }
 
-function NoteTotal({ items }) {
-  const total = (items ?? []).reduce(
-    (sum, i) => sum + (i.priceInfo?.total ?? 0),
-    0
-  );
-
-  return (
-    <View style={styles.totalBox}>
-      <Ionicons name="receipt-outline" size={18} color="#059669" />
-      <Text style={styles.totalText}>{formatCurrency(total)}</Text>
-    </View>
-  );
-}
-
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -129,28 +195,33 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
 
-  store: {
+  name: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 
-  date: {
-    color: "#6B7280",
+  meta: {
     marginTop: 2,
+    color: "#6B7280",
   },
 
-  totalBox: {
+  store: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#374151",
+  },
+
+  priceBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
 
-  totalText: {
+  price: {
     fontSize: 15,
     fontWeight: "700",
     color: "#059669",
@@ -164,5 +235,11 @@ const styles = StyleSheet.create({
   empty: {
     textAlign: "center",
     color: "#9CA3AF",
+  },
+  link: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#2563EB",
+    textDecorationLine: "underline",
   },
 });

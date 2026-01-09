@@ -6,8 +6,8 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+
 import { useLists } from "./ListsContext";
-import { usePurchases } from "./PurchasesContext";
 import { useProductLearning } from "./ProductLearningContext";
 
 const ProductSuggestionsContext = createContext(null);
@@ -16,7 +16,7 @@ const ProductSuggestionsContext = createContext(null);
    Helpers
 -------------------------------------------------- */
 
-// Paso 10 — score por recencia
+// Score por recencia
 const getRecencyScore = (lastDate) => {
   if (!lastDate) return 0;
 
@@ -29,7 +29,7 @@ const getRecencyScore = (lastDate) => {
   return 0;
 };
 
-// Paso 12 — aprendizaje ligero
+// Aprendizaje ligero
 const getLearningBoost = (name, learning) => {
   const data = learning?.[name.toLowerCase()];
   if (!data) return 0;
@@ -44,8 +44,7 @@ const getLearningBoost = (name, learning) => {
    Provider
 -------------------------------------------------- */
 export function ProductSuggestionsProvider({ children }) {
-  const { activeLists } = useLists();
-  const { purchases = [] } = usePurchases();
+  const { activeLists, purchaseHistory } = useLists();
   const { learning } = useProductLearning();
 
   /* ---------------------------
@@ -56,7 +55,7 @@ export function ProductSuggestionsProvider({ children }) {
   const [storeFilter, setStoreFilter] = useState(null);
 
   /* ---------------------------
-     Debounce (Paso 11)
+     Debounce
   ----------------------------*/
   useEffect(() => {
     const t = setTimeout(() => {
@@ -66,7 +65,7 @@ export function ProductSuggestionsProvider({ children }) {
   }, [query]);
 
   /* ---------------------------
-     Cache por sesión (Paso 11)
+     Cache por sesión
   ----------------------------*/
   const cacheRef = useRef(new Map());
 
@@ -78,7 +77,7 @@ export function ProductSuggestionsProvider({ children }) {
   };
 
   /* -------------------------------------------------
-     Suggestions (Paso 10 + 11 + 12)
+     Suggestions
   -------------------------------------------------- */
   const suggestions = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();
@@ -91,33 +90,30 @@ export function ProductSuggestionsProvider({ children }) {
     const resultsMap = new Map();
 
     /* ---------------------------
-       1️⃣ Histórico de compras
+       1️⃣ Historial de compras (ítems)
     ----------------------------*/
-    purchases.forEach((item) => {
-      if (!item.productName?.toLowerCase().includes(q)) return;
-      if (storeFilter && item.store !== storeFilter) return;
+    purchaseHistory.forEach((item) => {
+      if (!item.name?.toLowerCase().includes(q)) return;
+      if (storeFilter && item.storeId !== storeFilter) return;
 
-      const frequency = purchases.filter(
-        (p) => p.productName === item.productName
+      const frequency = purchaseHistory.filter(
+        (p) => p.name === item.name
       ).length;
 
-      const recencyScore = getRecencyScore(item.date);
-      const learningBoost = getLearningBoost(item.productName, learning);
+      const recencyScore = getRecencyScore(item.purchasedAt);
+      const learningBoost = getLearningBoost(item.name, learning);
 
       const score = frequency * 3 + recencyScore * 5 + learningBoost * 4;
 
-      const id = `hist-${item.productName}`;
+      const id = `hist-${item.name.toLowerCase()}`;
       const existing = resultsMap.get(id);
 
       if (!existing || existing.score < score) {
         resultsMap.set(id, {
           id,
           type: "history",
-          name: item.productName,
-          unitPrice: item.unitPrice ?? null,
-          unitLabel: item.unit ?? "",
+          name: item.name,
           priceInfo: item.priceInfo ?? null,
-          listName: item.listName,
           frequency,
           recencyScore,
           score,
@@ -132,15 +128,13 @@ export function ProductSuggestionsProvider({ children }) {
       list.items.forEach((item) => {
         if (!item.name?.toLowerCase().includes(q)) return;
 
-        const id = `cur-${item.name}`;
+        const id = `cur-${item.name.toLowerCase()}`;
         if (resultsMap.has(id)) return;
 
         resultsMap.set(id, {
           id,
           type: "current",
           name: item.name,
-          unitPrice: item.priceInfo?.unitPrice ?? null,
-          unitLabel: item.priceInfo?.unitLabel ?? "",
           priceInfo: item.priceInfo ?? null,
           frequency: 0,
           recencyScore: 0,
@@ -150,7 +144,7 @@ export function ProductSuggestionsProvider({ children }) {
     });
 
     /* ---------------------------
-       3️⃣ Crear nuevo (Paso 11)
+       3️⃣ Crear nuevo
     ----------------------------*/
     const hasExactMatch = Array.from(resultsMap.values()).some(
       (r) => r.name.toLowerCase() === q
@@ -174,7 +168,7 @@ export function ProductSuggestionsProvider({ children }) {
 
     cacheRef.current.set(q, results);
     return results;
-  }, [debouncedQuery, purchases, activeLists, storeFilter, learning]);
+  }, [debouncedQuery, purchaseHistory, activeLists, storeFilter, learning]);
 
   /* -------------------------------------------------
      API pública

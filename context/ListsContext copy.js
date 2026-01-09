@@ -1,3 +1,10 @@
+/**
+ * ListsContext
+ *
+ * Gestiona listas de compra activas, archivadas
+ * y el historial de compras (nivel ítem).
+ */
+
 import React, {
   createContext,
   useContext,
@@ -6,8 +13,6 @@ import React, {
   useState,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-import { buildPurchaseHistoryFromArchivedLists } from "../utils/buildPurchaseHistoryFromArchivedLists";
 
 /* -------------------------------------------------
    Context
@@ -105,23 +110,12 @@ export function ListsProvider({ children }) {
     setLists((prev) => prev.filter((l) => l.id !== listId));
   };
 
-  /* -------------------------------------------------
-     🔑 ARCHIVE LIST = REBUILD PURCHASE HISTORY
-  -------------------------------------------------- */
   const archiveList = (listId) => {
-    setLists((prev) => {
-      const updated = prev.map((l) =>
+    setLists((prev) =>
+      prev.map((l) =>
         l.id === listId ? { ...l, archived: true, archivedAt: Date.now() } : l
-      );
-
-      const archived = updated.filter((l) => l.archived);
-
-      const rebuiltHistory = buildPurchaseHistoryFromArchivedLists(archived);
-
-      setPurchaseHistory(rebuiltHistory);
-
-      return updated;
-    });
+      )
+    );
   };
 
   const restoreList = (listId) => {
@@ -188,6 +182,19 @@ export function ListsProvider({ children }) {
   };
 
   /* -------------------------------------------------
+     API pública — Historial
+  -------------------------------------------------- */
+  const addPurchaseHistory = (entry) => {
+    setPurchaseHistory((prev) => [
+      {
+        id: generateId(),
+        ...entry,
+      },
+      ...prev,
+    ]);
+  };
+
+  /* -------------------------------------------------
      Memo
   -------------------------------------------------- */
   const value = useMemo(
@@ -208,6 +215,8 @@ export function ListsProvider({ children }) {
       addItem,
       updateItem,
       deleteItem,
+
+      addPurchaseHistory,
     }),
     [lists, activeLists, archivedLists, purchaseHistory, isReady]
   );

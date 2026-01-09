@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   View,
   TextInput,
@@ -8,11 +8,11 @@ import {
   StyleSheet,
 } from "react-native";
 
-import { useLists } from "../context/ListsContext";
-import { normalizeProductName } from "../utils/normalizeProductName";
+import { useProductSuggestions } from "../context/ProductSuggestionsContext";
+import { useProductLearning } from "../context/ProductLearningContext";
 
 /* -------------------------------------------------
-   Badge (sin cambios)
+   Badge
 -------------------------------------------------- */
 const Badge = ({ label, color }) => (
   <View
@@ -33,65 +33,36 @@ export default function SearchCombinedBar({
   onAddFromHistory,
   onCreateNew,
 }) {
-  const { purchaseHistory } = useLists();
+  const { query, search, suggestions, clear } = useProductSuggestions();
+  const { recordSelection } = useProductLearning();
 
-  const [query, setQuery] = useState("");
-
-  /* -------------------------------------------------
-     Búsqueda síncrona y pura
-  -------------------------------------------------- */
-  const suggestions = useMemo(() => {
-    const q = normalizeProductName(query);
-    if (!q) return [];
-
-    return purchaseHistory
-      .filter((e) => e.normalizedName.includes(q))
-      .sort((a, b) => {
-        // frecuencia primero
-        if (b.frequency !== a.frequency) {
-          return b.frequency - a.frequency;
-        }
-        // más reciente después
-        return b.lastPurchasedAt - a.lastPurchasedAt;
-      })
-      .slice(0, 8)
-      .map((e) => ({
-        id: e.id,
-        type: "history",
-        name: e.name,
-        frequency: e.frequency,
-        lastPrice: e.lastPrice,
-      }));
-  }, [query, purchaseHistory]);
-
-  const showCreate =
-    query.trim().length > 0 &&
-    !suggestions.some(
-      (s) => normalizeProductName(s.name) === normalizeProductName(query.trim())
-    );
-
-  /* -------------------------------------------------
+  /* ---------------------------
      Selection handler
-  -------------------------------------------------- */
+  ----------------------------*/
   const handleSelect = (item) => {
+    recordSelection(item.name);
+
     if (item.type === "create") {
       onCreateNew?.(item.name);
-      setQuery("");
+      clear();
       return;
     }
 
+    const normalized = {
+      name: item.name,
+      priceInfo: item.priceInfo ?? null,
+    };
+
     if (item.type === "history") {
-      onAddFromHistory?.({
-        name: item.name,
-        priceInfo: item.lastPrice ? { total: item.lastPrice } : null,
-      });
-      setQuery("");
+      onAddFromHistory?.(normalized);
     }
+
+    clear();
   };
 
-  /* -------------------------------------------------
+  /* ---------------------------
      Render
-  -------------------------------------------------- */
+  ----------------------------*/
   return (
     <View style={styles.container}>
       <TextInput
@@ -99,31 +70,21 @@ export default function SearchCombinedBar({
         placeholder="🔍 Buscar producto (actual o histórico)…"
         placeholderTextColor="#999"
         value={query}
-        onChangeText={setQuery}
+        onChangeText={search}
         onSubmitEditing={() => {
           if (query.trim()) {
+            recordSelection(query.trim());
             onCreateNew?.(query.trim());
-            setQuery("");
+            clear();
           }
         }}
         returnKeyType="done"
       />
 
-      {(suggestions.length > 0 || showCreate) && (
+      {suggestions.length > 0 && (
         <FlatList
           style={styles.resultsBox}
-          data={[
-            ...suggestions,
-            ...(showCreate
-              ? [
-                  {
-                    id: "create",
-                    type: "create",
-                    name: query.trim(),
-                  },
-                ]
-              : []),
-          ]}
+          data={suggestions}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => {
@@ -139,17 +100,21 @@ export default function SearchCombinedBar({
             }
 
             const badges = [];
-            badges.push({ label: "HIST", color: "#2563eb" });
-            if (item.frequency >= 5) {
-              badges.push({
-                label: `×${item.frequency}`,
-                color: "#7c3aed",
-              });
-            }
+            if (item.type === "history")
+              badges.push({ label: "HIST", color: "#2563eb" });
+            if (item.frequency >= 5)
+              badges.push({ label: `×${item.frequency}`, color: "#7c3aed" });
+            if (item.recencyScore >= 5)
+              badges.push({ label: "REC", color: "#0ea5e9" });
 
             return (
               <TouchableOpacity
-                style={[styles.resultRow, styles.historyRow]}
+                style={[
+                  styles.resultRow,
+                  item.type === "history"
+                    ? styles.historyRow
+                    : styles.currentRow,
+                ]}
                 onPress={() => handleSelect(item)}
               >
                 <View style={styles.badgesRow}>
@@ -163,12 +128,6 @@ export default function SearchCombinedBar({
                 </View>
 
                 <Text style={styles.itemName}>{item.name}</Text>
-
-                {item.lastPrice != null && (
-                  <Text style={{ fontSize: 12, opacity: 0.6 }}>
-                    {item.lastPrice.toFixed(2)} €
-                  </Text>
-                )}
               </TouchableOpacity>
             );
           }}
@@ -179,7 +138,7 @@ export default function SearchCombinedBar({
 }
 
 /* -------------------------------------------------
-   Styles (sin cambios)
+   Styles
 -------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
@@ -210,6 +169,7 @@ const styles = StyleSheet.create({
     borderColor: "#eee",
   },
   historyRow: { backgroundColor: "#f9fafb" },
+  currentRow: { backgroundColor: "#e8f5e9" },
   createRow: { backgroundColor: "#ecfeff" },
   createText: {
     fontSize: 15,

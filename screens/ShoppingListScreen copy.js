@@ -6,7 +6,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
@@ -19,6 +18,7 @@ import SearchCombinedBar from "../components/SearchCombinedBar";
 import CheckoutBar from "../components/CheckoutBar";
 
 import { ROUTES } from "../navigation/ROUTES";
+import { formatCurrency } from "../utils/store/formatters";
 
 /* -------------------------------------------------
    Screen
@@ -32,8 +32,7 @@ export default function ShoppingListScreen() {
   /* ---------------------------
      Contexts
   ----------------------------*/
-  const { activeLists, addItem, updateItem, archiveList } = useLists();
-
+  const { activeLists, addItem, updateItem } = useLists();
   const { getStoreById } = useStores();
 
   /* ---------------------------
@@ -131,12 +130,9 @@ export default function ShoppingListScreen() {
       .reduce((sum, i) => sum + (i.priceInfo?.total ?? 0), 0);
   }, [list.items]);
 
-  /* ---------------------------
-     Checkout
-  ----------------------------*/
-  const handleCheckout = () => {
-    if (total <= 0) return;
+  const { archiveList, addPurchaseHistory, clearActiveList } = useStore();
 
+  const handleCheckout = () => {
     Alert.alert(
       "Finalizar compra",
       "¿Quieres archivar esta lista y guardar el historial de compras?",
@@ -144,8 +140,23 @@ export default function ShoppingListScreen() {
         { text: "Cancelar", style: "cancel" },
         {
           text: "Confirmar",
+          style: "default",
           onPress: () => {
+            // 1. Guardar items en historial
+            list.items
+              .filter((item) => item.checked)
+              .forEach((item) => {
+                addPurchaseHistory({
+                  ...item,
+                  storeId: list.storeId,
+                  date: new Date().toISOString(),
+                });
+              });
+
+            // 2. Archivar lista completa
             archiveList(list.id);
+
+            // 3. Limpiar lista activa / volver
             navigation.goBack();
           },
         },
@@ -185,6 +196,10 @@ export default function ShoppingListScreen() {
         ))}
       </ScrollView>
 
+      <View style={styles.totalContainer}>
+        <Text style={styles.totalLabel}>Total estimado</Text>
+        <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
+      </View>
       <CheckoutBar total={total} onCheckout={handleCheckout} />
     </KeyboardAvoidingView>
   );
@@ -194,9 +209,36 @@ export default function ShoppingListScreen() {
    Styles
 -------------------------------------------------- */
 const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+  },
+
   content: {
     padding: 16,
     paddingBottom: 32,
+  },
+
+  totalContainer: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    elevation: 2,
+  },
+
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  totalValue: {
+    fontSize: 23,
+    fontWeight: "700",
+    color: "#333",
   },
 
   center: {

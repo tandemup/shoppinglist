@@ -7,6 +7,7 @@ import { ROUTES } from "./ROUTES";
 import ShoppingStack from "./ShoppingStack";
 import StoresStack from "./StoresStack";
 import ScannerStack from "./ScannerStack";
+import MenuStack from "./MenuStack";
 
 const Tab = createBottomTabNavigator();
 
@@ -46,7 +47,6 @@ export default function MainTabs() {
           ),
         }}
       />
-
       <Tab.Screen
         name={ROUTES.SCANNER_TAB}
         component={ScannerStack}
@@ -57,6 +57,16 @@ export default function MainTabs() {
               color={color}
               size={size}
             />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name={ROUTES.MENU_TAB}
+        component={MenuStack}
+        options={{
+          title: "Menu",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="menu" size={size} color={color} />
           ),
         }}
       />
