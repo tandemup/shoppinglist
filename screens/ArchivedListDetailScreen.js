@@ -5,31 +5,31 @@ import dayjs from "dayjs";
 
 import { useLists } from "../context/ListsContext";
 import BarcodeLink from "../components/BarcodeLink";
-
+import {
+  qtyText,
+  unitPriceText,
+  headerMetaText,
+  totalText,
+} from "../utils/ui/formatText";
+import { joinText } from "../utils/ui/text";
 // ============================================================
 // COMPONENTE: ENCABEZADO
 // ============================================================
 function HeaderCard({ list, date, total, styles }) {
+  const meta = headerMetaText(date, list.store);
+
   return (
     <View style={styles.headerCard}>
       <Text style={styles.title}>{list.name}</Text>
 
       <View style={styles.inline}>
         <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-        <Text style={styles.meta}>{date}</Text>
-
-        {list.store && (
-          <View style={styles.inline}>
-            <Text style={styles.dot}>•</Text>
-            <Ionicons name="location-outline" size={14} color="#6B7280" />
-            <Text style={styles.meta}>{list.store}</Text>
-          </View>
-        )}
+        <Text style={styles.meta}>{meta}</Text>
       </View>
 
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>{total.toFixed(2)} €</Text>
+        <Text style={styles.totalValue}>{totalText(total)}</Text>
       </View>
     </View>
   );
@@ -53,20 +53,18 @@ function ItemCard({ item, styles }) {
 
         <View style={styles.inline}>
           <Ionicons name="cart-outline" size={14} color="#6B7280" />
-          <Text style={styles.qty}>
-            {qty} {unit}
-          </Text>
+          <Text style={styles.qty}>{qtyText(qty, unit)}</Text>
         </View>
 
-        {unitPrice != null && (
-          <Text style={styles.unitPrice}>
-            {unitPrice.toFixed(2)} € / {unit}
-          </Text>
-        )}
+        {unitPrice != null ? (
+          <Text style={styles.unitPrice}>{unitPriceText(unitPrice, unit)}</Text>
+        ) : null}
 
-        {hasPromo && summary && <Text style={styles.promo}>{summary}</Text>}
+        {hasPromo && summary ? (
+          <Text style={styles.promo}>{summary}</Text>
+        ) : null}
 
-        {item.barcode && (
+        {item.barcode ? (
           <View style={{ marginTop: 4 }}>
             <BarcodeLink
               barcode={item.barcode}
@@ -74,11 +72,11 @@ function ItemCard({ item, styles }) {
               styleType="subtle"
             />
           </View>
-        )}
+        ) : null}
       </View>
 
       <View style={styles.totalBox}>
-        <Text style={styles.totalText}>{total.toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{totalText(total)}</Text>
       </View>
     </View>
   );
@@ -100,7 +98,7 @@ export default function ArchivedListDetailScreen({ route }) {
   if (!list) {
     return (
       <View style={styles.screen}>
-        <Text>Lista no encontrada</Text>
+        <Text>{joinText("Lista no encontrada")}</Text>
       </View>
     );
   }

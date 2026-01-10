@@ -6,7 +6,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
@@ -19,6 +18,7 @@ import SearchCombinedBar from "../components/SearchCombinedBar";
 import CheckoutBar from "../components/CheckoutBar";
 
 import { ROUTES } from "../navigation/ROUTES";
+import { safeAlert } from "../utils/core/safeAlert";
 
 /* -------------------------------------------------
    Screen
@@ -137,7 +137,7 @@ export default function ShoppingListScreen() {
   const handleCheckout = () => {
     if (total <= 0) return;
 
-    Alert.alert(
+    safeAlert(
       "Finalizar compra",
       "¿Quieres archivar esta lista y guardar el historial de compras?",
       [

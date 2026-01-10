@@ -10,10 +10,15 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { ROUTES } from "../navigation/ROUTES";
 import { useLists } from "../context/ListsContext";
+import { useStores } from "../context/StoresContext";
+
 import { formatStore } from "../utils/store/formatters";
+import { dateStoreText } from "../utils/ui/formatText";
 
 export default function ArchivedListsScreen({ navigation }) {
   const { archivedLists } = useLists();
+  const { getStoreById } = useStores();
+
   const [search, setSearch] = useState("");
 
   const filtered = (archivedLists ?? [])
@@ -36,12 +41,12 @@ export default function ArchivedListsScreen({ navigation }) {
     });
   };
 
-  const openStore = (store) => {
-    if (!store) return;
+  const openStore = (storeId) => {
+    if (!storeId) return;
 
     navigation.navigate(ROUTES.STORES_TAB, {
       screen: ROUTES.STORES_HOME,
-      params: { store, from: "archivedLists" },
+      params: { storeId, from: "archivedLists" },
     });
   };
 
@@ -73,14 +78,12 @@ export default function ArchivedListsScreen({ navigation }) {
 
       <TouchableOpacity
         style={styles.storeLink}
-        onPress={() => openStore(store)}
+        onPress={() => store && openStore(store.id)}
         activeOpacity={0.6}
         hitSlop={8}
       >
         <Ionicons name="location-outline" size={16} color="#2563eb" />
-        <Text style={styles.storeText}>
-          {store ? formatStore(store) : "Sin tienda"}
-        </Text>
+        <Text style={styles.storeText}>{store?.name ?? "Sin tienda"}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -98,20 +101,18 @@ export default function ArchivedListsScreen({ navigation }) {
 
   const ArchivedListCard = ({ list }) => {
     const items = list.items || [];
+    const store = list.storeId ? getStoreById(list.storeId) : null;
 
     const total = items.reduce(
       (sum, it) => sum + (it.priceInfo?.total ?? it.price ?? 0),
       0
     );
+    console.log("STORE EN ARCHIVED LIST:", list.store);
 
     return (
       <View style={styles.card}>
         <HeaderRow title={list.name} onPress={() => openDetails(list)} />
-
-        <InfoRow
-          archivedAt={list.archivedAt || list.createdAt}
-          store={list.store}
-        />
+        <InfoRow archivedAt={list.archivedAt || list.createdAt} store={store} />
 
         <View style={styles.separator} />
 
