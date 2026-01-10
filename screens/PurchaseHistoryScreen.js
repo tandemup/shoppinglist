@@ -1,4 +1,3 @@
-// PurchaseHistoryScreen.js
 import React, { useMemo, useState } from "react";
 import {
   View,
@@ -14,9 +13,8 @@ import { useNavigation } from "@react-navigation/native";
 
 import { useLists } from "../context/ListsContext";
 import { useStores } from "../context/StoresContext";
-import { formatCurrency } from "../utils/store/formatters";
-import { joinText } from "../utils/ui/text";
-import { priceText, metaText } from "../utils/ui/formatters";
+
+import { joinText, priceText, metaText } from "../utils/store/formatters";
 
 /* -------------------------------------------------
    Screen
@@ -35,8 +33,16 @@ export default function PurchaseHistoryScreen() {
     const q = search.toLowerCase().trim();
     if (!q) return purchaseHistory;
 
-    return purchaseHistory.filter((p) => p.name.toLowerCase().includes(q));
+    return purchaseHistory.filter((p) => p.name?.toLowerCase().includes(q));
   }, [purchaseHistory, search]);
+
+  /* ---------------------------
+     Helpers
+  ----------------------------*/
+  const openSearch = (query) => {
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    Linking.openURL(url);
+  };
 
   /* ---------------------------
      Render item
@@ -44,15 +50,9 @@ export default function PurchaseHistoryScreen() {
   const renderItem = ({ item }) => {
     const store = item.storeId ? getStoreById(item.storeId) : null;
 
-    const openSearch = (query) => {
-      const url = `https://www.google.com/search?q=${encodeURIComponent(
-        query
-      )}`;
-      Linking.openURL(url);
-    };
-
     return (
       <View style={styles.card}>
+        {/* INFO IZQUIERDA */}
         <View style={{ flex: 1 }}>
           {/* Nombre */}
           <Text style={styles.name}>{item.name}</Text>
@@ -62,26 +62,26 @@ export default function PurchaseHistoryScreen() {
             {metaText(item.frequency, item.lastPurchasedAt)}
           </Text>
 
-          {/* Barcode */}
-          {item.barcode && (
+          {/* Código de barras */}
+          {item.barcode ? (
             <Pressable onPress={() => openSearch(`EAN ${item.barcode}`)}>
               <Text style={styles.link}>
                 {joinText("Código: ", item.barcode)}
               </Text>
             </Pressable>
-          )}
+          ) : null}
 
-          {/* Tienda */}
-          {store?.name && (
+          {/* Última tienda */}
+          {store?.name ? (
             <Pressable onPress={() => openSearch(`${item.name} ${store.name}`)}>
               <Text style={styles.link}>
                 {joinText("Última tienda: ", store.name)}
               </Text>
             </Pressable>
-          )}
+          ) : null}
         </View>
 
-        {/* Precio */}
+        {/* PRECIO */}
         <View style={styles.priceBox}>
           <Ionicons name="pricetag-outline" size={18} color="#059669" />
           <Text style={styles.price}>
@@ -168,6 +168,14 @@ const styles = StyleSheet.create({
   meta: {
     marginTop: 2,
     color: "#6B7280",
+    fontSize: 13,
+  },
+
+  link: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#2563EB",
+    textDecorationLine: "underline",
   },
 
   priceBox: {
@@ -190,12 +198,5 @@ const styles = StyleSheet.create({
   empty: {
     textAlign: "center",
     color: "#9CA3AF",
-  },
-
-  link: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#2563EB",
-    textDecorationLine: "underline",
   },
 });

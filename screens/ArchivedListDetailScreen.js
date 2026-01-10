@@ -10,8 +10,11 @@ import {
   unitPriceText,
   headerMetaText,
   totalText,
-} from "../utils/ui/formatText";
-import { joinText } from "../utils/ui/text";
+  joinText,
+} from "../utils/store/formatters";
+
+// import { joinText } from "../utils/ui/text";
+
 // ============================================================
 // COMPONENTE: ENCABEZADO
 // ============================================================

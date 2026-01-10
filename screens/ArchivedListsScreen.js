@@ -13,7 +13,6 @@ import { useLists } from "../context/ListsContext";
 import { useStores } from "../context/StoresContext";
 
 import { formatStore } from "../utils/store/formatters";
-import { dateStoreText } from "../utils/ui/formatText";
 
 export default function ArchivedListsScreen({ navigation }) {
   const { archivedLists } = useLists();
