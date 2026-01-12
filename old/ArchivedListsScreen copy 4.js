@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  Pressable,
   StyleSheet,
   FlatList,
   Linking,
@@ -13,27 +12,31 @@ import { Ionicons } from "@expo/vector-icons";
 import { ROUTES } from "../navigation/ROUTES";
 import { useLists } from "../context/ListsContext";
 import { useStores } from "../context/StoresContext";
-import { normalizePriceInfo } from "../utils/core/defaultItem";
 
 /* ────────────────────────────────────────────────
    STORE LINK
 ──────────────────────────────────────────────── */
 
 const StoreSearchLink = ({ store, onPressStore }) => {
-  if (!store) return <Text style={{ color: "#999" }}>Sin tienda</Text>;
+  if (!store) {
+    return <Text style={{ color: "#999" }}>Sin tienda</Text>;
+  }
 
   const handlePress = () => {
     if (onPressStore) {
       onPressStore(store.id);
       return;
     }
-    Linking.openURL(
-      `https://www.google.com/search?q=${encodeURIComponent(store.name)}`
-    );
+    const q = encodeURIComponent(store.name);
+    Linking.openURL(`https://www.google.com/search?q=${q}`);
   };
 
   return (
-    <TouchableOpacity onPress={handlePress} style={styles.storeLink}>
+    <TouchableOpacity
+      onPress={handlePress}
+      hitSlop={8}
+      style={styles.storeLink}
+    >
       <Ionicons name="location-outline" size={16} color="#2563eb" />
       <Text style={styles.storeText}>{store.name}</Text>
     </TouchableOpacity>
@@ -41,26 +44,14 @@ const StoreSearchLink = ({ store, onPressStore }) => {
 };
 
 /* ────────────────────────────────────────────────
-   HEADER ROW (FIXED)
+   CARD HEADER
 ──────────────────────────────────────────────── */
 
-const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
+const HeaderRow = ({ title, onPress }) => (
   <View style={styles.topRow}>
-    {/* LEFT SIDE — full pressable */}
-    <Pressable onPress={onPressDetails} style={styles.headerLeft}>
-      <Text style={styles.listTitle}>{title}</Text>
-    </Pressable>
-
-    {/* CHEVRON */}
-    <TouchableOpacity onPress={onToggle} hitSlop={10}>
-      <Ionicons
-        name="chevron-forward"
-        size={22}
-        color="#555"
-        style={{
-          transform: [{ rotate: expanded ? "90deg" : "0deg" }],
-        }}
-      />
+    <Text style={styles.listTitle}>{title}</Text>
+    <TouchableOpacity onPress={onPress} hitSlop={8}>
+      <Ionicons name="chevron-forward" size={22} color="#555" />
     </TouchableOpacity>
   </View>
 );
@@ -91,25 +82,23 @@ const ProductsAndTotalRow = ({ count, total }) => (
 );
 
 /* ────────────────────────────────────────────────
-   ITEM ROW — OPCIÓN C
+   ITEM ROW — DISEÑO B (COMPACTO)
 ──────────────────────────────────────────────── */
 
 const ArchivedItemRow = ({ item }) => {
-  // console.log("ArchivedItemRow:", item);
-  const pi = normalizePriceInfo(item.priceInfo);
+  const quantity = Number(item.quantity ?? 1);
 
-  const {
-    qty,
-    currency,
-    unit,
-    unitPrice,
-    total,
-    promo,
-    promoLabel,
-    savings,
-    summary,
-    warning,
-  } = pi;
+  const unitPriceRaw =
+    item.priceInfo?.unit ?? item.price ?? item.priceInfo?.price ?? 0;
+
+  const unitPrice = Number(unitPriceRaw) || 0;
+  const total = Number(item.priceInfo?.total) || unitPrice * quantity;
+
+  const openBarcode = () => {
+    if (!item.barcode) return;
+    const q = encodeURIComponent(item.barcode);
+    Linking.openURL(`https://www.google.com/search?q=${q}`);
+  };
 
   return (
     <View style={styles.itemRow}>
@@ -117,32 +106,24 @@ const ArchivedItemRow = ({ item }) => {
         <Text style={styles.itemName}>{item.name}</Text>
 
         <Text style={styles.itemMeta}>
-          {qty} {unit}
-          {unitPrice > 0 &&
-            ` · ${unitPrice.toFixed(2)}${" "}${currency}/${unit}`}
+          · x{quantity}
+          {item.unit ? ` · ${item.unit}` : ""}
         </Text>
 
-        {item.barcode && <Text style={styles.barcode}>🔎 {item.barcode}</Text>}
-
-        {(promo || promoLabel) && (
-          <View style={styles.offerBadge}>
-            <Text style={styles.offerText}>{promoLabel || promo}</Text>
-          </View>
+        {item.barcode && (
+          <TouchableOpacity onPress={openBarcode}>
+            <Text style={styles.barcode}>🔎 {item.barcode}</Text>
+          </TouchableOpacity>
         )}
-
-        {savings > 0 && (
-          <Text style={styles.savingText}>Ahorro {savings.toFixed(2)} €</Text>
-        )}
-
-        {warning && <Text style={styles.warningText}>⚠ {warning}</Text>}
       </View>
 
       <Text style={styles.itemPrice}>{total.toFixed(2)} €</Text>
     </View>
   );
 };
+
 /* ────────────────────────────────────────────────
-   CARD
+   ARCHIVED LIST CARD
 ──────────────────────────────────────────────── */
 
 const ArchivedListCard = ({
@@ -162,12 +143,7 @@ const ArchivedListCard = ({
 
   return (
     <View style={styles.card}>
-      <HeaderRow
-        title={list.name}
-        expanded={expanded}
-        onToggle={onToggle}
-        onPressDetails={onPressDetails}
-      />
+      <HeaderRow title={list.name} onPress={onPressDetails} />
 
       <InfoRow
         archivedAt={list.archivedAt || list.createdAt}
@@ -178,6 +154,12 @@ const ArchivedListCard = ({
       <View style={styles.separator} />
 
       <ProductsAndTotalRow count={items.length} total={total} />
+
+      <TouchableOpacity style={styles.expandButton} onPress={onToggle}>
+        <Text style={styles.expandText}>
+          {expanded ? "Ocultar items ▲" : "Ver items ▼"}
+        </Text>
+      </TouchableOpacity>
 
       {expanded && (
         <View style={styles.itemsContainer}>
@@ -200,18 +182,22 @@ export default function ArchivedListsScreen({ navigation }) {
 
   const [expandedListId, setExpandedListId] = useState(null);
 
-  // ✅ SORT: most recent first
-  const sortedLists = useMemo(() => {
-    return [...(archivedLists ?? [])].sort(
-      (a, b) =>
-        new Date(b.archivedAt || b.createdAt) -
-        new Date(a.archivedAt || a.createdAt)
-    );
-  }, [archivedLists]);
+  const sorted = (archivedLists ?? []).sort(
+    (a, b) =>
+      new Date(b.archivedAt || b.createdAt) -
+      new Date(a.archivedAt || a.createdAt)
+  );
 
   const openDetails = (list) => {
     navigation.navigate(ROUTES.ARCHIVED_LIST_DETAIL, {
       listId: list.id,
+    });
+  };
+
+  const openStore = (storeId) => {
+    navigation.navigate(ROUTES.STORES_TAB, {
+      screen: ROUTES.STORES_HOME,
+      params: { storeId, from: "archivedLists" },
     });
   };
 
@@ -220,7 +206,7 @@ export default function ArchivedListsScreen({ navigation }) {
       <Text style={styles.screenTitle}>Listas Archivadas</Text>
 
       <FlatList
-        data={sortedLists}
+        data={sorted}
         keyExtractor={(item) => item.id}
         extraData={expandedListId}
         renderItem={({ item }) => (
@@ -232,7 +218,7 @@ export default function ArchivedListsScreen({ navigation }) {
               setExpandedListId(expandedListId === item.id ? null : item.id)
             }
             onPressDetails={() => openDetails(item)}
-            onPressStore={() => {}}
+            onPressStore={openStore}
           />
         )}
         contentContainerStyle={{ paddingBottom: 60 }}
@@ -242,21 +228,26 @@ export default function ArchivedListsScreen({ navigation }) {
 }
 
 /* ────────────────────────────────────────────────
-   STYLES
+   STYLES — DISEÑO B
 ──────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#F2F3F7" },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#F2F3F7",
+  },
 
   screenTitle: {
     fontSize: 24,
     fontWeight: "800",
     textAlign: "center",
     marginBottom: 18,
+    color: "#111",
   },
 
   card: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -266,28 +257,31 @@ const styles = StyleSheet.create({
 
   topRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-  },
-
-  headerLeft: {
-    flex: 1,
-    paddingVertical: 4,
+    marginBottom: 6,
   },
 
   listTitle: {
     fontSize: 18,
     fontWeight: "700",
+    color: "#111",
   },
 
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 4,
   },
 
-  subInfo: { fontSize: 14, color: "#666" },
-  dot: { color: "#aaa" },
+  subInfo: {
+    fontSize: 14,
+    color: "#666",
+  },
+
+  dot: {
+    color: "#aaa",
+  },
 
   storeLink: {
     flexDirection: "row",
@@ -295,7 +289,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
 
-  storeText: { color: "#2563eb", fontSize: 14 },
+  storeText: {
+    color: "#2563eb",
+    fontSize: 14,
+    fontWeight: "500",
+  },
 
   separator: {
     height: 1,
@@ -306,6 +304,7 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
   },
 
   iconRow: {
@@ -314,40 +313,62 @@ const styles = StyleSheet.create({
     gap: 6,
   },
 
-  productsText: { fontSize: 15 },
-  totalPrice: { fontSize: 20, fontWeight: "700", color: "#16a34a" },
+  productsText: {
+    fontSize: 15,
+    color: "#444",
+  },
 
-  itemsContainer: { marginTop: 8 },
+  totalPrice: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#16a34a",
+  },
+
+  expandButton: {
+    marginTop: 8,
+    alignItems: "center",
+  },
+
+  expandText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2563eb",
+  },
+
+  itemsContainer: {
+    marginTop: 6,
+  },
 
   itemRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(0,0,0,0.08)",
   },
 
-  itemName: { fontSize: 15, fontWeight: "600" },
-  itemMeta: { fontSize: 13, color: "#666", marginTop: 2 },
-  barcode: { fontSize: 12, color: "#2563eb", marginTop: 4 },
+  itemName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111",
+  },
+
+  itemMeta: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 2,
+  },
+
+  barcode: {
+    fontSize: 12,
+    color: "#2563eb",
+    marginTop: 4,
+  },
 
   itemPrice: {
     fontSize: 16,
     fontWeight: "700",
     color: "#16a34a",
     marginLeft: 12,
-  },
-
-  offerBadge: {
-    marginTop: 6,
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    alignSelf: "flex-start",
-  },
-
-  offerText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#92400e",
   },
 });

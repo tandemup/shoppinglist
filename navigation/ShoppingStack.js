@@ -8,7 +8,6 @@ import ItemDetailScreen from "../screens/ItemDetailScreen";
 import StoresScreen from "../screens/StoresScreen";
 import StoreSelectScreen from "../screens/StoreSelectScreen";
 import ArchivedListsScreen from "../screens/ArchivedListsScreen";
-import ArchivedListDetailScreen from "../screens/ArchivedListDetailScreen";
 import PurchaseHistoryScreen from "../screens/PurchaseHistoryScreen";
 import ScannedHistoryScreen from "../screens/ScannedHistoryScreen";
 import EditScannedItemScreen from "../screens/EditScannedItemScreen";
@@ -65,12 +64,6 @@ export default function ShoppingStack() {
         name={ROUTES.ARCHIVED_LISTS}
         component={ArchivedListsScreen}
         options={{ title: "Listas Archivadas" }}
-      />
-
-      <Stack.Screen
-        name={ROUTES.ARCHIVED_LIST_DETAIL}
-        component={ArchivedListDetailScreen}
-        options={{ title: "Detalle archivado" }}
       />
 
       <Stack.Screen
