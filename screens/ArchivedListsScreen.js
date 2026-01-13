@@ -43,16 +43,21 @@ const StoreSearchLink = ({ store, onPressStore }) => {
 /* ────────────────────────────────────────────────
    HEADER ROW (FIXED)
 ──────────────────────────────────────────────── */
-
 const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
   <View style={styles.topRow}>
-    {/* LEFT SIDE — full pressable */}
-    <Pressable onPress={onPressDetails} style={styles.headerLeft}>
-      <Text style={styles.listTitle}>{title}</Text>
+    {/* TITLE */}
+    <Pressable
+      onPress={onPressDetails}
+      style={styles.titlePressable}
+      hitSlop={6}
+    >
+      <Text style={styles.listTitle} numberOfLines={1}>
+        {title}
+      </Text>
     </Pressable>
 
-    {/* CHEVRON */}
-    <TouchableOpacity onPress={onToggle} hitSlop={10}>
+    {/* CHEVRON — always right */}
+    <Pressable onPress={onToggle} style={styles.chevronPressable} hitSlop={10}>
       <Ionicons
         name="chevron-forward"
         size={22}
@@ -61,7 +66,7 @@ const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
           transform: [{ rotate: expanded ? "90deg" : "0deg" }],
         }}
       />
-    </TouchableOpacity>
+    </Pressable>
   </View>
 );
 
@@ -93,16 +98,29 @@ const ProductsAndTotalRow = ({ count, total }) => (
 /* ────────────────────────────────────────────────
    ITEM ROW — OPCIÓN C
 ──────────────────────────────────────────────── */
+const PriceRow = ({ label, value, highlight = false }) => {
+  if (value === null || value === undefined) return null;
 
-const ArchivedItemRow = ({ item }) => {
-  // console.log("ArchivedItemRow:", item);
+  return (
+    <View style={styles.priceRow}>
+      <Text style={styles.priceLabel}>{label}</Text>
+      <Text
+        style={[styles.priceValue, highlight && styles.priceValueHighlight]}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+};
+
+const ArchivedItemRow1 = ({ item }) => {
   const pi = normalizePriceInfo(item.priceInfo);
 
   const {
     qty,
-    currency,
     unit,
     unitPrice,
+    currency,
     total,
     promo,
     promoLabel,
@@ -111,36 +129,103 @@ const ArchivedItemRow = ({ item }) => {
     warning,
   } = pi;
 
+  const hasOffer = !!(promo || promoLabel);
+  console.log("ArchivedItem", item);
+
   return (
     <View style={styles.itemRow}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.itemName}>{item.name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.itemName} numberOfLines={1}>
+            {item.name}
+          </Text>
 
-        <Text style={styles.itemMeta}>
-          {qty} {unit}
-          {unitPrice > 0 &&
-            ` · ${unitPrice.toFixed(2)}${" "}${currency}/${unit}`}
-        </Text>
+          {hasOffer && (
+            <View style={styles.offerBadgeInline}>
+              <Text style={styles.offerText}>{promoLabel || promo}</Text>
+            </View>
+          )}
+          {typeof total === "number" && (
+            <Text style={styles.itemPrice}>
+              {total.toFixed(2)} {currency}
+            </Text>
+          )}
+        </View>
 
-        {item.barcode && <Text style={styles.barcode}>🔎 {item.barcode}</Text>}
-
-        {(promo || promoLabel) && (
-          <View style={styles.offerBadge}>
-            <Text style={styles.offerText}>{promoLabel || promo}</Text>
-          </View>
+        {summary && summary.length > 0 && (
+          <Text style={styles.summaryText}>{summary}</Text>
+        )}
+        {typeof savings === "number" && savings > 0 && (
+          <Text style={styles.savingText}>
+            💸 savings {savings.toFixed(2)} {currency}
+          </Text>
         )}
 
-        {savings > 0 && (
-          <Text style={styles.savingText}>Ahorro {savings.toFixed(2)} €</Text>
+        {typeof item.barcode === "string" && item.barcode.length > 0 && (
+          <Text style={styles.barcode}>🔎 {item.barcode}</Text>
         )}
 
-        {warning && <Text style={styles.warningText}>⚠ {warning}</Text>}
+        {typeof warning === "string" && (
+          <Text style={styles.warningText}>⚠ {warning}</Text>
+        )}
       </View>
-
-      <Text style={styles.itemPrice}>{total.toFixed(2)} €</Text>
     </View>
   );
 };
+const ArchivedItemRow = ({ item }) => {
+  const pi = normalizePriceInfo(item.priceInfo);
+
+  const { total, currency, promo, promoLabel, savings, summary, warning } = pi;
+
+  const hasOffer = !!(promo || promoLabel);
+
+  return (
+    <View style={styles.itemRow}>
+      {/* LEFT COLUMN */}
+      <View style={{ flex: 1 }}>
+        <View style={styles.nameRow}>
+          <Text style={styles.itemName} numberOfLines={1}>
+            {item.name}
+          </Text>
+
+          {hasOffer && (
+            <View style={styles.offerBadgeInline}>
+              <Text style={styles.offerText}>{promoLabel || promo}</Text>
+            </View>
+          )}
+        </View>
+
+        {summary && summary.length > 0 && (
+          <Text style={styles.summaryText}>{summary}</Text>
+        )}
+
+        {typeof savings === "number" && savings > 0 && (
+          <Text style={styles.savingText}>
+            💸 ahorro {savings.toFixed(2)} {currency}
+          </Text>
+        )}
+
+        {typeof item.barcode === "string" && item.barcode.length > 0 && (
+          <Text style={styles.barcode}>🔎 {item.barcode}</Text>
+        )}
+
+        {typeof warning === "string" && (
+          <Text style={styles.warningText}>⚠ {warning}</Text>
+        )}
+      </View>
+
+      {/* RIGHT COLUMN — PRICE */}
+      <View style={styles.itemPriceColumn}>
+        {typeof total === "number" && (
+          <Text style={styles.itemPrice}>
+            {total.toFixed(2)} {currency}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+};
+
 /* ────────────────────────────────────────────────
    CARD
 ──────────────────────────────────────────────── */
@@ -244,9 +329,12 @@ export default function ArchivedListsScreen({ navigation }) {
 /* ────────────────────────────────────────────────
    STYLES
 ──────────────────────────────────────────────── */
-
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#F2F3F7" },
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#F2F3F7",
+  },
 
   screenTitle: {
     fontSize: 24,
@@ -264,14 +352,12 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0,0,0,0.06)",
   },
 
+  /* ───────── HEADER ───────── */
+
   topRow: {
     flexDirection: "row",
     alignItems: "center",
-  },
-
-  headerLeft: {
-    flex: 1,
-    paddingVertical: 4,
+    justifyContent: "space-between",
   },
 
   listTitle: {
@@ -286,8 +372,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  subInfo: { fontSize: 14, color: "#666" },
-  dot: { color: "#aaa" },
+  subInfo: {
+    fontSize: 14,
+    color: "#666",
+  },
+
+  dot: {
+    color: "#aaa",
+  },
 
   storeLink: {
     flexDirection: "row",
@@ -295,7 +387,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
 
-  storeText: { color: "#2563eb", fontSize: 14 },
+  storeText: {
+    color: "#2563eb",
+    fontSize: 14,
+  },
 
   separator: {
     height: 1,
@@ -314,40 +409,131 @@ const styles = StyleSheet.create({
     gap: 6,
   },
 
-  productsText: { fontSize: 15 },
-  totalPrice: { fontSize: 20, fontWeight: "700", color: "#16a34a" },
+  productsText: {
+    fontSize: 15,
+  },
 
-  itemsContainer: { marginTop: 8 },
+  totalPrice: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#16a34a",
+  },
+
+  /* ───────── ITEMS ───────── */
+
+  itemsContainer: {
+    marginTop: 8,
+  },
+
+  itemRow1: {
+    flexDirection: "row",
+    paddingVertical: 12,
+    gap: 12,
+  },
 
   itemRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    paddingVertical: 10,
+    paddingVertical: 12,
+    gap: 12,
   },
 
-  itemName: { fontSize: 15, fontWeight: "600" },
-  itemMeta: { fontSize: 13, color: "#666", marginTop: 2 },
-  barcode: { fontSize: 12, color: "#2563eb", marginTop: 4 },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  itemName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111",
+    flexShrink: 1,
+  },
+
+  barcode: {
+    fontSize: 12,
+    color: "#2563eb",
+    marginTop: 4,
+  },
 
   itemPrice: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#16a34a",
     marginLeft: 12,
   },
 
-  offerBadge: {
-    marginTop: 6,
+  itemPriceColumn: {
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
+    minWidth: 80,
+  },
+
+  titlePressable: {
+    flexShrink: 1,
+    paddingVertical: 4,
+  },
+
+  chevronPressable: {
+    padding: 8, // 🔑 crea zona táctil clara
+    marginLeft: 8,
+  },
+
+  /* ───────── OFFER ───────── */
+
+  offerBadgeInline: {
     backgroundColor: "#FEF3C7",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
-    alignSelf: "flex-start",
+    flexShrink: 0,
   },
 
   offerText: {
     fontSize: 11,
     fontWeight: "600",
     color: "#92400e",
+  },
+
+  /* ───────── DETAILS ───────── */
+
+  summaryText: {
+    fontSize: 12,
+    color: "#555",
+    marginTop: 4,
+    whiteSpace: "pre-line", // RN Web
+  },
+
+  savingText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#16a34a",
+    marginTop: 4,
+  },
+  warningText: {
+    fontSize: 12,
+    color: "#b45309",
+    marginTop: 4,
+  },
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
+
+  priceLabel: {
+    fontSize: 12,
+    color: "#555",
+  },
+
+  priceValue: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#16a34a",
+  },
+
+  priceValueHighlight: {
+    fontSize: 14,
+    fontWeight: "800",
   },
 });

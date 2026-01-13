@@ -80,16 +80,28 @@ export const defaultItem = {
   checked: true,
   priceInfo: defaultPriceInfo(),
 };
-
-export const normalizePriceInfo = (priceInfo = {}) => {
+export const normalizePriceInfo = (priceInfo) => {
   const base = defaultPriceInfo();
+
+  // 🔒 Protección absoluta
+  if (!priceInfo || typeof priceInfo !== "object") {
+    return base;
+  }
 
   return {
     ...base,
     ...priceInfo,
+
+    // Normalización defensiva
     qty: Number(priceInfo.qty ?? base.qty),
+    unit: priceInfo.unit ?? base.unit,
     unitPrice: Number(priceInfo.unitPrice ?? base.unitPrice),
+    subtotal: Number(priceInfo.subtotal ?? base.subtotal),
     total: Number(priceInfo.total ?? base.total),
     savings: Number(priceInfo.savings ?? 0),
+    promo: priceInfo.promo ?? base.promo,
+    promoLabel: priceInfo.promoLabel ?? base.promoLabel,
+    summary: priceInfo.summary ?? base.summary,
+    warning: priceInfo.warning ?? null,
   };
 };

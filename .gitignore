@@ -3,7 +3,7 @@
 # dependencies
 node_modules/
 secrets.txt
-
+old/
 # Expo
 .expo/
 dist/
