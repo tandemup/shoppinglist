@@ -5,7 +5,7 @@ export default function CheckoutBar({ total, onCheckout }) {
   return (
     <View style={styles.container}>
       <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Total estimado</Text>
+        <Text style={styles.totalLabel}>Total:</Text>
         <Text style={styles.totalValue}>{total.toFixed(2)} €</Text>
       </View>
 
@@ -26,15 +26,16 @@ const styles = StyleSheet.create({
   },
   totalRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
+    gap: 22,
     marginBottom: 10,
   },
   totalLabel: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 24,
+    fontWeight: "bold",
   },
   totalValue: {
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: "bold",
   },
   button: {

@@ -51,17 +51,13 @@ export default function ItemRow({ item, onToggle, onEdit }) {
           )}
         </View>
 
-        {/* Cantidad × precio unitario */}
         <Text style={styles.meta} numberOfLines={1}>
-          {priceInfo.qty} {formatUnit(priceInfo.unit)} ×{" "}
-          {formatCurrency(priceInfo.unitPrice)}
+          {priceInfo.summary}
         </Text>
       </View>
 
-      {/* Subtotal */}
       <Text style={styles.subtotal}>{formatCurrency(subtotal)}</Text>
 
-      {/* Chevron */}
       <Pressable style={styles.chevron} onPress={onEdit} hitSlop={10}>
         <Ionicons name="chevron-forward" size={18} color="#999" />
       </Pressable>

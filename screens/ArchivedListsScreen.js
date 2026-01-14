@@ -8,7 +8,7 @@ import {
   FlatList,
   Linking,
 } from "react-native";
-
+import SearchBar from "../components/SearchBar";
 import { Ionicons } from "@expo/vector-icons";
 import { ROUTES } from "../navigation/ROUTES";
 import { useLists } from "../context/ListsContext";
@@ -113,70 +113,9 @@ const PriceRow = ({ label, value, highlight = false }) => {
   );
 };
 
-const ArchivedItemRow1 = ({ item }) => {
-  const pi = normalizePriceInfo(item.priceInfo);
-
-  const {
-    qty,
-    unit,
-    unitPrice,
-    currency,
-    total,
-    promo,
-    promoLabel,
-    savings,
-    summary,
-    warning,
-  } = pi;
-
-  const hasOffer = !!(promo || promoLabel);
-  console.log("ArchivedItem", item);
-
-  return (
-    <View style={styles.itemRow}>
-      <View style={{ flex: 1 }}>
-        <View style={styles.nameRow}>
-          <Text style={styles.itemName} numberOfLines={1}>
-            {item.name}
-          </Text>
-
-          {hasOffer && (
-            <View style={styles.offerBadgeInline}>
-              <Text style={styles.offerText}>{promoLabel || promo}</Text>
-            </View>
-          )}
-          {typeof total === "number" && (
-            <Text style={styles.itemPrice}>
-              {total.toFixed(2)} {currency}
-            </Text>
-          )}
-        </View>
-
-        {summary && summary.length > 0 && (
-          <Text style={styles.summaryText}>{summary}</Text>
-        )}
-        {typeof savings === "number" && savings > 0 && (
-          <Text style={styles.savingText}>
-            💸 savings {savings.toFixed(2)} {currency}
-          </Text>
-        )}
-
-        {typeof item.barcode === "string" && item.barcode.length > 0 && (
-          <Text style={styles.barcode}>🔎 {item.barcode}</Text>
-        )}
-
-        {typeof warning === "string" && (
-          <Text style={styles.warningText}>⚠ {warning}</Text>
-        )}
-      </View>
-    </View>
-  );
-};
 const ArchivedItemRow = ({ item }) => {
   const pi = normalizePriceInfo(item.priceInfo);
-
   const { total, currency, promo, promoLabel, savings, summary, warning } = pi;
-
   const hasOffer = !!(promo || promoLabel);
 
   return (
@@ -193,16 +132,16 @@ const ArchivedItemRow = ({ item }) => {
               <Text style={styles.offerText}>{promoLabel || promo}</Text>
             </View>
           )}
+
+          {typeof savings === "number" && savings > 0 && (
+            <Text style={styles.savingText}>
+              {"💸 "} {savings.toFixed(2)} {currency}
+            </Text>
+          )}
         </View>
 
         {summary && summary.length > 0 && (
           <Text style={styles.summaryText}>{summary}</Text>
-        )}
-
-        {typeof savings === "number" && savings > 0 && (
-          <Text style={styles.savingText}>
-            💸 ahorro {savings.toFixed(2)} {currency}
-          </Text>
         )}
 
         {typeof item.barcode === "string" && item.barcode.length > 0 && (
@@ -239,7 +178,6 @@ const ArchivedListCard = ({
   onPressStore,
 }) => {
   const items = list.items || [];
-
   const total = items.reduce(
     (sum, it) => sum + Number(it.priceInfo?.total ?? it.price ?? 0),
     0
@@ -282,8 +220,8 @@ const ArchivedListCard = ({
 export default function ArchivedListsScreen({ navigation }) {
   const { archivedLists } = useLists();
   const { getStoreById } = useStores();
-
   const [expandedListId, setExpandedListId] = useState(null);
+  const [search, setSearch] = useState("");
 
   // ✅ SORT: most recent first
   const sortedLists = useMemo(() => {
@@ -293,6 +231,33 @@ export default function ArchivedListsScreen({ navigation }) {
         new Date(a.archivedAt || a.createdAt)
     );
   }, [archivedLists]);
+
+  const filteredLists = useMemo(() => {
+    if (!search.trim()) return sortedLists;
+
+    const q = search.toLowerCase();
+
+    return sortedLists.filter((list) => {
+      // 🟦 1. Nombre de la lista
+      const listNameMatch = list.name?.toLowerCase().includes(q);
+
+      // 🟦 2. Supermercado
+      const store = list.storeId ? getStoreById(list.storeId) : null;
+      const storeMatch = store?.name?.toLowerCase().includes(q);
+
+      // 🟦 3. Items dentro de la lista
+      const itemsMatch = (list.items || []).some((item) => {
+        const nameMatch = item.name?.toLowerCase().includes(q);
+        const barcodeMatch =
+          typeof item.barcode === "string" &&
+          item.barcode.toLowerCase().includes(q);
+
+        return nameMatch || barcodeMatch;
+      });
+
+      return listNameMatch || storeMatch || itemsMatch;
+    });
+  }, [search, sortedLists, getStoreById]);
 
   const openDetails = (list) => {
     navigation.navigate(ROUTES.ARCHIVED_LIST_DETAIL, {
@@ -304,8 +269,15 @@ export default function ArchivedListsScreen({ navigation }) {
     <View style={styles.container}>
       <Text style={styles.screenTitle}>Listas Archivadas</Text>
 
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Buscar lista o supermercado…"
+        style={{ marginBottom: 14 }}
+      />
+
       <FlatList
-        data={sortedLists}
+        data={filteredLists}
         keyExtractor={(item) => item.id}
         extraData={expandedListId}
         renderItem={({ item }) => (
