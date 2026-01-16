@@ -1,16 +1,26 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import React from "react";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function CheckoutBar({ total, onCheckout }) {
+import { formatCurrency } from "../utils/store/prices";
+import { DEFAULT_CURRENCY } from "../constants/currency";
+
+export default function CheckoutBar({ total, currency, onCheckout }) {
+  if (!total || total <= 0) return null;
+
+  const summaryCurrency = currency ?? DEFAULT_CURRENCY.code;
+
   return (
     <View style={styles.container}>
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>Total:</Text>
-        <Text style={styles.totalValue}>{total.toFixed(2)} €</Text>
+        <Text style={styles.totalValue}>
+          {formatCurrency(total, summaryCurrency)}
+        </Text>
       </View>
 
       <Pressable style={styles.button} onPress={onCheckout}>
-        <Ionicons name="cart-outline" size={20} color="#fff" />
+        <Ionicons name="cart" size={18} color="#fff" />
         <Text style={styles.buttonText}>Finalizar compra</Text>
       </Pressable>
     </View>
@@ -19,10 +29,10 @@ export default function CheckoutBar({ total, onCheckout }) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 12,
+    padding: 16,
     borderTopWidth: 1,
-    borderColor: "#eee",
-    backgroundColor: "#fff",
+    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
   },
   totalRow: {
     flexDirection: "row",
@@ -38,61 +48,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
+
   button: {
     flexDirection: "row",
-    backgroundColor: "#22c55e",
-    paddingVertical: 12,
+    gap: 6,
+    backgroundColor: "#22C55E",
+    paddingVertical: 14,
     borderRadius: 10,
-    alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    alignItems: "center",
   },
+
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#FFFFFF",
     fontWeight: "600",
-  },
-});
-
-/* -------------------------------------------------
-   Styles
--------------------------------------------------- */
-const styles1 = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
-
-  content: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-
-  totalContainer: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    elevation: 2,
-  },
-
-  totalLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-  },
-
-  totalValue: {
-    fontSize: 23,
-    fontWeight: "700",
-    color: "#333",
-  },
-
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    fontSize: 20,
   },
 });

@@ -72,6 +72,10 @@ export function ListsProvider({ children }) {
   -------------------------------------------------- */
   const activeLists = useMemo(() => lists.filter((l) => !l.archived), [lists]);
   const archivedLists = useMemo(() => lists.filter((l) => l.archived), [lists]);
+  const rebuildPurchaseHistory = () => {
+    const rebuilt = buildPurchaseHistoryFromArchivedLists(archivedLists);
+    setPurchaseHistory(rebuilt);
+  };
 
   /* -------------------------------------------------
      API pública — Listas
@@ -190,6 +194,7 @@ export function ListsProvider({ children }) {
   /* -------------------------------------------------
      Memo
   -------------------------------------------------- */
+
   const value = useMemo(
     () => ({
       lists,
@@ -205,6 +210,7 @@ export function ListsProvider({ children }) {
       archiveList,
       restoreList,
 
+      rebuildPurchaseHistory,
       addItem,
       updateItem,
       deleteItem,

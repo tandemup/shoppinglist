@@ -50,13 +50,15 @@ export default function ItemRow({ item, onToggle, onEdit }) {
             </>
           )}
         </View>
-
         <Text style={styles.meta} numberOfLines={1}>
-          {priceInfo.summary}
+          {priceInfo.qty} ×{" "}
+          {formatCurrency(priceInfo.unitPrice, priceInfo.currency)}
         </Text>
       </View>
 
-      <Text style={styles.subtotal}>{formatCurrency(subtotal)}</Text>
+      <Text style={styles.subtotal}>
+        {formatCurrency(subtotal, priceInfo.currency)}
+      </Text>
 
       <Pressable style={styles.chevron} onPress={onEdit} hitSlop={10}>
         <Ionicons name="chevron-forward" size={18} color="#999" />

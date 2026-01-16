@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./ROUTES";
 
 import PurchaseHistoryScreen from "../screens/PurchaseHistoryScreen";
-import ItemDetailScreen from "../screens/ItemDetailScreen";
+import PurchaseDetailScreen from "../screens/PurchaseDetailScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -16,10 +16,18 @@ export default function HistoryStack() {
         options={{ title: "Historial" }}
       />
       <Stack.Screen
-        name={ROUTES.ITEM_DETAIL}
-        component={ItemDetailScreen}
+        name={ROUTES.PURCHASE_DETAIL}
+        component={PurchaseDetailScreen}
         options={{ title: "Detalle" }}
       />
     </Stack.Navigator>
   );
 }
+
+/*
+      <Stack.Screen
+        name={ROUTES.ITEM_DETAIL}
+        component={ItemDetailScreen}
+        options={{ title: "Detalle" }}
+      />
+*/

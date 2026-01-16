@@ -1,10 +1,15 @@
-export function formatCurrency(value, currency = "EUR", locale = "es-ES") {
-  const amount = Number(value) || 0;
+// utils/store/currency.js
+import { DEFAULT_CURRENCY } from "../../constants/currency";
 
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+/**
+ * Normaliza símbolos comunes a código ISO
+ */
+export function normalizeCurrency(currency) {
+  if (!currency) return DEFAULT_CURRENCY.code;
+
+  if (currency === "€") return "EUR";
+  if (currency === "$") return "USD";
+  if (currency === "£") return "GBP";
+
+  return currency;
 }

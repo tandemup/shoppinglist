@@ -33,28 +33,36 @@ export function buildPurchaseHistoryFromArchivedLists(archivedLists = []) {
           barcode,
 
           storeId,
-          lastPrice: item.unitPrice ?? null,
-          unit: item.unit ?? "u",
 
           frequency: 1,
           lastPurchasedAt: purchasedAt,
+
+          // 👇 CLAVE: guardar priceInfo completo
+          priceInfo: item.priceInfo ?? null,
         });
       } else {
+        const isMoreRecent = purchasedAt >= prev.lastPurchasedAt;
+
         map.set(key, {
           ...prev,
-          // conservar el nombre más reciente (por si cambia formato)
+
+          // conservar el nombre más reciente
           name: item.name,
 
-          // si antes no había barcode y ahora sí → aprenderlo
+          // aprender barcode si antes no había
           barcode: prev.barcode ?? barcode,
 
-          // última tienda / precio / unidad
+          // última tienda
           storeId,
-          lastPrice: item.unitPrice ?? prev.lastPrice,
-          unit: item.unit ?? prev.unit,
 
           frequency: prev.frequency + 1,
+
           lastPurchasedAt: Math.max(prev.lastPurchasedAt, purchasedAt),
+
+          // 👇 solo actualizar priceInfo si esta compra es más reciente
+          priceInfo: isMoreRecent
+            ? item.priceInfo ?? prev.priceInfo
+            : prev.priceInfo,
         });
       }
     }

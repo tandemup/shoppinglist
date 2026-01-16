@@ -125,6 +125,14 @@ export default function ShoppingListScreen() {
   /* ---------------------------
      Total (solo items checked)
   ----------------------------*/
+  const totalCurrency = useMemo(() => {
+    const itemWithCurrency = list.items.find(
+      (i) => i.checked && i.priceInfo?.currency
+    );
+
+    return itemWithCurrency?.priceInfo.currency;
+  }, [list.items]);
+
   const total = useMemo(() => {
     return list.items
       .filter((i) => i.checked)
@@ -185,7 +193,11 @@ export default function ShoppingListScreen() {
         ))}
       </ScrollView>
 
-      <CheckoutBar total={total} onCheckout={handleCheckout} />
+      <CheckoutBar
+        total={total}
+        currency={totalCurrency}
+        onCheckout={handleCheckout}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useLayoutEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   FlatList,
   TextInput,
   Pressable,
@@ -14,17 +13,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import { useNavigation } from "@react-navigation/native";
+import getDaysSinceJanuary1 from "../utils/helpers/newListName";
 import { safeAlert } from "../utils/core/safeAlert";
 import { useLists } from "../context/ListsContext";
 import { ROUTES } from "../navigation/ROUTES";
 
+/* -------------------------------------------------
+   Screen
+-------------------------------------------------- */
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
 
   /* =====================================================
      Estado global (LISTAS)
   ===================================================== */
-  const { activeLists = [], createList, deleteList, archiveList } = useLists();
+  const {
+    activeLists = [],
+    archivedLists = [],
+    createList,
+    deleteList,
+    archiveList,
+  } = useLists();
 
   const [name, setName] = useState("");
   const [contextMenu, setContextMenu] = useState(null);
@@ -32,7 +41,6 @@ export default function ShoppingListsScreen() {
   /* =====================================================
      Header
   ===================================================== */
-
   useEffect(() => {
     navigation.setOptions({
       title: "Shopping Lists",
@@ -44,9 +52,30 @@ export default function ShoppingListsScreen() {
   /* =====================================================
      Crear nueva lista
   ===================================================== */
+  const listNameExists = (name) => {
+    const normalized = name.trim().toLowerCase();
+
+    return [...activeLists, ...archivedLists].some(
+      (list) => list.name?.trim().toLowerCase() === normalized
+    );
+  };
   const handleAddList = () => {
-    if (!name.trim()) return;
-    createList(name.trim());
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    const dayIndex = getDaysSinceJanuary1();
+    const finalName = `${trimmed}_${dayIndex}`;
+
+    if (listNameExists(finalName)) {
+      safeAlert(
+        "Nombre duplicado",
+        `Ya existe una lista llamada "${finalName}". Elige otro nombre.`,
+        [{ text: "Aceptar" }]
+      );
+      return;
+    }
+
+    createList(finalName);
     setName("");
   };
 
@@ -69,7 +98,7 @@ export default function ShoppingListsScreen() {
 
       setContextMenu({
         list,
-        x: rect.right - 160, // ancho aprox del menú
+        x: rect.right - 160,
         y: rect.bottom + 6,
       });
     } else {
@@ -99,7 +128,7 @@ export default function ShoppingListsScreen() {
   };
 
   /* =====================================================
-     Render item (tarjeta)
+     Render item
   ===================================================== */
   const renderItem = ({ item }) => (
     <Pressable style={styles.card} onPress={() => handleOpenList(item.id)}>
@@ -119,6 +148,9 @@ export default function ShoppingListsScreen() {
     </Pressable>
   );
 
+  /* =====================================================
+     Render
+  ===================================================== */
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Mis Listas</Text>
@@ -132,6 +164,7 @@ export default function ShoppingListsScreen() {
           value={name}
           onChangeText={setName}
         />
+
         <Pressable style={styles.addButton} onPress={handleAddList}>
           <Entypo name="add-to-list" size={24} color="green" />
         </Pressable>
@@ -196,9 +229,9 @@ export default function ShoppingListsScreen() {
   );
 }
 
-/* =====================================================
-   🎨 ESTILOS
-===================================================== */
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -236,18 +269,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    borderWidth: "thin",
+    borderWidth: 1,
     borderColor: "green",
-    backgroundColor: "clear",
     alignItems: "center",
     justifyContent: "center",
-  },
-
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
   },
 
   card: {
@@ -259,10 +284,16 @@ const styles = StyleSheet.create({
     borderColor: "#BFD7FF",
   },
 
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
   name: {
     fontSize: 17,
     fontWeight: "700",
-    marginBottom: 4,
     color: "#000",
   },
 
@@ -294,7 +325,7 @@ const styles = StyleSheet.create({
   },
 
   contextMenu: {
-    position: "fixed", // Web
+    position: "fixed",
     backgroundColor: "#fff",
     borderRadius: 10,
     minWidth: 160,

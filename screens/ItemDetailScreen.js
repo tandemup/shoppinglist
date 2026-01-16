@@ -7,6 +7,8 @@ import {
   Pressable,
   ScrollView,
 } from "react-native";
+import { DEFAULT_CURRENCY } from "../constants/currency";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -14,6 +16,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useLists } from "../context/ListsContext";
 
 import { PricingEngine, PROMOTIONS } from "../utils/pricing/PricingEngine";
+import { formatCurrency } from "../utils/store/prices";
 import { formatUnit } from "../utils/pricing/unitFormat";
 import { safeAlert } from "../utils/core/safeAlert";
 
@@ -68,13 +71,14 @@ export default function ItemDetailScreen() {
   /* ---------------------------
      Cálculo de precios
   ----------------------------*/
+
   const priceInfo = useMemo(() => {
     return PricingEngine.calculate({
       qty: Number(qty.replace(",", ".")) || 0,
       unit,
       unitPrice: Number(unitPrice.replace(",", ".")) || 0,
       promo,
-      currency: "€",
+      currency: DEFAULT_CURRENCY.code,
     });
   }, [qty, unit, unitPrice, promo]);
 
@@ -120,6 +124,8 @@ export default function ItemDetailScreen() {
       ]
     );
   };
+
+  const summaryCurrency = priceInfo.currency ?? DEFAULT_CURRENCY.code;
 
   /* ---------------------------
      Render
@@ -174,7 +180,12 @@ export default function ItemDetailScreen() {
 
           <View style={styles.inlineField}>
             <Text style={styles.label}>
-              Precio {priceInfo.currency}/{formatUnit(unit)}
+              Precio{" "}
+              {formatCurrency(1, priceInfo.currency).replace(
+                /\d+([.,]00)?/g,
+                ""
+              )}
+              /{formatUnit(unit)}
             </Text>
             <TextInput
               style={styles.input}
@@ -209,12 +220,14 @@ export default function ItemDetailScreen() {
         {/* RESUMEN */}
         <View style={styles.summary}>
           <Text style={styles.summaryTitle}>Total</Text>
+
           <Text style={styles.summaryValue}>
-            {priceInfo.total.toFixed(2)} €
+            {formatCurrency(priceInfo.total, summaryCurrency)}
           </Text>
+
           {priceInfo.savings > 0 && (
             <Text style={styles.savings}>
-              Ahorro: {priceInfo.savings.toFixed(2)} €
+              Ahorro: {formatCurrency(priceInfo.savings, summaryCurrency)}
             </Text>
           )}
         </View>

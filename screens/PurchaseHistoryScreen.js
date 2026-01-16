@@ -13,28 +13,61 @@ import { useNavigation } from "@react-navigation/native";
 
 import { useLists } from "../context/ListsContext";
 import { useStores } from "../context/StoresContext";
+import { ROUTES } from "../navigation/ROUTES";
+import StoreFilterBadges from "../components/StoreFilterBadges";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { buildPurchaseHistoryFromArchivedLists } from "../utils/buildPurchaseHistoryFromArchivedLists";
 
-import { joinText, priceText, metaText } from "../utils/store/formatters";
+import {
+  queryProducts,
+  getStoresFromPurchaseHistory,
+} from "../utils/queries/products";
+
+import {
+  joinText,
+  priceText,
+  purchaseMetaText,
+  formatCurrency,
+} from "../utils/store/formatters";
+import { copyToClipboard } from "../utils/copyToClipboard";
 
 /* -------------------------------------------------
    Screen
 -------------------------------------------------- */
 export default function PurchaseHistoryScreen() {
   const navigation = useNavigation();
-  const { purchaseHistory } = useLists();
+  const { purchaseHistory, archivedLists, rebuildPurchaseHistory } = useLists();
+
   const { getStoreById } = useStores();
 
   const [search, setSearch] = useState("");
+  const [selectedStore, setSelectedStore] = useState(null);
 
   /* ---------------------------
-     Filtro simple
+     Stores (badges)
   ----------------------------*/
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return purchaseHistory;
+  const stores = useMemo(() => {
+    return getStoresFromPurchaseHistory(purchaseHistory, getStoreById);
+  }, [purchaseHistory, getStoreById]);
 
-    return purchaseHistory.filter((p) => p.name?.toLowerCase().includes(q));
-  }, [purchaseHistory, search]);
+  if (__DEV__) {
+    // console.log("STORES:", stores);
+  }
+
+  /* ---------------------------
+     Products (query + sort)
+  ----------------------------*/
+  const products = useMemo(() => {
+    const base = queryProducts({
+      purchaseHistory,
+      search,
+      storeId: selectedStore,
+    });
+
+    return [...base].sort(
+      (a, b) => (b.lastPurchasedAt ?? 0) - (a.lastPurchasedAt ?? 0)
+    );
+  }, [purchaseHistory, search, selectedStore]);
 
   /* ---------------------------
      Helpers
@@ -50,28 +83,28 @@ export default function PurchaseHistoryScreen() {
   const renderItem = ({ item }) => {
     const store = item.storeId ? getStoreById(item.storeId) : null;
 
+    const goToDetail = () => {
+      navigation.navigate(ROUTES.PURCHASE_DETAIL, {
+        product: item,
+      });
+    };
+
     return (
       <View style={styles.card}>
-        {/* INFO IZQUIERDA */}
+        {/* INFO */}
         <View style={{ flex: 1 }}>
-          {/* Nombre */}
           <Text style={styles.name}>{item.name}</Text>
 
-          {/* Meta */}
-          <Text style={styles.meta}>
-            {metaText(item.frequency, item.lastPurchasedAt)}
-          </Text>
-
-          {/* Código de barras */}
           {item.barcode ? (
-            <Pressable onPress={() => openSearch(`EAN ${item.barcode}`)}>
-              <Text style={styles.link}>
-                {joinText("Código: ", item.barcode)}
-              </Text>
+            <Pressable onPress={() => copyToClipboard(item.barcode)}>
+              <Text style={styles.barcode}>EAN: {item.barcode}</Text>
             </Pressable>
           ) : null}
 
-          {/* Última tienda */}
+          <Text style={styles.meta}>
+            {purchaseMetaText(item.frequency, item.lastPurchasedAt)}
+          </Text>
+
           {store?.name ? (
             <Pressable onPress={() => openSearch(`${item.name} ${store.name}`)}>
               <Text style={styles.link}>
@@ -81,15 +114,32 @@ export default function PurchaseHistoryScreen() {
           ) : null}
         </View>
 
-        {/* PRECIO */}
-        <View style={styles.priceBox}>
-          <Ionicons name="pricetag-outline" size={18} color="#059669" />
-          <Text style={styles.price}>
-            {priceText(item.lastPrice, item.unit)}
-          </Text>
+        {/* RIGHT SIDE */}
+        <View style={styles.right}>
+          <Pressable onPress={goToDetail} hitSlop={10}>
+            <View style={styles.priceBox}>
+              <Ionicons name="pricetag-outline" size={18} color="#059669" />
+              <Text style={styles.price}>{priceText(item.priceInfo)}</Text>
+            </View>
+          </Pressable>
         </View>
       </View>
     );
+  };
+
+  const reloadPurchaseHistory = async () => {
+    try {
+      rebuildPurchaseHistory();
+
+      await AsyncStorage.setItem(
+        "@purchaseHistory",
+        JSON.stringify(buildPurchaseHistoryFromArchivedLists(archivedLists))
+      );
+
+      console.log("purchaseHistory reconstruido");
+    } catch (e) {
+      console.error("Error al reconstruir purchaseHistory", e);
+    }
   };
 
   /* ---------------------------
@@ -98,6 +148,11 @@ export default function PurchaseHistoryScreen() {
   return (
     <View style={styles.screen}>
       <Text style={styles.title}>Historial de compras</Text>
+      {__DEV__ && (
+        <Pressable onPress={reloadPurchaseHistory} style={styles.reloadButton}>
+          <Text style={styles.reloadText}>{"🔄 "} Recargar historial</Text>
+        </Pressable>
+      )}
 
       <TextInput
         style={styles.search}
@@ -109,15 +164,19 @@ export default function PurchaseHistoryScreen() {
         clearButtonMode="while-editing"
       />
 
+      <StoreFilterBadges
+        stores={stores}
+        value={selectedStore}
+        onChange={setSelectedStore}
+      />
+
       <FlatList
-        data={filtered}
+        data={products}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         keyboardDismissMode="on-drag"
-        contentContainerStyle={filtered.length === 0 && styles.emptyContainer}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No hay historial todavía</Text>
-        }
+        contentContainerStyle={products.length === 0 && styles.emptyContainer}
+        ListEmptyComponent={<Text style={styles.empty}>No hay resultados</Text>}
       />
     </View>
   );
@@ -144,7 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
@@ -165,8 +224,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  meta: {
+  barcode: {
     marginTop: 2,
+    fontSize: 12,
+    color: "#374151",
+  },
+
+  meta: {
+    marginTop: 4,
     color: "#6B7280",
     fontSize: 13,
   },
@@ -198,5 +263,19 @@ const styles = StyleSheet.create({
   empty: {
     textAlign: "center",
     color: "#9CA3AF",
+  },
+  reloadButton: {
+    alignSelf: "flex-start",
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: "#E5E7EB",
+  },
+
+  reloadText: {
+    fontSize: 13,
+    color: "#374151",
+    fontWeight: "600",
   },
 });

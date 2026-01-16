@@ -26,3 +26,19 @@ export function dateStoreText(date, store) {
 
   return store ? joinText(d, " · ", store) : d;
 }
+export function purchaseMetaText(frequency, timestamp) {
+  if (!frequency && !timestamp) return "";
+
+  const parts = [];
+
+  if (frequency > 0) {
+    parts.push(frequency === 1 ? "1 compra" : `${frequency} compras`);
+  }
+
+  if (timestamp) {
+    const date = new Date(timestamp);
+    parts.push(date.toLocaleDateString("es-ES"));
+  }
+
+  return parts.join(" · ");
+}

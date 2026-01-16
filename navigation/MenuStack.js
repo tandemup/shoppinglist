@@ -4,6 +4,8 @@ import { ROUTES } from "./ROUTES";
 import ProductLearningDebugScreen from "../screens/ProductLearningDebugScreen";
 import MenuScreen from "../screens/MenuScreen";
 
+import HistoryStack from "./HistoryStack";
+
 const Stack = createNativeStackNavigator();
 
 export default function MenuStack() {
@@ -18,6 +20,11 @@ export default function MenuStack() {
         name={ROUTES.PRODUCT_LEARNING_DEBUG}
         component={ProductLearningDebugScreen}
         options={{ title: "Debug · Aprendizaje" }}
+      />
+      <Stack.Screen
+        name={ROUTES.PURCHASE_HISTORY}
+        component={HistoryStack}
+        options={{ title: "Historial" }}
       />
     </Stack.Navigator>
   );

@@ -26,6 +26,7 @@ export const ROUTES = {
 
   // History
   PURCHASE_HISTORY: "PurchaseHistory",
+  PURCHASE_DETAIL: "PurchaseDetail",
   SCANNED_HISTORY: "ScannedHistory",
 
   // Scanner

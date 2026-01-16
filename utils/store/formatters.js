@@ -1,8 +1,3 @@
-/**
- * utils/store/formatters.js
- * API pública de helpers de formateo
- */
-
 export { joinText } from "./text";
 
 export {
@@ -11,6 +6,7 @@ export {
   totalText,
   headerMetaText,
   dateStoreText,
+  purchaseMetaText,
 } from "./formatText";
 
 export { formatCurrency, priceText, metaText } from "./prices";
@@ -24,3 +20,5 @@ export {
   getStoreStatusBadge,
   formatStoreLabel,
 } from "./stores";
+
+export { DEFAULT_CURRENCY } from "./currency";
