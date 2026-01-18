@@ -17,7 +17,8 @@ import getDaysSinceJanuary1 from "../utils/helpers/newListName";
 import { safeAlert } from "../utils/core/safeAlert";
 import { useLists } from "../context/ListsContext";
 import { ROUTES } from "../navigation/ROUTES";
-
+import { CURRENCIES, DEFAULT_CURRENCY } from "../constants/currency";
+import CurrencyBadge from "../components/CurrencyBadge";
 /* -------------------------------------------------
    Screen
 -------------------------------------------------- */
@@ -36,8 +37,12 @@ export default function ShoppingListsScreen() {
   } = useLists();
 
   const [name, setName] = useState("");
+  const [nameExists, setNameExists] = useState(false);
+
   const [contextMenu, setContextMenu] = useState(null);
 
+  //const [showCurrencies, setShowCurrencies] = useState(false);
+  //const [selectedCurrency, setSelectedCurrency] = useState(DEFAULT_CURRENCY);
   /* =====================================================
      Header
   ===================================================== */
@@ -56,9 +61,10 @@ export default function ShoppingListsScreen() {
     const normalized = name.trim().toLowerCase();
 
     return [...activeLists, ...archivedLists].some(
-      (list) => list.name?.trim().toLowerCase() === normalized
+      (list) => list.name?.trim().toLowerCase() === normalized,
     );
   };
+
   const handleAddList = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -70,13 +76,17 @@ export default function ShoppingListsScreen() {
       safeAlert(
         "Nombre duplicado",
         `Ya existe una lista llamada "${finalName}". Elige otro nombre.`,
-        [{ text: "Aceptar" }]
+        [{ text: "Aceptar" }],
       );
       return;
     }
 
-    createList(finalName);
+    // createList(finalName, selectedCurrency ?? DEFAULT_CURRENCY);
+    createList(finalName, DEFAULT_CURRENCY);
+
     setName("");
+    //setShowCurrencies(false);
+    //setSelectedCurrency(DEFAULT_CURRENCY);
   };
 
   /* =====================================================
@@ -122,7 +132,7 @@ export default function ShoppingListsScreen() {
             text: "Cancelar",
             style: "cancel",
           },
-        ]
+        ],
       );
     }
   };
@@ -130,27 +140,39 @@ export default function ShoppingListsScreen() {
   /* =====================================================
      Render item
   ===================================================== */
-  const renderItem = ({ item }) => (
-    <Pressable style={styles.card} onPress={() => handleOpenList(item.id)}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.name}>{item.name}</Text>
+  const renderItem = ({ item }) => {
+    const currency = item.currency ?? DEFAULT_CURRENCY;
 
-        <Pressable onPress={(e) => openContextMenu(item, e)} hitSlop={8}>
-          <Ionicons name="ellipsis-vertical" size={20} color="#555" />
-        </Pressable>
-      </View>
+    return (
+      <Pressable style={styles.card} onPress={() => handleOpenList(item.id)}>
+        <View style={styles.cardHeader}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{item.name}</Text>
 
-      <Text style={styles.date}>
-        Creada el {new Date(item.createdAt).toLocaleDateString()}
-      </Text>
+            <CurrencyBadge currency={currency} size="sm" />
+          </View>
 
-      <Text style={styles.count}>{item.items?.length || 0} productos</Text>
-    </Pressable>
-  );
+          <Pressable onPress={(e) => openContextMenu(item, e)} hitSlop={8}>
+            <Ionicons name="ellipsis-vertical" size={20} color="#555" />
+          </Pressable>
+        </View>
+
+        <Text style={styles.date}>
+          Creada el {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
+
+        <Text style={styles.count}>{item.items?.length || 0} productos</Text>
+      </Pressable>
+    );
+  };
 
   /* =====================================================
      Render
   ===================================================== */
+  const sortedActiveLists = [...activeLists].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Mis Listas</Text>
@@ -162,8 +184,16 @@ export default function ShoppingListsScreen() {
           placeholder="Nueva lista..."
           placeholderTextColor="#999"
           value={name}
-          onChangeText={setName}
+          onChangeText={(text) => {
+            setName(text);
+            //setShowCurrencies(!!text);
+          }}
         />
+        {nameExists && (
+          <Text style={styles.duplicateText}>
+            ⚠️ Ya existe una lista con este nombre
+          </Text>
+        )}
 
         <Pressable style={styles.addButton} onPress={handleAddList}>
           <Entypo name="add-to-list" size={24} color="green" />
@@ -172,7 +202,7 @@ export default function ShoppingListsScreen() {
 
       {/* -------- Listado -------- */}
       <FlatList
-        data={activeLists}
+        data={sortedActiveLists}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 40 }}
@@ -274,6 +304,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  duplicateText: {
+    marginTop: 6,
+    marginBottom: 8,
+    fontSize: 13,
+    color: "#DC2626",
+    fontWeight: "600",
+  },
 
   card: {
     backgroundColor: "#fff",
@@ -339,8 +376,45 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
 
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+
   menuText: {
     fontSize: 15,
     color: "#111",
+  },
+  currencyContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+
+  currencyBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    backgroundColor: "#F8FAFC",
+  },
+
+  currencyBadgeSelected: {
+    backgroundColor: "#2563EB",
+    borderColor: "#2563EB",
+  },
+
+  currencyText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#334155",
+  },
+
+  currencyTextSelected: {
+    color: "#fff",
   },
 });

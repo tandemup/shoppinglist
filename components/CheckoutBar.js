@@ -13,9 +13,9 @@ export default function CheckoutBar({ total, currency, onCheckout }) {
   return (
     <View style={styles.container}>
       <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Total:</Text>
+        <Text style={styles.totalLabel}>Total: </Text>
         <Text style={styles.totalValue}>
-          {formatCurrency(total, summaryCurrency)}
+          {total.toFixed(2)} {currency?.symbol ?? ""}
         </Text>
       </View>
 

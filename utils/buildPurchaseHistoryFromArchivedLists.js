@@ -38,7 +38,9 @@ export function buildPurchaseHistoryFromArchivedLists(archivedLists = []) {
           lastPurchasedAt: purchasedAt,
 
           // 👇 CLAVE: guardar priceInfo completo
-          priceInfo: item.priceInfo ?? null,
+          priceInfo: item.priceInfo
+            ? { ...item.priceInfo, currency: DEFAULT_CURRENCY }
+            : null,
         });
       } else {
         const isMoreRecent = purchasedAt >= prev.lastPurchasedAt;
@@ -61,7 +63,7 @@ export function buildPurchaseHistoryFromArchivedLists(archivedLists = []) {
 
           // 👇 solo actualizar priceInfo si esta compra es más reciente
           priceInfo: isMoreRecent
-            ? item.priceInfo ?? prev.priceInfo
+            ? (item.priceInfo ?? prev.priceInfo)
             : prev.priceInfo,
         });
       }

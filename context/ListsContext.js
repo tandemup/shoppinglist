@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DEFAULT_CURRENCY } from "../constants/currency";
 
 import { buildPurchaseHistoryFromArchivedLists } from "../utils/buildPurchaseHistoryFromArchivedLists";
 
@@ -80,12 +81,13 @@ export function ListsProvider({ children }) {
   /* -------------------------------------------------
      API pública — Listas
   -------------------------------------------------- */
-  const createList = (name) => {
+  const createList = (name, currency) => {
     setLists((prev) => [
       ...prev,
       {
         id: generateId(),
         name,
+        currency: DEFAULT_CURRENCY,
         items: [],
         createdAt: Date.now(),
         archived: false,
@@ -97,7 +99,7 @@ export function ListsProvider({ children }) {
 
   const updateList = (listId, updates) => {
     setLists((prev) =>
-      prev.map((l) => (l.id === listId ? { ...l, ...updates } : l))
+      prev.map((l) => (l.id === listId ? { ...l, ...updates } : l)),
     );
   };
 
@@ -115,7 +117,7 @@ export function ListsProvider({ children }) {
   const archiveList = (listId) => {
     setLists((prev) => {
       const updated = prev.map((l) =>
-        l.id === listId ? { ...l, archived: true, archivedAt: Date.now() } : l
+        l.id === listId ? { ...l, archived: true, archivedAt: Date.now() } : l,
       );
 
       const archived = updated.filter((l) => l.archived);
@@ -131,8 +133,8 @@ export function ListsProvider({ children }) {
   const restoreList = (listId) => {
     setLists((prev) =>
       prev.map((l) =>
-        l.id === listId ? { ...l, archived: false, archivedAt: null } : l
-      )
+        l.id === listId ? { ...l, archived: false, archivedAt: null } : l,
+      ),
     );
   };
 
@@ -158,8 +160,8 @@ export function ListsProvider({ children }) {
                 ...list.items,
               ],
             }
-          : list
-      )
+          : list,
+      ),
     );
   };
 
@@ -170,11 +172,11 @@ export function ListsProvider({ children }) {
           ? {
               ...list,
               items: list.items.map((item) =>
-                item.id === itemId ? { ...item, ...updates } : item
+                item.id === itemId ? { ...item, ...updates } : item,
               ),
             }
-          : list
-      )
+          : list,
+      ),
     );
   };
 
@@ -186,8 +188,8 @@ export function ListsProvider({ children }) {
               ...list,
               items: list.items.filter((i) => i.id !== itemId),
             }
-          : list
-      )
+          : list,
+      ),
     );
   };
 
@@ -215,7 +217,7 @@ export function ListsProvider({ children }) {
       updateItem,
       deleteItem,
     }),
-    [lists, activeLists, archivedLists, purchaseHistory, isReady]
+    [lists, activeLists, archivedLists, purchaseHistory, isReady],
   );
 
   return (

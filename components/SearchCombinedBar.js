@@ -8,11 +8,17 @@ import {
   StyleSheet,
 } from "react-native";
 
+import { useStores } from "../context/StoresContext";
 import { useLists } from "../context/ListsContext";
 import { normalizeProductName } from "../utils/normalizeProductName";
+import { DEFAULT_CURRENCY } from "../constants/currency";
 
 /* -------------------------------------------------
-   Badge (sin cambios)
+   Helpers
+-------------------------------------------------- */
+
+/* -------------------------------------------------
+   Badge
 -------------------------------------------------- */
 const Badge = ({ label, color }) => (
   <View
@@ -34,24 +40,33 @@ export default function SearchCombinedBar({
   onCreateNew,
 }) {
   const { purchaseHistory } = useLists();
-
+  const { getStoreById } = useStores();
   const [query, setQuery] = useState("");
 
   /* -------------------------------------------------
-     Búsqueda síncrona y pura
+     Suggestions
   -------------------------------------------------- */
   const suggestions = useMemo(() => {
     const q = normalizeProductName(query);
     if (!q) return [];
 
     return purchaseHistory
-      .filter((e) => e.normalizedName.includes(q))
+      .filter((e) => {
+        // filtro por texto
+        if (!e.normalizedName.includes(q)) return false;
+
+        // filtro por tienda (solo si la lista tiene tienda)
+        if (currentList?.storeId) {
+          return e.storeId === currentList.storeId;
+        }
+
+        // si no hay tienda seleccionada, aceptar todo
+        return true;
+      })
       .sort((a, b) => {
-        // frecuencia primero
         if (b.frequency !== a.frequency) {
           return b.frequency - a.frequency;
         }
-        // más reciente después
         return b.lastPurchasedAt - a.lastPurchasedAt;
       })
       .slice(0, 8)
@@ -59,15 +74,16 @@ export default function SearchCombinedBar({
         id: e.id,
         type: "history",
         name: e.name,
-        frequency: e.frequency,
-        lastPrice: e.lastPrice,
+        priceInfo: e.priceInfo ?? null,
+        storeId: e.storeId ?? null,
       }));
-  }, [query, purchaseHistory]);
+  }, [query, purchaseHistory, currentList?.storeId]);
 
   const showCreate =
     query.trim().length > 0 &&
     !suggestions.some(
-      (s) => normalizeProductName(s.name) === normalizeProductName(query.trim())
+      (s) =>
+        normalizeProductName(s.name) === normalizeProductName(query.trim()),
     );
 
   /* -------------------------------------------------
@@ -83,7 +99,12 @@ export default function SearchCombinedBar({
     if (item.type === "history") {
       onAddFromHistory?.({
         name: item.name,
-        priceInfo: item.lastPrice ? { total: item.lastPrice } : null,
+        priceInfo: item.priceInfo
+          ? {
+              ...item.priceInfo,
+              currency: DEFAULT_CURRENCY,
+            }
+          : null,
       });
       setQuery("");
     }
@@ -115,13 +136,7 @@ export default function SearchCombinedBar({
           data={[
             ...suggestions,
             ...(showCreate
-              ? [
-                  {
-                    id: "create",
-                    type: "create",
-                    name: query.trim(),
-                  },
-                ]
+              ? [{ id: "create", type: "create", name: query.trim() }]
               : []),
           ]}
           keyExtractor={(item) => item.id}
@@ -138,37 +153,33 @@ export default function SearchCombinedBar({
               );
             }
 
-            const badges = [];
-            badges.push({ label: "HIST", color: "#2563eb" });
-            if (item.frequency >= 5) {
-              badges.push({
-                label: `×${item.frequency}`,
-                color: "#7c3aed",
-              });
-            }
-
             return (
               <TouchableOpacity
                 style={[styles.resultRow, styles.historyRow]}
                 onPress={() => handleSelect(item)}
               >
+                {/* Badge */}
                 <View style={styles.badgesRow}>
-                  {badges.map((b) => (
-                    <Badge
-                      key={`${item.id}-${b.label}`}
-                      label={b.label}
-                      color={b.color}
-                    />
-                  ))}
+                  <Badge label="HIST" color="#2563eb" />
                 </View>
 
+                {/* Nombre */}
                 <Text style={styles.itemName}>{item.name}</Text>
 
-                {item.lastPrice != null && (
-                  <Text style={{ fontSize: 12, opacity: 0.6 }}>
-                    {item.lastPrice.toFixed(2)} €
-                  </Text>
-                )}
+                {/* Meta: precio + tienda */}
+                <View style={styles.metaRow}>
+                  {item.priceInfo?.total != null && (
+                    <Text style={styles.metaText}>
+                      💰 {item.priceInfo.total.toFixed(2)} €
+                    </Text>
+                  )}
+
+                  {item.storeId && (
+                    <Text style={styles.metaText}>
+                      🏬 {getStoreById(item.storeId)?.name ?? "Tienda"}
+                    </Text>
+                  )}
+                </View>
               </TouchableOpacity>
             );
           }}
@@ -179,7 +190,7 @@ export default function SearchCombinedBar({
 }
 
 /* -------------------------------------------------
-   Styles (sin cambios)
+   Styles
 -------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
@@ -224,6 +235,16 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 15,
     fontWeight: "600",
+  },
+  metaRow: {
+    marginTop: 2,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  metaText: {
+    fontSize: 12,
+    color: "#555",
   },
   badge: {
     borderWidth: 1,

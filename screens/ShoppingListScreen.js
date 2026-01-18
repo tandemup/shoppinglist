@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -16,37 +17,23 @@ import StoreSelector from "../components/StoreSelector";
 import ItemRow from "../components/ItemRow";
 import SearchCombinedBar from "../components/SearchCombinedBar";
 import CheckoutBar from "../components/CheckoutBar";
-
+import CurrencyBadge from "../components/CurrencyBadge";
 import { ROUTES } from "../navigation/ROUTES";
 import { safeAlert } from "../utils/core/safeAlert";
 
-/* -------------------------------------------------
-   Screen
--------------------------------------------------- */
 export default function ShoppingListScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-
   const { listId } = route.params || {};
 
-  /* ---------------------------
-     Contexts
-  ----------------------------*/
   const { activeLists, addItem, updateItem, archiveList } = useLists();
-
   const { getStoreById } = useStores();
 
-  /* ---------------------------
-     Lista ACTIVA (fuente única)
-  ----------------------------*/
   const list = useMemo(
     () => activeLists.find((l) => l.id === listId),
-    [activeLists, listId]
+    [activeLists, listId],
   );
 
-  /* ---------------------------
-     Guard clause
-  ----------------------------*/
   useEffect(() => {
     if (!list) {
       navigation.replace(ROUTES.SHOPPING_LISTS);
@@ -61,51 +48,28 @@ export default function ShoppingListScreen() {
     );
   }
 
-  /* ---------------------------
-     Tienda asignada
-  ----------------------------*/
-  const assignedStore = useMemo(() => {
-    if (!list.storeId) return null;
-    return getStoreById(list.storeId);
-  }, [list.storeId, getStoreById]);
+  const assignedStore = list.storeId ? getStoreById(list.storeId) : null;
 
-  /* ---------------------------
-     Handlers StoreSelector
-  ----------------------------*/
-  const handleSelectStore = () => {
-    if (list.archived) return;
-
-    navigation.navigate(ROUTES.STORE_SELECT, {
-      selectForListId: listId,
-    });
-  };
-
-  /* ---------------------------
-     Handlers SearchCombinedBar
-  ----------------------------*/
   const handleCreateNew = (name) => {
-    addItem(listId, { name });
+    const trimmed = name?.trim();
+    if (!trimmed) return;
+
+    addItem(listId, { name: trimmed });
   };
 
   const handleAddFromHistory = (historicItem) => {
     addItem(listId, {
       name: historicItem.name,
-      priceInfo: historicItem.priceInfo,
+      priceInfo: historicItem.priceInfo
+        ? {
+            ...historicItem.priceInfo,
+            currency: list.currency,
+          }
+        : null,
       checked: true,
     });
   };
 
-  const handleAddFromScan = (scanItem) => {
-    addItem(listId, {
-      name: scanItem.name,
-      priceInfo: scanItem.priceInfo,
-      checked: true,
-    });
-  };
-
-  /* ---------------------------
-     Handlers ItemRow
-  ----------------------------*/
   const handleToggleItem = (itemId) => {
     const item = list.items.find((i) => i.id === itemId);
     if (!item) return;
@@ -115,35 +79,19 @@ export default function ShoppingListScreen() {
     });
   };
 
-  const handleEditItem = (itemId) => {
-    navigation.navigate(ROUTES.ITEM_DETAIL, {
-      listId,
-      itemId,
-    });
-  };
-
-  /* ---------------------------
-     Total (solo items checked)
-  ----------------------------*/
-  const totalCurrency = useMemo(() => {
-    const itemWithCurrency = list.items.find(
-      (i) => i.checked && i.priceInfo?.currency
-    );
-
-    return itemWithCurrency?.priceInfo.currency;
-  }, [list.items]);
-
   const total = useMemo(() => {
     return list.items
       .filter((i) => i.checked)
       .reduce((sum, i) => sum + (i.priceInfo?.total ?? 0), 0);
   }, [list.items]);
 
-  /* ---------------------------
-     Checkout
-  ----------------------------*/
   const handleCheckout = () => {
-    if (total <= 0) return;
+    if (!list.items.length) {
+      safeAlert("Lista vacía", "No puedes archivar una lista sin productos.", [
+        { text: "Aceptar" },
+      ]);
+      return;
+    }
 
     safeAlert(
       "Finalizar compra",
@@ -157,63 +105,88 @@ export default function ShoppingListScreen() {
             navigation.goBack();
           },
         },
-      ]
+      ],
     );
   };
+  const renderItem = ({ item }) => (
+    <ItemRow
+      item={item}
+      onToggle={() => handleToggleItem(item.id)}
+      onEdit={() =>
+        navigation.navigate(ROUTES.ITEM_DETAIL, {
+          listId,
+          itemId: item.id,
+        })
+      }
+    />
+  );
 
-  /* ---------------------------
-     Render
-  ----------------------------*/
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <View style={styles.listHeader}>
+        <Text style={styles.listName}>{list.name}</Text>
+        <CurrencyBadge currency={list.currency} size="sm" />
+      </View>
+
       <StoreSelector
         store={assignedStore}
-        onPress={handleSelectStore}
-        disabled={list.archived}
+        onPress={() =>
+          navigation.navigate(ROUTES.STORE_SELECT, {
+            selectForListId: listId,
+          })
+        }
       />
 
       <SearchCombinedBar
         currentList={list}
         onCreateNew={handleCreateNew}
         onAddFromHistory={handleAddFromHistory}
-        onAddFromScan={handleAddFromScan}
       />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {list.items.map((item) => (
-          <ItemRow
-            key={item.id}
-            item={item}
-            onToggle={() => handleToggleItem(item.id)}
-            onEdit={() => handleEditItem(item.id)}
-          />
-        ))}
-      </ScrollView>
+      <FlatList
+        data={list.items}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      />
 
       <CheckoutBar
         total={total}
-        currency={totalCurrency}
+        currency={list.currency}
         onCheckout={handleCheckout}
       />
     </KeyboardAvoidingView>
   );
 }
 
-/* -------------------------------------------------
-   Styles
--------------------------------------------------- */
 const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 32,
   },
-
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  listHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    backgroundColor: "#fff",
+  },
+  listName: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#111",
+    flexShrink: 1,
+    marginRight: 12,
   },
 });
