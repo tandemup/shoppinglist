@@ -1,4 +1,4 @@
-import { normalizeProductName } from "./normalizeProductName";
+import normalizeProductName from "./normalize";
 
 /**
  * Construye el índice purchaseHistory a partir de las listas archivadas.

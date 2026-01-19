@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import { useNavigation } from "@react-navigation/native";
 import getDaysSinceJanuary1 from "../utils/helpers/newListName";
+import validarNombreListaEnTiempoReal from "../utils/validation";
+import { normalizarNombre } from "../utils/normalize";
 import { safeAlert } from "../utils/core/safeAlert";
 import { useLists } from "../context/ListsContext";
 import { ROUTES } from "../navigation/ROUTES";
@@ -37,9 +39,11 @@ export default function ShoppingListsScreen() {
   } = useLists();
 
   const [name, setName] = useState("");
-  const [nameExists, setNameExists] = useState(false);
 
   const [contextMenu, setContextMenu] = useState(null);
+  const overlayRef = useRef(null);
+  const [nameError, setNameError] = useState(null);
+  const [isNameValid, setIsNameValid] = useState(false);
 
   //const [showCurrencies, setShowCurrencies] = useState(false);
   //const [selectedCurrency, setSelectedCurrency] = useState(DEFAULT_CURRENCY);
@@ -57,36 +61,16 @@ export default function ShoppingListsScreen() {
   /* =====================================================
      Crear nueva lista
   ===================================================== */
-  const listNameExists = (name) => {
-    const normalized = name.trim().toLowerCase();
-
-    return [...activeLists, ...archivedLists].some(
-      (list) => list.name?.trim().toLowerCase() === normalized,
-    );
-  };
-
   const handleAddList = () => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!isNameValid) return;
 
-    const dayIndex = getDaysSinceJanuary1();
-    const finalName = `${trimmed}_${dayIndex}`;
+    const nombreNormalizado = normalizarNombre(name, "-");
 
-    if (listNameExists(finalName)) {
-      safeAlert(
-        "Nombre duplicado",
-        `Ya existe una lista llamada "${finalName}". Elige otro nombre.`,
-        [{ text: "Aceptar" }],
-      );
-      return;
-    }
-
-    // createList(finalName, selectedCurrency ?? DEFAULT_CURRENCY);
-    createList(finalName, DEFAULT_CURRENCY);
+    createList(nombreNormalizado, DEFAULT_CURRENCY);
 
     setName("");
-    //setShowCurrencies(false);
-    //setSelectedCurrency(DEFAULT_CURRENCY);
+    setNameError(null);
+    setIsNameValid(false);
   };
 
   /* =====================================================
@@ -178,29 +162,55 @@ export default function ShoppingListsScreen() {
       <Text style={styles.title}>Mis Listas</Text>
 
       {/* -------- Nueva lista -------- */}
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Nueva lista..."
-          placeholderTextColor="#999"
-          value={name}
-          onChangeText={(text) => {
-            setName(text);
-            //setShowCurrencies(!!text);
-          }}
-        />
-        {nameExists && (
-          <Text style={styles.duplicateText}>
-            ⚠️ Ya existe una lista con este nombre
+      <View style={{ marginBottom: 20 }}>
+        {/* Fila superior: input + botón */}
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="Nueva lista..."
+            placeholderTextColor="#999"
+            value={name}
+            onChangeText={(text) => {
+              setName(text);
+
+              const resultado = validarNombreListaEnTiempoReal(
+                text,
+                activeLists,
+                archivedLists,
+              );
+
+              setIsNameValid(resultado.valido);
+              setNameError(resultado.mensaje);
+            }}
+          />
+
+          <Pressable
+            style={[styles.addButton, { opacity: isNameValid ? 1 : 0.4 }]}
+            disabled={!isNameValid}
+            onPress={handleAddList}
+          >
+            <Entypo name="add-to-list" size={24} color="green" />
+          </Pressable>
+        </View>
+
+        {/* Fila inferior: mensaje */}
+        {nameError && (
+          <Text
+            style={{
+              marginTop: 3,
+              marginLeft: 4,
+              fontSize: 16,
+              color: isNameValid ? "green" : "#DC2626",
+              fontWeight: "600",
+            }}
+          >
+            {nameError}
           </Text>
         )}
-
-        <Pressable style={styles.addButton} onPress={handleAddList}>
-          <Entypo name="add-to-list" size={24} color="green" />
-        </Pressable>
       </View>
 
       {/* -------- Listado -------- */}
+
       <FlatList
         data={sortedActiveLists}
         keyExtractor={(item) => item.id}
@@ -213,7 +223,14 @@ export default function ShoppingListsScreen() {
 
       {/* -------- Menú contextual Web -------- */}
       {contextMenu && Platform.OS === "web" && (
-        <Pressable style={styles.overlay} onPress={() => setContextMenu(null)}>
+        <Pressable
+          ref={overlayRef}
+          style={styles.overlay}
+          onPress={() => {
+            overlayRef.current?.blur?.();
+            setContextMenu(null);
+          }}
+        >
           <View
             style={[
               styles.contextMenu,

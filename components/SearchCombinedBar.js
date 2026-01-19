@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import {
   View,
   TextInput,
@@ -10,8 +10,7 @@ import {
 
 import { useStores } from "../context/StoresContext";
 import { useLists } from "../context/ListsContext";
-import { normalizeProductName } from "../utils/normalizeProductName";
-import { DEFAULT_CURRENCY } from "../constants/currency";
+import { normalizeProductName } from "../utils/normalize";
 
 /* -------------------------------------------------
    Helpers
@@ -39,6 +38,7 @@ export default function SearchCombinedBar({
   onAddFromHistory,
   onCreateNew,
 }) {
+  const inputRef = useRef(null);
   const { purchaseHistory } = useLists();
   const { getStoreById } = useStores();
   const [query, setQuery] = useState("");
@@ -90,6 +90,8 @@ export default function SearchCombinedBar({
      Selection handler
   -------------------------------------------------- */
   const handleSelect = (item) => {
+    inputRef.current?.blur();
+
     if (item.type === "create") {
       onCreateNew?.(item.name);
       setQuery("");
@@ -99,12 +101,7 @@ export default function SearchCombinedBar({
     if (item.type === "history") {
       onAddFromHistory?.({
         name: item.name,
-        priceInfo: item.priceInfo
-          ? {
-              ...item.priceInfo,
-              currency: DEFAULT_CURRENCY,
-            }
-          : null,
+        priceInfo: item.priceInfo ?? null,
       });
       setQuery("");
     }
@@ -116,6 +113,7 @@ export default function SearchCombinedBar({
   return (
     <View style={styles.container}>
       <TextInput
+        ref={inputRef}
         style={styles.input}
         placeholder="🔍 Buscar producto (actual o histórico)…"
         placeholderTextColor="#999"

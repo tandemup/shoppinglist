@@ -6,3 +6,11 @@ export function normalizeProductName(name = "") {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+export function normalizarNombre(nombre, separador = "-") {
+  return nombre
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, separador)
+    .replace(/[^a-z0-9_-]/g, "");
+}
