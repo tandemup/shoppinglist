@@ -63,7 +63,10 @@ export default function ShoppingListScreen() {
       priceInfo: historicItem.priceInfo
         ? {
             ...historicItem.priceInfo,
-            currency: list.currency,
+            currency:
+              typeof list.currency === "string"
+                ? list.currency
+                : list.currency?.code,
           }
         : null,
       checked: true,

@@ -1,72 +1,187 @@
 [
   {
-    "id": "osm-255174165",
+    "id": "alimerka-calle-eleuterio-quintanilla-28-33208-gijon",
     "name": "Alimerka",
-    "address": "avd",
     "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle Eleuterio Quintanilla, 28, 33208 Gijón, Asturias",
+    "zipcode": 33208,
+    "location": { "latitude": 43.5361, "longitude": -5.6629 },
+    "favorite": false
+  },
+  {
+    "id": "alimerka-calle-electra-12-33208-gijon",
+    "name": "Alimerka",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle Electra, 12, 33208 Gijón, Asturias",
+    "zipcode": 33208,
+    "location": { "latitude": 43.5364, "longitude": -5.6608 },
+    "favorite": false
+  },
+  {
+    "id": "alimerka-calle-ramon-y-cajal-1-33204-gijon",
+    "name": "Alimerka",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle Ramón y Cajal, 1, 33204 Gijón, Asturias",
+    "zipcode": 33204,
+    "location": { "latitude": 43.5343, "longitude": -5.6678 },
+    "favorite": false
+  },
+  {
+    "id": "alimerka-avenida-argentina-sn-33213-gijon",
+    "name": "Alimerka",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Avenida Argentina, s/n, 33213 Gijón, Asturias",
+    "zipcode": 33213,
+    "location": { "latitude": 43.5391, "longitude": -5.7012 },
+    "favorite": false
+  },
+  {
+    "id": "alimerka-calle-ezcurdia-130-33202-gijon",
+    "name": "Alimerka",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle Ezcurdia, 130, 33202 Gijón, Asturias",
+    "zipcode": 33202,
+    "location": { "latitude": 43.5426, "longitude": -5.6553 },
+    "favorite": false
+  },
+  {
+    "id": "alimerka-avenida-costa-134-33203-gijon",
+    "name": "Alimerka",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Avenida Costa, 134, 33203 Gijón, Asturias",
+    "zipcode": 33203,
+    "location": { "latitude": 43.5339, "longitude": -5.6651 },
+    "favorite": false
+  },
+  {
+    "id": "alimerka-calle-san-bernardo-51-33201-gijon",
+    "name": "Alimerka",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle San Bernardo, 51, 33201 Gijón, Asturias",
     "zipcode": 33201,
-    "location": {
-      "latitude": 43.5366971,
-      "longitude": -5.6829704
-    },
-    "hours": "",
-    "source": "osm",
+    "location": { "latitude": 43.5416, "longitude": -5.6661 },
     "favorite": false
   },
+
   {
-    "id": "osm-256367236",
-    "name": "Hipercor",
-    "address": "Calle General Elorza 75",
-    "city": "Oviedo",
-    "zipcode": "33001",
-    "location": {
-      "latitude": 43.366551,
-      "longitude": -5.8495642
-    },
-    "hours": "",
-    "source": "osm",
-    "favorite": false
-  },
-  {
-    "id": "osm-256367249",
+    "id": "mercadona-calle-ezcurdia-68-33202-gijon",
     "name": "Mercadona",
-    "address": "avd",
-    "city": "Oviedo",
-    "zipcode": 33000,
-    "location": {
-      "latitude": 43.3672759,
-      "longitude": -5.8492206
-    },
-    "hours": "",
-    "source": "osm",
-    "favorite": false
-  },
-  {
-    "id": "osm-415295042",
-    "name": "Dia",
-    "address": "crta",
     "city": "Gijón",
-    "zipcode": 33200,
-    "location": {
-      "latitude": 43.4224395,
-      "longitude": -4.7582444
-    },
-    "hours": "",
-    "source": "osm",
+    "provincia": "Asturias",
+    "address": "Calle Ezcurdia, 68, 33202 Gijón, Asturias",
+    "zipcode": 33202,
+    "location": { "latitude": 43.5431, "longitude": -5.6572 },
     "favorite": false
   },
   {
-    "id": "osm-441919378",
-    "name": "Alimerka",
-    "address": "Via",
-    "city": "Oviedo",
-    "zipcode": 33230,
-    "location": {
-      "latitude": 43.3693379,
-      "longitude": -5.8203296
-    },
-    "hours": "",
-    "source": "osm",
+    "id": "mercadona-avenida-portugal-22-33202-gijon",
+    "name": "Mercadona",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Avenida de Portugal, 22, 33202 Gijón, Asturias",
+    "zipcode": 33202,
+    "location": { "latitude": 43.5406, "longitude": -5.6604 },
+    "favorite": false
+  },
+  {
+    "id": "mercadona-calle-perez-de-ayala-3-33204-gijon",
+    "name": "Mercadona",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle Pérez de Ayala, 3, 33204 Gijón, Asturias",
+    "zipcode": 33204,
+    "location": { "latitude": 43.5349, "longitude": -5.6715 },
+    "favorite": false
+  },
+
+  {
+    "id": "lidl-calle-ezcurdia-140-33202-gijon",
+    "name": "Lidl",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle Ezcurdia, 140, 33202 Gijón, Asturias",
+    "zipcode": 33202,
+    "location": { "latitude": 43.5443, "longitude": -5.6563 },
+    "favorite": false
+  },
+  {
+    "id": "lidl-avenida-los-campones-28-33211-gijon",
+    "name": "Lidl",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Avenida de los Campones, 28, 33211 Gijón, Asturias",
+    "zipcode": 33211,
+    "location": { "latitude": 43.5385, "longitude": -5.7069 },
+    "favorite": false
+  },
+
+  {
+    "id": "dia-calle-ramon-y-cajal-8-33204-gijon",
+    "name": "DIA",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle Ramón y Cajal, 8, 33204 Gijón, Asturias",
+    "zipcode": 33204,
+    "location": { "latitude": 43.5341, "longitude": -5.6685 },
+    "favorite": false
+  },
+
+  {
+    "id": "carrefour-cc-los-fresnos-33206-gijon",
+    "name": "Carrefour",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Centro Comercial Los Fresnos, 33206 Gijón, Asturias",
+    "zipcode": 33206,
+    "location": { "latitude": 43.5359, "longitude": -5.6706 },
+    "favorite": false
+  },
+  {
+    "id": "carrefour-avenida-argentina-132-33213-gijon",
+    "name": "Carrefour",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Avenida Argentina, 132, 33213 Gijón, Asturias",
+    "zipcode": 33213,
+    "location": { "latitude": 43.5403, "longitude": -5.6995 },
+    "favorite": false
+  },
+
+  {
+    "id": "hipercor-avenida-constitucion-sn-33211-gijon",
+    "name": "Hipercor",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Avenida de la Constitución, s/n, 33211 Gijón, Asturias",
+    "zipcode": 33211,
+    "location": { "latitude": 43.5387, "longitude": -5.7063 },
+    "favorite": false
+  },
+  {
+    "id": "el-corte-ingles-calle-ramon-y-cajal-2-33204-gijon",
+    "name": "El Corte Inglés",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Calle Ramón y Cajal, 2, 33204 Gijón, Asturias",
+    "zipcode": 33204,
+    "location": { "latitude": 43.5346, "longitude": -5.6689 },
+    "favorite": false
+  },
+  {
+    "id": "el-corte-ingles-avenida-constitucion-1-33211-gijon",
+    "name": "El Corte Inglés",
+    "city": "Gijón",
+    "provincia": "Asturias",
+    "address": "Avenida de la Constitución, 1, 33211 Gijón, Asturias",
+    "zipcode": 33211,
+    "location": { "latitude": 43.5386, "longitude": -5.7061 },
     "favorite": false
   }
 ]

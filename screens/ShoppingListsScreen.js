@@ -13,14 +13,17 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import { useNavigation } from "@react-navigation/native";
+
 import getDaysSinceJanuary1 from "../utils/helpers/newListName";
 import validarNombreListaEnTiempoReal from "../utils/validation";
 import { normalizarNombre } from "../utils/normalize";
 import { safeAlert } from "../utils/core/safeAlert";
+
 import { useLists } from "../context/ListsContext";
 import { ROUTES } from "../navigation/ROUTES";
-import { CURRENCIES, DEFAULT_CURRENCY } from "../constants/currency";
+import { DEFAULT_CURRENCY } from "../constants/currency";
 import CurrencyBadge from "../components/CurrencyBadge";
+
 /* -------------------------------------------------
    Screen
 -------------------------------------------------- */
@@ -39,14 +42,12 @@ export default function ShoppingListsScreen() {
   } = useLists();
 
   const [name, setName] = useState("");
-
   const [contextMenu, setContextMenu] = useState(null);
-  const overlayRef = useRef(null);
   const [nameError, setNameError] = useState(null);
   const [isNameValid, setIsNameValid] = useState(false);
 
-  //const [showCurrencies, setShowCurrencies] = useState(false);
-  //const [selectedCurrency, setSelectedCurrency] = useState(DEFAULT_CURRENCY);
+  const overlayRef = useRef(null);
+
   /* =====================================================
      Header
   ===================================================== */
@@ -74,7 +75,7 @@ export default function ShoppingListsScreen() {
   };
 
   /* =====================================================
-     Abrir lista (defensivo)
+     Abrir lista
   ===================================================== */
   const handleOpenList = (listId) => {
     if (!activeLists.find((l) => l.id === listId)) return;
@@ -132,7 +133,6 @@ export default function ShoppingListsScreen() {
         <View style={styles.cardHeader}>
           <View style={styles.nameRow}>
             <Text style={styles.name}>{item.name}</Text>
-
             <CurrencyBadge currency={currency} size="sm" />
           </View>
 
@@ -163,7 +163,6 @@ export default function ShoppingListsScreen() {
 
       {/* -------- Nueva lista -------- */}
       <View style={{ marginBottom: 20 }}>
-        {/* Fila superior: input + botón */}
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
@@ -193,7 +192,6 @@ export default function ShoppingListsScreen() {
           </Pressable>
         </View>
 
-        {/* Fila inferior: mensaje */}
         {nameError && (
           <Text
             style={{
@@ -210,7 +208,6 @@ export default function ShoppingListsScreen() {
       </View>
 
       {/* -------- Listado -------- */}
-
       <FlatList
         data={sortedActiveLists}
         keyExtractor={(item) => item.id}
@@ -234,15 +231,13 @@ export default function ShoppingListsScreen() {
           <View
             style={[
               styles.contextMenu,
-              {
-                top: contextMenu.y,
-                left: contextMenu.x,
-              },
+              { top: contextMenu.y, left: contextMenu.x },
             ]}
           >
             <Pressable
               style={styles.menuItem}
               onPress={() => {
+                overlayRef.current?.blur?.();
                 archiveList(contextMenu.list.id);
                 setContextMenu(null);
                 navigation.navigate(ROUTES.ARCHIVED_LISTS);
@@ -254,6 +249,7 @@ export default function ShoppingListsScreen() {
             <Pressable
               style={styles.menuItem}
               onPress={() => {
+                overlayRef.current?.blur?.();
                 deleteList(contextMenu.list.id);
                 setContextMenu(null);
               }}
@@ -265,7 +261,10 @@ export default function ShoppingListsScreen() {
 
             <Pressable
               style={styles.menuItem}
-              onPress={() => setContextMenu(null)}
+              onPress={() => {
+                overlayRef.current?.blur?.();
+                setContextMenu(null);
+              }}
             >
               <Text style={styles.menuText}>Cancelar</Text>
             </Pressable>
@@ -321,13 +320,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  duplicateText: {
-    marginTop: 6,
-    marginBottom: 8,
-    fontSize: 13,
-    color: "#DC2626",
-    fontWeight: "600",
-  },
 
   card: {
     backgroundColor: "#fff",
@@ -343,6 +335,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 4,
+  },
+
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
   },
 
   name: {
@@ -393,45 +392,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
 
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexShrink: 1,
-  },
-
   menuText: {
     fontSize: 15,
     color: "#111",
-  },
-  currencyContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 16,
-  },
-
-  currencyBadge: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#CBD5E1",
-    backgroundColor: "#F8FAFC",
-  },
-
-  currencyBadgeSelected: {
-    backgroundColor: "#2563EB",
-    borderColor: "#2563EB",
-  },
-
-  currencyText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#334155",
-  },
-
-  currencyTextSelected: {
-    color: "#fff",
   },
 });

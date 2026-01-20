@@ -1,4 +1,4 @@
-import normalizeProductName from "./normalize";
+import { normalizeProductName } from "./normalize";
 
 /**
  * Construye el índice purchaseHistory a partir de las listas archivadas.
@@ -37,10 +37,7 @@ export function buildPurchaseHistoryFromArchivedLists(archivedLists = []) {
           frequency: 1,
           lastPurchasedAt: purchasedAt,
 
-          // 👇 CLAVE: guardar priceInfo completo
-          priceInfo: item.priceInfo
-            ? { ...item.priceInfo, currency: DEFAULT_CURRENCY }
-            : null,
+          priceInfo: item.priceInfo ?? null,
         });
       } else {
         const isMoreRecent = purchasedAt >= prev.lastPurchasedAt;

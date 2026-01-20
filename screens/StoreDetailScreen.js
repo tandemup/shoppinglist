@@ -28,7 +28,7 @@ export default function StoreDetailScreen({ route }) {
 
   const store = useMemo(
     () => stores.find((s) => s.id === storeId),
-    [stores, storeId]
+    [stores, storeId],
   );
 
   if (!store) {
