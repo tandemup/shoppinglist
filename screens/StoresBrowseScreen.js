@@ -1,14 +1,14 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useStores } from "../context/StoresContext";
 import { useLocation } from "../context/LocationContext";
 import { distanceMetersBetween } from "../utils/math/distance";
+import { formatDistance } from "../utils/math/formatDistance";
 
-import StoreRow from "../components/StoreRow";
 import SearchBar from "../components/SearchBar";
-
 import { ROUTES } from "../navigation/ROUTES";
 
 /* -------------------------------------------------
@@ -21,11 +21,14 @@ export default function StoresBrowseScreen() {
   const { selectForListId, mode } = route.params || {};
   const isSelectMode = mode === "select";
 
-  const { stores } = useStores();
-  const { location } = useLocation();
+  const { stores, toggleFavoriteStore, isFavoriteStore } = useStores();
 
+  const { location } = useLocation();
   const [query, setQuery] = useState("");
 
+  /* ---------------------------------------------
+     Ordenar + enriquecer con distancia
+  ---------------------------------------------- */
   const orderedStores = useMemo(() => {
     const enriched = stores.map((store) => {
       if (
@@ -37,16 +40,13 @@ export default function StoresBrowseScreen() {
           location.latitude,
           location.longitude,
           store.location.latitude,
-          store.location.longitude
+          store.location.longitude,
         );
-
         return { ...store, distance };
       }
-
       return { ...store, distance: null };
     });
 
-    // ⚠️ ordenar SIEMPRE sobre copia
     if (location) {
       return [...enriched].sort((a, b) => {
         if (a.distance == null) return 1;
@@ -56,7 +56,7 @@ export default function StoresBrowseScreen() {
     }
 
     return [...enriched].sort((a, b) =>
-      (a.name || "").localeCompare(b.name || "")
+      (a.name || "").localeCompare(b.name || ""),
     );
   }, [stores, location]);
 
@@ -64,12 +64,14 @@ export default function StoresBrowseScreen() {
     if (!query.trim()) return orderedStores;
     const q = query.toLowerCase();
     return orderedStores.filter((s) =>
-      (s.name || "").toLowerCase().includes(q)
+      (s.name || "").toLowerCase().includes(q),
     );
   }, [orderedStores, query]);
 
+  /* ---------------------------------------------
+     Navegación
+  ---------------------------------------------- */
   const handlePressStore = (store) => {
-    // 🛒 Modo selección para lista
     if (isSelectMode && selectForListId) {
       navigation.navigate(ROUTES.SHOPPING_TAB, {
         screen: ROUTES.SHOPPING_LIST,
@@ -81,19 +83,58 @@ export default function StoresBrowseScreen() {
       return;
     }
 
-    // 🏬 Modo exploración
     navigation.navigate(ROUTES.STORE_DETAIL, {
       storeId: store.id,
     });
+  };
+
+  /* ---------------------------------------------
+     Render fila (INLINE COMPONENT)
+  ---------------------------------------------- */
+  const renderStoreRow = ({ item: store }) => {
+    const isFavorite = isFavoriteStore(store.id);
+
+    return (
+      <View style={styles.rowContainer}>
+        <Pressable
+          style={styles.rowInfo}
+          onPress={() => handlePressStore(store)}
+          android_ripple={{ color: "#eee" }}
+        >
+          <Text style={styles.rowName}>{store.name}</Text>
+
+          {store.address && (
+            <Text style={styles.rowAddress}>📍{store.address}</Text>
+          )}
+
+          <Text style={styles.rowMeta}>
+            <Text style={styles.rowMetaCity}>{store.city}</Text>
+            <Text style={styles.rowMetaDistance}>
+              {store.distance != null && ` · ${formatDistance(store.distance)}`}
+            </Text>
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => toggleFavoriteStore(store.id)}
+          hitSlop={10}
+          style={styles.starButton}
+        >
+          <Ionicons
+            name={isFavorite ? "star" : "star-outline"}
+            size={22}
+            color={isFavorite ? "#f5c518" : "#bbb"}
+          />
+        </Pressable>
+      </View>
+    );
   };
 
   return (
     <FlatList
       data={filteredStores}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <StoreRow store={item} onPress={() => handlePressStore(item)} />
-      )}
+      renderItem={renderStoreRow}
       style={styles.container}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
@@ -114,6 +155,9 @@ export default function StoresBrowseScreen() {
   );
 }
 
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -129,6 +173,59 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
+  rowContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    margin: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+    backgroundColor: "#fff",
+  },
+
+  rowInfo: {
+    flex: 1,
+  },
+
+  rowName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111",
+  },
+
+  rowAddress: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#444",
+  },
+
+  rowMeta: {
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#666",
+  },
+
+  rowMetaCity: {
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#666",
+  },
+
+  rowMetaDistance: {
+    marginTop: 4,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#666",
+  },
+
+  starButton: {
+    paddingLeft: 12,
+    justifyContent: "center",
+  },
+
   emptyContainer: {
     padding: 24,
     alignItems: "center",
@@ -138,6 +235,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
-    marginBottom: 6,
   },
 });

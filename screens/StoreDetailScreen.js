@@ -1,98 +1,107 @@
-import React, { useMemo } from "react";
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
+  Linking,
+  Platform,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useRoute } from "@react-navigation/native";
+import MapView, { Marker } from "react-native-maps";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useStores } from "../context/StoresContext";
-import { useLists } from "../context/ListsContext";
 
-import {
-  formatStoreName,
-  formatStoreAddress,
-  formatStoreOpeningText,
-} from "../utils/store";
+export default function StoreDetailScreen() {
+  const route = useRoute();
+  const { storeId } = route.params || {};
 
-import { ROUTES } from "../navigation/ROUTES";
+  const { getStoreById, toggleFavoriteStore, isFavoriteStore } = useStores();
 
-export default function StoreDetailScreen({ route }) {
-  const navigation = useNavigation();
-
-  const { storeId, listId } = route.params || {};
-  const { stores } = useStores();
-  const { updateListStore } = useLists();
-
-  const store = useMemo(
-    () => stores.find((s) => s.id === storeId),
-    [stores, storeId],
-  );
+  const store = getStoreById(storeId);
 
   if (!store) {
     return (
       <View style={styles.center}>
-        <Text>Tienda no disponible</Text>
+        <Text style={styles.errorText}>Tienda no encontrada</Text>
       </View>
     );
   }
 
-  const handleSelectStore = () => {
-    if (!listId) return;
+  const isFavorite = isFavoriteStore(store.id);
 
-    // 1️⃣ Asignar tienda a la lista
-    updateListStore(listId, store.id);
+  /* -------------------------------------------------
+     Abrir en Google Maps / Apple Maps
+  -------------------------------------------------- */
+  const openInMaps = () => {
+    if (!store.location) return;
 
-    // 2️⃣ Volver explícitamente a ShoppingListScreen
-    navigation.navigate(ROUTES.SHOPPING_LIST, {
-      listId,
-    });
+    const { latitude, longitude } = store.location;
+    const label = encodeURIComponent(store.name);
+
+    const url =
+      Platform.OS === "ios"
+        ? `http://maps.apple.com/?ll=${latitude},${longitude}&q=${label}`
+        : `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+
+    Linking.openURL(url);
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.title}>{formatStoreName(store)}</Text>
-      </View>
+        <Text style={styles.title}>{store.name}</Text>
 
-      {/* HORARIO RESUMEN */}
-      <Text style={styles.openingText}>{formatStoreOpeningText(store)}</Text>
+        <Pressable onPress={() => toggleFavoriteStore(store.id)} hitSlop={10}>
+          <Ionicons
+            name={isFavorite ? "star" : "star-outline"}
+            size={26}
+            color={isFavorite ? "#f5c518" : "#bbb"}
+          />
+        </Pressable>
+      </View>
 
       {/* DIRECCIÓN */}
-      <Text style={styles.address}>{formatStoreAddress(store)}</Text>
+      <Text style={styles.address}>{store.address}</Text>
 
-      {/* HORARIO DETALLADO */}
+      {/* MAPA */}
+      {store.location && (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: store.location.latitude,
+            longitude: store.location.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          }}
+          pointerEvents="none"
+        >
+          <Marker
+            coordinate={store.location}
+            title={store.name}
+            description={store.address}
+          />
+        </MapView>
+      )}
+
+      {/* BOTÓN MAPAS */}
+      {store.location && (
+        <Pressable style={styles.mapsButton} onPress={openInMaps}>
+          <Ionicons name="map-outline" size={18} color="#fff" />
+          <Text style={styles.mapsButtonText}>Abrir en mapas</Text>
+        </Pressable>
+      )}
+
+      {/* HORARIOS (estructura futura) */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Horario</Text>
-
-        {store.hours && Object.keys(store.hours).length > 0 ? (
-          Object.entries(store.hours).map(([day, ranges]) => (
-            <Text key={day} style={styles.hourRow}>
-              <Text style={styles.day}>
-                {day.charAt(0).toUpperCase() + day.slice(1)}:
-              </Text>{" "}
-              {!Array.isArray(ranges) || ranges.length === 0
-                ? "Cerrado"
-                : ranges.map((r) => `${r.open} – ${r.close}`).join(", ")}
-            </Text>
-          ))
-        ) : (
-          <Text style={styles.hourRow}>Horario no disponible</Text>
-        )}
+        <Text style={styles.hoursText}>
+          {store.hours ? "Ver horario semanal" : "Horario no disponible"}
+        </Text>
       </View>
-
-      {/* BOTÓN SELECCIONAR */}
-      {listId && (
-        <TouchableOpacity
-          style={styles.selectButton}
-          onPress={handleSelectStore}
-        >
-          <Text style={styles.selectButtonText}>Seleccionar esta tienda</Text>
-        </TouchableOpacity>
-      )}
     </ScrollView>
   );
 }
@@ -102,69 +111,79 @@ export default function StoreDetailScreen({ route }) {
 -------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    paddingBottom: 40,
-    backgroundColor: "#FAFAFA",
+    flex: 1,
+    backgroundColor: "#f6f6f6",
+  },
+
+  content: {
+    padding: 16,
+    paddingBottom: 32,
   },
 
   center: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+  },
+
+  errorText: {
+    fontSize: 16,
+    color: "#666",
   },
 
   header: {
-    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 
   title: {
     fontSize: 22,
     fontWeight: "700",
-  },
-
-  openingText: {
-    marginTop: 4,
-    fontSize: 14,
-    color: "#555",
+    color: "#111",
   },
 
   address: {
-    marginTop: 6,
+    marginTop: 8,
     fontSize: 14,
-    color: "#333",
+    color: "#444",
+  },
+
+  map: {
+    height: 180,
+    borderRadius: 12,
+    marginVertical: 16,
+  },
+
+  mapsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0a7",
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+
+  mapsButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    marginLeft: 8,
   },
 
   section: {
-    marginTop: 24,
+    marginTop: 12,
   },
 
   sectionTitle: {
     fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-
-  hourRow: {
-    fontSize: 14,
-    color: "#444",
-    marginBottom: 4,
-  },
-
-  day: {
     fontWeight: "600",
+    color: "#111",
   },
 
-  selectButton: {
-    marginTop: 32,
-    paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: "#2563eb",
-    alignItems: "center",
-  },
-
-  selectButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
+  hoursText: {
+    marginTop: 4,
+    fontSize: 14,
+    color: "#555",
   },
 });
