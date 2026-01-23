@@ -1,24 +1,23 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Pressable,
-  Linking,
-  Platform,
-} from "react-native";
-import { useRoute } from "@react-navigation/native";
-import MapView, { Marker } from "react-native-maps";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRoute } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";
+import { getValidCoords } from "../utils/maps/getValidCoords";
+import {
+  openGoogleMaps,
+  openGoogleMapsSearch,
+} from "../utils/maps/openGoogleMaps";
+
+import StoreMapPreview from "../components/StoreMapPreview";
 
 export default function StoreDetailScreen() {
   const route = useRoute();
   const { storeId } = route.params || {};
 
   const { getStoreById, toggleFavoriteStore, isFavoriteStore } = useStores();
+  const [showMapPreview, setShowMapPreview] = useState(false);
 
   const store = getStoreById(storeId);
 
@@ -32,30 +31,96 @@ export default function StoreDetailScreen() {
 
   const isFavorite = isFavoriteStore(store.id);
 
-  /* -------------------------------------------------
-     Abrir en Google Maps / Apple Maps
-  -------------------------------------------------- */
-  const openInMaps = () => {
-    if (!store.location) return;
-
-    const { latitude, longitude } = store.location;
-    const label = encodeURIComponent(store.name);
-
-    const url =
-      Platform.OS === "ios"
-        ? `http://maps.apple.com/?ll=${latitude},${longitude}&q=${label}`
-        : `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-
-    Linking.openURL(url);
+  /* ---------------------------------------------
+     Actions
+  ---------------------------------------------- */
+  const handleToggleFavorite = () => {
+    toggleFavoriteStore(store.id);
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Text style={styles.title}>{store.name}</Text>
+  const openInGoogleMaps = () => {
+    const coords = getValidCoords(store);
 
-        <Pressable onPress={() => toggleFavoriteStore(store.id)} hitSlop={10}>
+    if (coords) {
+      openGoogleMaps({
+        lat: coords.lat,
+        lng: coords.lng,
+        label: store.name,
+      });
+      return;
+    }
+
+    const query = [store.name, store.address, store.city]
+      .filter(Boolean)
+      .join(" ");
+
+    if (query) {
+      openGoogleMapsSearch(query);
+    }
+  };
+
+  /* ---------------------------------------------
+     Internal component
+  ---------------------------------------------- */
+  const LocationSection = () => {
+    const coords = getValidCoords(store);
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Ubicación</Text>
+
+        {coords && showMapPreview ? (
+          <View style={styles.mapContainer}>
+            <StoreMapPreview lat={coords.lat} lng={coords.lng} />
+          </View>
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <Ionicons name="map-outline" size={36} color="#999" />
+            <Text style={styles.mapPlaceholderText}>
+              {coords ? "Previsualización del mapa" : "Ubicación no disponible"}
+            </Text>
+          </View>
+        )}
+
+        {coords && !showMapPreview && (
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => setShowMapPreview(true)}
+          >
+            <Ionicons name="map-outline" size={18} color="#1a73e8" />
+            <Text style={styles.secondaryButtonText}>
+              Ver mapa (OpenStreetMap)
+            </Text>
+          </Pressable>
+        )}
+
+        {coords && showMapPreview && (
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => setShowMapPreview(false)}
+          >
+            <Ionicons name="close-outline" size={18} color="#1a73e8" />
+            <Text style={styles.secondaryButtonText}>Ocultar mapa</Text>
+          </Pressable>
+        )}
+
+        <Pressable style={styles.mapsButton} onPress={openInGoogleMaps}>
+          <Ionicons name="navigate-outline" size={18} color="#fff" />
+          <Text style={styles.mapsButtonText}>Abrir en Google Maps</Text>
+        </Pressable>
+      </View>
+    );
+  };
+
+  /* ---------------------------------------------
+     Render
+  ---------------------------------------------- */
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.name}>{store.name}</Text>
+
+        <Pressable onPress={handleToggleFavorite} hitSlop={10}>
           <Ionicons
             name={isFavorite ? "star" : "star-outline"}
             size={26}
@@ -64,42 +129,24 @@ export default function StoreDetailScreen() {
         </Pressable>
       </View>
 
-      {/* DIRECCIÓN */}
-      <Text style={styles.address}>{store.address}</Text>
-
-      {/* MAPA */}
-      {store.location && (
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: store.location.latitude,
-            longitude: store.location.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          }}
-          pointerEvents="none"
-        >
-          <Marker
-            coordinate={store.location}
-            title={store.name}
-            description={store.address}
-          />
-        </MapView>
+      {/* Address */}
+      {store.address && (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Dirección</Text>
+          <Text style={styles.sectionText}>
+            📍 {store.address}
+            {store.city ? `, ${store.city}` : ""}
+          </Text>
+        </View>
       )}
 
-      {/* BOTÓN MAPAS */}
-      {store.location && (
-        <Pressable style={styles.mapsButton} onPress={openInMaps}>
-          <Ionicons name="map-outline" size={18} color="#fff" />
-          <Text style={styles.mapsButtonText}>Abrir en mapas</Text>
-        </Pressable>
-      )}
+      {/* Location */}
+      <LocationSection />
 
-      {/* HORARIOS (estructura futura) */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Horario</Text>
-        <Text style={styles.hoursText}>
-          {store.hours ? "Ver horario semanal" : "Horario no disponible"}
+      {/* Future sections */}
+      <View style={styles.sectionMuted}>
+        <Text style={styles.mutedText}>
+          Próximamente: horarios, notas y productos asociados
         </Text>
       </View>
     </ScrollView>
@@ -111,79 +158,118 @@ export default function StoreDetailScreen() {
 -------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#f6f6f6",
-  },
-
-  content: {
     padding: 16,
-    paddingBottom: 32,
+    backgroundColor: "#fff",
   },
 
   center: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
   },
 
   errorText: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#666",
   },
 
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
 
-  title: {
-    fontSize: 22,
+  name: {
+    flex: 1,
+    fontSize: 20,
     fontWeight: "700",
+    color: "#111",
+    marginRight: 12,
+  },
+
+  section: {
+    marginBottom: 20,
+  },
+
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#555",
+    marginBottom: 6,
+  },
+
+  sectionText: {
+    fontSize: 15,
     color: "#111",
   },
 
-  address: {
-    marginTop: 8,
-    fontSize: 14,
-    color: "#444",
+  mapContainer: {
+    height: 180,
+    borderRadius: 10,
+    overflow: "hidden",
+    marginBottom: 12,
   },
 
-  map: {
+  mapPlaceholder: {
     height: 180,
-    borderRadius: 12,
-    marginVertical: 16,
+    borderRadius: 10,
+    backgroundColor: "#f2f2f2",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  mapPlaceholderText: {
+    marginTop: 8,
+    fontSize: 13,
+    color: "#777",
+  },
+
+  secondaryButton: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#1a73e8",
+    marginBottom: 10,
+  },
+
+  secondaryButtonText: {
+    marginLeft: 8,
+    color: "#1a73e8",
+    fontSize: 14,
+    fontWeight: "600",
   },
 
   mapsButton: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0a7",
+    alignItems: "center",
+    backgroundColor: "#1a73e8",
     paddingVertical: 12,
-    borderRadius: 10,
-    marginBottom: 16,
+    borderRadius: 8,
   },
 
   mapsButtonText: {
-    color: "#fff",
-    fontWeight: "600",
     marginLeft: 8,
-  },
-
-  section: {
-    marginTop: 12,
-  },
-
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111",
-  },
-
-  hoursText: {
-    marginTop: 4,
+    color: "#fff",
     fontSize: 14,
-    color: "#555",
+    fontWeight: "600",
+  },
+
+  sectionMuted: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: "#fafafa",
+    borderRadius: 8,
+  },
+
+  mutedText: {
+    fontSize: 13,
+    color: "#888",
+    textAlign: "center",
   },
 });

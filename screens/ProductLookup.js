@@ -1,4 +1,4 @@
-export async function fetchProductInfo(code, signal, config) {
+// export async function fetchProductInfo(code, signal, config) {
   const isISBN =
     code.length === 13 && (code.startsWith("978") || code.startsWith("979"));
 

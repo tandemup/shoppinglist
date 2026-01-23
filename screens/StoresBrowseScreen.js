@@ -60,12 +60,24 @@ export default function StoresBrowseScreen() {
     );
   }, [stores, location]);
 
+  const normalize = (text = "") =>
+    text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
   const filteredStores = useMemo(() => {
     if (!query.trim()) return orderedStores;
-    const q = query.toLowerCase();
-    return orderedStores.filter((s) =>
-      (s.name || "").toLowerCase().includes(q),
-    );
+
+    const q = normalize(query);
+
+    return orderedStores.filter((s) => {
+      return (
+        normalize(s.name).includes(q) ||
+        normalize(s.address).includes(q) ||
+        normalize(s.city).includes(q)
+      );
+    });
   }, [orderedStores, query]);
 
   /* ---------------------------------------------
@@ -131,27 +143,29 @@ export default function StoresBrowseScreen() {
   };
 
   return (
-    <FlatList
-      data={filteredStores}
-      keyExtractor={(item) => item.id}
-      renderItem={renderStoreRow}
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-      ListHeaderComponent={
-        <SearchBar
-          value={query}
-          onChange={setQuery}
-          placeholder="Buscar tienda…"
-          style={styles.search}
-        />
-      }
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>No se encontraron tiendas</Text>
-        </View>
-      }
-    />
+    <View style={styles.container}>
+      {/* 🔍 Search fijo */}
+      <SearchBar
+        value={query}
+        onChange={setQuery}
+        placeholder="Buscar tienda…"
+        style={styles.search}
+      />
+
+      {/* 📜 Lista scrolleable */}
+      <FlatList
+        data={filteredStores}
+        keyExtractor={(item) => item.id}
+        renderItem={renderStoreRow}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No se encontraron tiendas</Text>
+          </View>
+        }
+      />
+    </View>
   );
 }
 
@@ -170,7 +184,9 @@ const styles = StyleSheet.create({
   },
 
   search: {
+    marginTop: 12,
     marginBottom: 12,
+    marginHorizontal: 12,
   },
 
   rowContainer: {

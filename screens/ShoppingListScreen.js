@@ -111,6 +111,7 @@ export default function ShoppingListScreen() {
       ],
     );
   };
+
   const renderItem = ({ item }) => (
     <ItemRow
       item={item}

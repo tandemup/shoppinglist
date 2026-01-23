@@ -5,15 +5,19 @@ import { WebView } from "react-native-webview";
 export default function StoresMapScreen({ route }) {
   const { stores = [], userLocation } = route.params ?? {};
 
+  const userLat = userLocation?.lat ?? 43.5322;
+  const userLng = userLocation?.lng ?? -5.6611;
+
+  const validStores = stores.filter(
+    (s) => Number.isFinite(s.location?.lat) && Number.isFinite(s.location?.lng),
+  );
+
   const html = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -31,33 +35,26 @@ export default function StoresMapScreen({ route }) {
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const map = L.map('map').setView(
-      [${userLocation?.latitude ?? 43.5322}, ${
-    userLocation?.longitude ?? -5.6611
-  }],
-      13
-    );
+    const map = L.map('map').setView([${userLat}, ${userLng}], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
     ${
-      userLocation
+      userLocation?.lat != null && userLocation?.lng != null
         ? `
-      L.marker([${userLocation.latitude}, ${userLocation.longitude}])
+      L.marker([${userLat}, ${userLng}])
         .addTo(map)
         .bindPopup("Tu ubicación");
     `
         : ""
     }
 
-    const stores = ${JSON.stringify(stores)};
+    const stores = ${JSON.stringify(validStores)};
 
     stores.forEach(store => {
-      if (!store.location) return;
-
-      L.marker([store.location.lat, store.location.lon])
+      L.marker([store.location.lat, store.location.lng])
         .addTo(map)
         .bindPopup(
           '<b>' + store.name + '</b><br/>' +
