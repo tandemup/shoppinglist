@@ -66,7 +66,6 @@ export default function ShoppingListsScreen() {
     if (!isNameValid) return;
 
     const nombreNormalizado = normalizarNombre(name, "-");
-
     createList(nombreNormalizado, DEFAULT_CURRENCY);
 
     setName("");
@@ -192,17 +191,20 @@ export default function ShoppingListsScreen() {
           </Pressable>
         </View>
 
-        {nameError && (
+        {/* ---- Label de validación siempre visible ---- */}
+        {name.trim().length > 0 && (
           <Text
             style={{
               marginTop: 3,
               marginLeft: 4,
-              fontSize: 16,
-              color: isNameValid ? "green" : "#DC2626",
+              fontSize: 14,
+              color: isNameValid ? "#16A34A" : "#DC2626",
               fontWeight: "600",
             }}
           >
-            {nameError}
+            {isNameValid
+              ? "✔ El nombre está disponible"
+              : nameError || "✖ El nombre ya existe"}
           </Text>
         )}
       </View>

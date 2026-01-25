@@ -28,7 +28,7 @@
     "favorite": false
   },
   {
-    "id": "971e66d2",
+    "id": "a8f3c91e",
     "name": "Alimerka",
     "city": "Gijón",
     "provincia": "Asturias",
@@ -111,7 +111,6 @@
     },
     "favorite": false
   },
-
   {
     "id": "4c1d38d0",
     "name": "Mercadona",
@@ -127,7 +126,7 @@
     "favorite": false
   },
   {
-    "id": "4c1d38d0",
+    "id": "e2b7a419",
     "name": "Mercadona",
     "city": "Gijón",
     "provincia": "Asturias",
@@ -154,7 +153,6 @@
     },
     "favorite": false
   },
-
   {
     "id": "95c3df81",
     "name": "Lidl",
@@ -183,7 +181,6 @@
     },
     "favorite": false
   },
-
   {
     "id": "fc209e66",
     "name": "DIA",
@@ -198,7 +195,6 @@
     },
     "favorite": false
   },
-
   {
     "id": "ac7c47c1",
     "name": "Carrefour",
@@ -227,7 +223,6 @@
     },
     "favorite": false
   },
-
   {
     "id": "71cf1b56",
     "name": "Hipercor",

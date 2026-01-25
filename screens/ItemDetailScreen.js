@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { DEFAULT_CURRENCY } from "../constants/currency";
+import BarcodeScannerEAN13 from "../components/BarcodeScannerEAN13";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,6 +31,7 @@ export default function ItemDetailScreen() {
 
   const list = lists.find((l) => l.id === listId);
   const item = list?.items.find((i) => i.id === itemId);
+  const [showScanner, setShowScanner] = useState(false);
 
   const UNIT_HINTS1 = {
     u: "Unidad (pieza individual)",
@@ -63,7 +65,7 @@ export default function ItemDetailScreen() {
 
   const [qty, setQty] = useState(String(item.priceInfo?.qty ?? "1"));
   const [unitPrice, setUnitPrice] = useState(
-    String(item.priceInfo?.unitPrice ?? "0")
+    String(item.priceInfo?.unitPrice ?? "0"),
   );
   const [unit, setUnit] = useState(item.priceInfo?.unit ?? "u");
   const [promo, setPromo] = useState(item.priceInfo?.promo ?? "none");
@@ -121,7 +123,7 @@ export default function ItemDetailScreen() {
             navigation.goBack();
           },
         },
-      ]
+      ],
     );
   };
 
@@ -139,12 +141,23 @@ export default function ItemDetailScreen() {
 
         {/* CÓDIGO DE BARRAS */}
         <Text style={styles.label}>Código de barras</Text>
-        <TextInput
-          style={styles.input}
-          value={barcode}
-          onChangeText={setBarcode}
-          keyboardType="numeric"
-        />
+
+        <View style={styles.barcodeRow}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            value={barcode}
+            onChangeText={setBarcode}
+            keyboardType="numeric"
+            placeholder="EAN-13"
+          />
+
+          <Pressable
+            style={styles.scanBtn}
+            onPress={() => setShowScanner(true)}
+          >
+            <Ionicons name="barcode-outline" size={22} color="#2563eb" />
+          </Pressable>
+        </View>
 
         {/* UNIDAD */}
         <View style={styles.unitRow}>
@@ -183,7 +196,7 @@ export default function ItemDetailScreen() {
               Precio{" "}
               {formatCurrency(1, priceInfo.currency).replace(
                 /\d+([.,]00)?/g,
-                ""
+                "",
               )}
               /{formatUnit(unit)}
             </Text>
@@ -245,6 +258,23 @@ export default function ItemDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      {showScanner && (
+        <View style={styles.scannerOverlay}>
+          <BarcodeScannerEAN13
+            onDetected={(code) => {
+              setBarcode(code);
+              setShowScanner(false);
+            }}
+          />
+
+          <Pressable
+            style={styles.closeScannerBtn}
+            onPress={() => setShowScanner(false)}
+          >
+            <Ionicons name="close" size={28} color="#fff" />
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -332,5 +362,35 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontSize: 13,
     color: "#64748b",
+  },
+  barcodeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  scanBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#2563eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  scannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+    zIndex: 100,
+  },
+
+  closeScannerBtn: {
+    position: "absolute",
+    top: 50,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 20,
+    padding: 6,
   },
 });

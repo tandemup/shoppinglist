@@ -22,8 +22,8 @@ export default function StoresBrowseScreen() {
   const isSelectMode = mode === "select";
 
   const { stores, toggleFavoriteStore, isFavoriteStore } = useStores();
+  const { location } = useLocation(); // { lat, lng }
 
-  const { location } = useLocation();
   const [query, setQuery] = useState("");
 
   /* ---------------------------------------------
@@ -32,22 +32,24 @@ export default function StoresBrowseScreen() {
   const orderedStores = useMemo(() => {
     const enriched = stores.map((store) => {
       if (
-        location &&
-        store.location?.latitude != null &&
-        store.location?.longitude != null
+        location?.lat != null &&
+        location?.lng != null &&
+        store.location?.lat != null &&
+        store.location?.lng != null
       ) {
         const distance = distanceMetersBetween(
-          location.latitude,
-          location.longitude,
-          store.location.latitude,
-          store.location.longitude,
+          location.lat,
+          location.lng,
+          store.location.lat,
+          store.location.lng,
         );
         return { ...store, distance };
       }
+
       return { ...store, distance: null };
     });
 
-    if (location) {
+    if (location?.lat != null && location?.lng != null) {
       return [...enriched].sort((a, b) => {
         if (a.distance == null) return 1;
         if (b.distance == null) return -1;
@@ -101,7 +103,7 @@ export default function StoresBrowseScreen() {
   };
 
   /* ---------------------------------------------
-     Render fila (INLINE COMPONENT)
+     Render fila
   ---------------------------------------------- */
   const renderStoreRow = ({ item: store }) => {
     const isFavorite = isFavoriteStore(store.id);
@@ -116,14 +118,12 @@ export default function StoresBrowseScreen() {
           <Text style={styles.rowName}>{store.name}</Text>
 
           {store.address && (
-            <Text style={styles.rowAddress}>📍{store.address}</Text>
+            <Text style={styles.rowAddress}>📍 {store.address}</Text>
           )}
 
-          <Text style={styles.rowMeta}>
-            <Text style={styles.rowMetaCity}>{store.city}</Text>
-            <Text style={styles.rowMetaDistance}>
-              {store.distance != null && ` · ${formatDistance(store.distance)}`}
-            </Text>
+          <Text style={styles.rowMetaCity}>
+            {store.city}
+            {store.distance != null && ` · ${formatDistance(store.distance)}`}
           </Text>
         </Pressable>
 
@@ -144,7 +144,6 @@ export default function StoresBrowseScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 🔍 Search fijo */}
       <SearchBar
         value={query}
         onChange={setQuery}
@@ -152,7 +151,6 @@ export default function StoresBrowseScreen() {
         style={styles.search}
       />
 
-      {/* 📜 Lista scrolleable */}
       <FlatList
         data={filteredStores}
         keyExtractor={(item) => item.id}
@@ -216,21 +214,7 @@ const styles = StyleSheet.create({
     color: "#444",
   },
 
-  rowMeta: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#666",
-  },
-
   rowMetaCity: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#666",
-  },
-
-  rowMetaDistance: {
     marginTop: 4,
     fontSize: 13,
     fontWeight: "600",
