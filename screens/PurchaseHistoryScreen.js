@@ -29,7 +29,6 @@ import {
   purchaseMetaText,
   formatCurrency,
 } from "../utils/store/formatters";
-import { copyToClipboard } from "../utils/copyToClipboard";
 
 /* -------------------------------------------------
    Screen
@@ -65,7 +64,7 @@ export default function PurchaseHistoryScreen() {
     });
 
     return [...base].sort(
-      (a, b) => (b.lastPurchasedAt ?? 0) - (a.lastPurchasedAt ?? 0)
+      (a, b) => (b.lastPurchasedAt ?? 0) - (a.lastPurchasedAt ?? 0),
     );
   }, [purchaseHistory, search, selectedStore]);
 
@@ -133,7 +132,7 @@ export default function PurchaseHistoryScreen() {
 
       await AsyncStorage.setItem(
         "@purchaseHistory",
-        JSON.stringify(buildPurchaseHistoryFromArchivedLists(archivedLists))
+        JSON.stringify(buildPurchaseHistoryFromArchivedLists(archivedLists)),
       );
 
       console.log("purchaseHistory reconstruido");

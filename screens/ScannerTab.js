@@ -12,7 +12,6 @@ import {
 import { useCameraPermissions } from "expo-camera";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-//import * as Clipboard from 'expo-clipboard';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import BarcodeScanner from "../components/BarcodeScanner";
