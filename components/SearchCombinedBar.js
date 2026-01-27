@@ -13,10 +13,6 @@ import { useLists } from "../context/ListsContext";
 import { normalizeProductName } from "../utils/normalize";
 
 /* -------------------------------------------------
-   Helpers
--------------------------------------------------- */
-
-/* -------------------------------------------------
    Badge
 -------------------------------------------------- */
 const Badge = ({ label, color }) => (
@@ -39,28 +35,39 @@ export default function SearchCombinedBar({
   onCreateNew,
 }) {
   const inputRef = useRef(null);
-  const { purchaseHistory } = useLists();
+
+  // 🛡 Contextos protegidos
+  const { purchaseHistory = [] } = useLists();
   const { getStoreById } = useStores();
+
+  // 🛡 Lista segura
+  const safeCurrentList = currentList ?? {};
+
   const [query, setQuery] = useState("");
 
   /* -------------------------------------------------
-     Suggestions
+     Suggestions (seguro ante datos incompletos)
   -------------------------------------------------- */
   const suggestions = useMemo(() => {
+    // ⛔ Sin lista activa → no sugerir historial
+    if (!safeCurrentList.id) return [];
+
     const q = normalizeProductName(query);
     if (!q) return [];
 
     return purchaseHistory
       .filter((e) => {
-        // filtro por texto
-        if (!e.normalizedName.includes(q)) return false;
+        // 🔒 Normalización segura (evita includes sobre undefined)
+        const normalized =
+          e.normalizedName ?? normalizeProductName(e.name ?? "");
 
-        // filtro por tienda (solo si la lista tiene tienda)
-        if (currentList?.storeId) {
-          return e.storeId === currentList.storeId;
+        if (!normalized.includes(q)) return false;
+
+        // 🏬 Filtro por tienda (si aplica)
+        if (safeCurrentList.storeId) {
+          return e.storeId === safeCurrentList.storeId;
         }
 
-        // si no hay tienda seleccionada, aceptar todo
         return true;
       })
       .sort((a, b) => {
@@ -77,7 +84,7 @@ export default function SearchCombinedBar({
         priceInfo: e.priceInfo ?? null,
         storeId: e.storeId ?? null,
       }));
-  }, [query, purchaseHistory, currentList?.storeId]);
+  }, [query, purchaseHistory, safeCurrentList.id, safeCurrentList.storeId]);
 
   const showCreate =
     query.trim().length > 0 &&
@@ -164,7 +171,7 @@ export default function SearchCombinedBar({
                 {/* Nombre */}
                 <Text style={styles.itemName}>{item.name}</Text>
 
-                {/* Meta: precio + tienda */}
+                {/* Meta */}
                 <View style={styles.metaRow}>
                   {item.priceInfo?.total != null && (
                     <Text style={styles.metaText}>

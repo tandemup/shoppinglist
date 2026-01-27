@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { searchItemsAcrossLists } from "../utils/searchHelpers";
-import { getScannedHistory } from "../utils/storage/scannerHistory";
+import { getScannedHistory } from "../services/scannerHistory";
 
 export default function SmartSearchBar({ currentList, onSelectHistoryItem }) {
   const [query, setQuery] = useState("");
@@ -31,13 +31,13 @@ export default function SmartSearchBar({ currentList, onSelectHistoryItem }) {
 
     // 1️⃣ Coincidencias en la lista actual
     const local = currentList.items.filter((i) =>
-      (i.name || "").toLowerCase().includes(q)
+      (i.name || "").toLowerCase().includes(q),
     );
 
     // 2️⃣ Coincidencias en listas anteriores
     const history = await searchItemsAcrossLists(text);
     const filteredHistory = history.filter(
-      (r) => String(r.listId) !== String(currentList.id)
+      (r) => String(r.listId) !== String(currentList.id),
     );
 
     // 3️⃣ Coincidencias en historial de escaneos
@@ -45,7 +45,7 @@ export default function SmartSearchBar({ currentList, onSelectHistoryItem }) {
     const scanMatches = scanned.filter(
       (s) =>
         (s.name || "").toLowerCase().includes(q) ||
-        (s.barcode || "").toLowerCase().includes(q)
+        (s.barcode || "").toLowerCase().includes(q),
     );
 
     setLocalResults(local);
@@ -55,7 +55,7 @@ export default function SmartSearchBar({ currentList, onSelectHistoryItem }) {
 
   const getUnitPriceDiff = (name, pastUnitPrice) => {
     const match = currentList.items.find(
-      (i) => i.name.trim().toLowerCase() === name.trim().toLowerCase()
+      (i) => i.name.trim().toLowerCase() === name.trim().toLowerCase(),
     );
 
     if (!match || !match.priceInfo?.unitPrice) return null;

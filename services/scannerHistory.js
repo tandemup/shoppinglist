@@ -1,79 +1,120 @@
-import { getItem, setItem } from "../utils/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SCANNED_KEY = "@expo-shop/scanned-history";
+const SCANNED_KEY = "scannedItems";
 
+/* -------------------------------------------------
+   Helpers internos
+-------------------------------------------------- */
 const loadAll = async () => {
-  return (await getItem(SCANNED_KEY)) || [];
+  try {
+    const raw = await AsyncStorage.getItem(SCANNED_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.error("Error loading scanned items:", err);
+    return [];
+  }
 };
 
 const saveAll = async (items) => {
-  await setItem(SCANNED_KEY, items);
+  try {
+    await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(items));
+  } catch (err) {
+    console.error("Error saving scanned items:", err);
+  }
 };
 
+/* -------------------------------------------------
+   API pública
+-------------------------------------------------- */
+
+/**
+ * Devuelve todo el historial de escaneos
+ */
 export const getScannedHistory = async () => {
   return await loadAll();
 };
 
-export const addScannedProductFull = async (item) => {
+/**
+ * Añade o actualiza un escaneo
+ * - Si existe el barcode → incrementa scanCount
+ * - Si no existe → lo añade
+ */
+export const addScannedItem = async (item) => {
+  if (!item?.barcode) return null;
+
   const all = await loadAll();
-  const barcode = item.barcode ?? item.code ?? null;
+  const index = all.findIndex((i) => i.barcode === item.barcode);
+  const now = new Date().toISOString();
 
-  if (!barcode) return null;
-
-  const existing = all.find((i) => i.barcode === barcode);
-  let newItem;
-
-  if (existing) {
-    newItem = {
-      ...existing,
-      name: item.name ?? existing.name,
-      brand: item.brand ?? existing.brand,
-      imageUrl: item.imageUrl ?? existing.imageUrl ?? null,
-      url: item.url ?? existing.url ?? null,
-      isBook: item.isBook ?? existing.isBook ?? false,
-      scannedAt: new Date().toISOString(),
-      scanCount: (existing.scanCount ?? 1) + 1,
+  if (index !== -1) {
+    const updatedItem = {
+      ...all[index],
+      scanCount: (all[index].scanCount || 1) + 1,
+      updatedAt: now,
     };
 
-    const updated = [newItem, ...all.filter((i) => i.barcode !== barcode)];
+    const updated = [
+      updatedItem,
+      ...all.filter((i) => i.barcode !== item.barcode),
+    ];
 
     await saveAll(updated);
-    return newItem;
+    return updatedItem;
   }
 
-  newItem = {
-    id: Date.now().toString(),
-    barcode,
-    name: item.name ?? "Producto",
-    brand: item.brand ?? "",
-    imageUrl: item.imageUrl ?? null,
-    url: item.url ?? null,
-    isBook: item.isBook ?? false,
-    scannedAt: new Date().toISOString(),
-    source: "scanner",
+  const newItem = {
+    ...item,
     scanCount: 1,
-    notes: "",
+    scannedAt: now,
+    updatedAt: now,
+    source: "scanner",
   };
 
   await saveAll([newItem, ...all]);
   return newItem;
 };
 
+/**
+ * Actualiza campos editables de un escaneo
+ */
 export const updateScannedEntry = async (barcode, updates) => {
+  if (!barcode) return;
+
   const all = await loadAll();
 
   const updated = all.map((item) =>
-    item.barcode === barcode ? { ...item, ...updates, barcode } : item
+    item.barcode === barcode
+      ? {
+          ...item,
+          ...updates,
+          barcode,
+          updatedAt: new Date().toISOString(),
+        }
+      : item,
   );
 
   await saveAll(updated);
 };
 
+/**
+ * Elimina un escaneo por código de barras
+ */
 export const removeScannedItem = async (barcode) => {
+  if (!barcode) return;
+
   const all = await loadAll();
-  await saveAll(all.filter((item) => item.barcode !== barcode));
+  const filtered = all.filter((item) => item.barcode !== barcode);
+
+  await saveAll(filtered);
 };
 
+/**
+ * Borra todo el historial de escaneos
+ */
 export const clearScannedHistory = async () => {
-  await saveAll([]);
+  try {
+    await AsyncStorage.removeItem(SCANNED_KEY);
+  } catch (err) {
+    console.error("Error clearing scanned history:", err);
+  }
 };

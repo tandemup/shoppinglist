@@ -8,7 +8,6 @@ import { StatusBar } from "expo-status-bar";
    Context Providers
 ------------------------------ */
 import { StoresProvider } from "./context/StoresContext";
-import { StoreProvider } from "./context/StoreContext";
 import { ListsProvider } from "./context/ListsContext";
 import { PurchasesProvider } from "./context/PurchasesContext";
 import { LocationProvider } from "./context/LocationContext";
@@ -31,34 +30,30 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StoresProvider>
-        <StoreProvider>
-          <ListsProvider>
-            <PurchasesProvider>
-              <LocationProvider>
-                <ProductLearningProvider>
-                  <ProductSuggestionsProvider>
-                    <NavigationContainer>
-                      <StatusBar style="auto" />
+        <ListsProvider>
+          <PurchasesProvider>
+            <LocationProvider>
+              <ProductLearningProvider>
+                <ProductSuggestionsProvider>
+                  <NavigationContainer>
+                    <StatusBar style="auto" />
 
-                      <RootStack.Navigator
-                        screenOptions={{ headerShown: false }}
-                      >
-                        {/* Splash inicial */}
-                        <RootStack.Screen
-                          name="Splash"
-                          component={SplashScreen}
-                        />
+                    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+                      {/* Splash inicial */}
+                      <RootStack.Screen
+                        name="Splash"
+                        component={SplashScreen}
+                      />
 
-                        {/* Tabs principales */}
-                        <RootStack.Screen name="Main" component={MainTabs} />
-                      </RootStack.Navigator>
-                    </NavigationContainer>
-                  </ProductSuggestionsProvider>
-                </ProductLearningProvider>
-              </LocationProvider>
-            </PurchasesProvider>
-          </ListsProvider>
-        </StoreProvider>
+                      {/* Tabs principales */}
+                      <RootStack.Screen name="Main" component={MainTabs} />
+                    </RootStack.Navigator>
+                  </NavigationContainer>
+                </ProductSuggestionsProvider>
+              </ProductLearningProvider>
+            </LocationProvider>
+          </PurchasesProvider>
+        </ListsProvider>
       </StoresProvider>
     </SafeAreaProvider>
   );

@@ -8,17 +8,15 @@ import {
   ScrollView,
   Linking,
 } from "react-native";
+import { DEFAULT_CURRENCY } from "../constants/currency";
+import BarcodeScannerEAN13 from "../components/BarcodeScannerEAN13";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getGeneralSearchEngine } from "../utils/config/searchConfig";
+import { SEARCH_ENGINES } from "../constants/searchEngines";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-import { DEFAULT_CURRENCY } from "../constants/currency";
-import { SEARCH_ENGINES } from "../constants/searchEngines";
-
-import BarcodeScannerEAN13 from "../components/BarcodeScannerEAN13";
 import { useLists } from "../context/ListsContext";
 
 import { PricingEngine, PROMOTIONS } from "../utils/pricing/PricingEngine";
@@ -29,14 +27,31 @@ import { safeAlert } from "../utils/core/safeAlert";
 export default function ItemDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+
   const { listId, itemId } = route.params || {};
 
   const { lists, updateItem, deleteItem } = useLists();
+
   const list = lists.find((l) => l.id === listId);
   const item = list?.items.find((i) => i.id === itemId);
-
   const [showScanner, setShowScanner] = useState(false);
 
+  const UNIT_HINTS1 = {
+    u: "Unidad (pieza individual)",
+    kg: "Peso en kilogramos",
+    g: "Peso en gramos",
+    l: "Volumen en litros",
+  };
+  const UNIT_HINTS = {
+    u: "🧩 Unidad (pieza individual)",
+    kg: "⚖️ Peso en kilogramos",
+    g: "⚖️ Peso en gramos",
+    l: "🧃 Volumen en litros",
+  };
+
+  /* ---------------------------
+     Guardas
+  ----------------------------*/
   if (!item) {
     return (
       <SafeAreaView style={styles.container}>
@@ -46,7 +61,7 @@ export default function ItemDetailScreen() {
   }
 
   /* ---------------------------
-     Estado local
+     Estado local (strings)
   ----------------------------*/
   const [name, setName] = useState(item.name ?? "");
   const [barcode, setBarcode] = useState(item.barcode ?? "");
@@ -61,6 +76,7 @@ export default function ItemDetailScreen() {
   /* ---------------------------
      Cálculo de precios
   ----------------------------*/
+
   const priceInfo = useMemo(() => {
     return PricingEngine.calculate({
       qty: Number(qty.replace(",", ".")) || 0,
@@ -114,9 +130,8 @@ export default function ItemDetailScreen() {
     );
   };
 
-  /* ---------------------------
-     Buscar con motor configurado
-  ----------------------------*/
+  const summaryCurrency = priceInfo.currency ?? DEFAULT_CURRENCY.code;
+
   const handleSearch = async () => {
     const code = barcode.trim();
     if (!code) {
@@ -128,17 +143,17 @@ export default function ItemDetailScreen() {
     }
 
     try {
-      const engineKey = (await getGeneralSearchEngine()) || "google";
-      const engine = SEARCH_ENGINES[engineKey] || SEARCH_ENGINES.google;
+      const engineKey =
+        (await AsyncStorage.getItem("searchEngine")) || "google";
 
-      Linking.openURL(engine.buildUrl(code));
+      const engine = SEARCH_ENGINES[engineKey] || SEARCH_ENGINES.google;
+      const url = engine.buildUrl(code);
+
+      Linking.openURL(url);
     } catch (e) {
       safeAlert("Error", "No se pudo abrir el buscador");
     }
   };
-
-  const summaryCurrency = priceInfo.currency ?? DEFAULT_CURRENCY.code;
-
   /* ---------------------------
      Render
   ----------------------------*/
@@ -151,6 +166,7 @@ export default function ItemDetailScreen() {
 
         {/* CÓDIGO DE BARRAS */}
         <Text style={styles.label}>Código de barras</Text>
+
         <View style={styles.barcodeRow}>
           <TextInput
             style={[styles.input, { flex: 1 }]}
@@ -168,7 +184,7 @@ export default function ItemDetailScreen() {
             <Ionicons name="barcode-outline" size={22} color="#2563eb" />
           </Pressable>
 
-          {/* Buscar con motor configurado */}
+          {/* Buscar en Google */}
           <Pressable style={styles.scanBtn} onPress={handleSearch}>
             <Ionicons name="search-outline" size={22} color="#2563eb" />
           </Pressable>
@@ -177,18 +193,8 @@ export default function ItemDetailScreen() {
         {/* UNIDAD */}
         <View style={styles.unitRow}>
           <Text style={styles.label}>Unidad</Text>
-          <Text style={styles.unitHint}>
-            {
-              {
-                u: "🧩 Unidad (pieza)",
-                kg: "⚖️ Kilogramos",
-                g: "⚖️ Gramos",
-                l: "🧃 Litros",
-              }[unit]
-            }
-          </Text>
+          <Text style={styles.unitHint}>{UNIT_HINTS[unit]}</Text>
         </View>
-
         <View style={styles.unitRow}>
           {["u", "kg", "g", "l"].map((u) => (
             <Pressable
@@ -217,7 +223,14 @@ export default function ItemDetailScreen() {
           </View>
 
           <View style={styles.inlineField}>
-            <Text style={styles.label}>Precio /{formatUnit(unit)}</Text>
+            <Text style={styles.label}>
+              Precio{" "}
+              {formatCurrency(1, priceInfo.currency).replace(
+                /\d+([.,]00)?/g,
+                "",
+              )}
+              /{formatUnit(unit)}
+            </Text>
             <TextInput
               style={styles.input}
               keyboardType="decimal-pad"
@@ -251,6 +264,7 @@ export default function ItemDetailScreen() {
         {/* RESUMEN */}
         <View style={styles.summary}>
           <Text style={styles.summaryTitle}>Total</Text>
+
           <Text style={styles.summaryValue}>
             {formatCurrency(priceInfo.total, summaryCurrency)}
           </Text>
@@ -275,7 +289,6 @@ export default function ItemDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
-
       {showScanner && (
         <View style={styles.scannerOverlay}>
           <BarcodeScannerEAN13
@@ -284,6 +297,7 @@ export default function ItemDetailScreen() {
               setShowScanner(false);
             }}
           />
+
           <Pressable
             style={styles.closeScannerBtn}
             onPress={() => setShowScanner(false)}
@@ -308,16 +322,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
   },
-  barcodeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  scanBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#2563eb",
-    justifyContent: "center",
-    alignItems: "center",
-  },
   unitRow: { flexDirection: "row", gap: 8 },
   unitBtn: {
     paddingVertical: 8,
@@ -326,12 +330,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
   },
-  unitBtnActive: { backgroundColor: "#2563eb", borderColor: "#2563eb" },
+  unitBtnActive: {
+    backgroundColor: "#2563eb",
+    borderColor: "#2563eb",
+  },
   unitText: { color: "#111", fontWeight: "500" },
   unitTextActive: { color: "#fff" },
-  unitHint: { marginTop: 16, fontSize: 13, color: "#64748b" },
+
   inlineRow: { flexDirection: "row", gap: 12 },
   inlineField: { flex: 1 },
+
   promoRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   promoBtn: {
     paddingVertical: 6,
@@ -340,9 +348,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
   },
-  promoBtnActive: { backgroundColor: "#16a34a", borderColor: "#16a34a" },
+  promoBtnActive: {
+    backgroundColor: "#16a34a",
+    borderColor: "#16a34a",
+  },
   promoText: { fontSize: 13, color: "#111" },
   promoTextActive: { color: "#fff", fontWeight: "600" },
+
   summary: {
     marginTop: 24,
     padding: 16,
@@ -352,6 +364,7 @@ const styles = StyleSheet.create({
   summaryTitle: { fontSize: 14, color: "#555" },
   summaryValue: { fontSize: 22, fontWeight: "700", marginTop: 4 },
   savings: { marginTop: 4, color: "#15803d", fontWeight: "600" },
+
   actions: { flexDirection: "row", gap: 12, marginTop: 24 },
   saveBtn: {
     flex: 1,
@@ -375,11 +388,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   deleteText: { color: "#fff", fontWeight: "600" },
+  unitHint: {
+    marginTop: 16,
+    marginBottom: 6,
+    fontSize: 13,
+    color: "#64748b",
+  },
+  barcodeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  scanBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#2563eb",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   scannerOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
     zIndex: 100,
   },
+
   closeScannerBtn: {
     position: "absolute",
     top: 50,

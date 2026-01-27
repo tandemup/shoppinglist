@@ -1,81 +1,46 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SCANNED_KEY = "@expo-shop/scanned-history";
+const KEY = "@scanner_history";
 
-export const getScannedHistory = async () => {
+export async function getScannedHistory() {
   try {
-    const raw = await AsyncStorage.getItem(SCANNED_KEY);
+    const raw = await AsyncStorage.getItem(KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch (err) {
-    console.log("❌ Error reading scanned history:", err);
+  } catch {
     return [];
   }
-};
+}
 
-export const addScannedProductFull = async (item) => {
+export async function addScanToHistory({ barcode }) {
   try {
-    const all = await getScannedHistory();
-    const code = item.barcode ?? item.code ?? null;
+    const history = await getScannedHistory();
 
-    if (!code) return null;
-
-    const existing = all.find((i) => i.barcode === code);
-    let newItem;
+    const existing = history.find((i) => i.barcode === barcode);
 
     if (existing) {
-      newItem = {
-        ...existing,
-        name: item.name ?? existing.name,
-        brand: item.brand ?? existing.brand,
-        image: item.image ?? existing.image,
-        url: item.url ?? existing.url,
-        isBook: item.isBook ?? existing.isBook,
-        scannedAt: new Date().toISOString(),
-        scanCount: (existing.scanCount ?? 1) + 1,
-      };
-
-      const filtered = all.filter((i) => i.barcode !== code);
-      const updated = [newItem, ...filtered];
-
-      await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(updated));
-      return newItem;
+      existing.scanCount += 1;
+      existing.scannedAt = Date.now();
+    } else {
+      history.unshift({
+        barcode,
+        name: barcode, // provisional, editable luego
+        scannedAt: Date.now(),
+        scanCount: 1,
+        source: "scanner",
+        isBook: false,
+      });
     }
 
-    newItem = {
-      id: Date.now().toString(),
-      barcode: code,
-      name: item.name ?? "Producto",
-      brand: item.brand ?? "",
-      image: item.image ?? null,
-      url: item.url ?? null,
-      isBook: item.isBook ?? false,
-      scannedAt: new Date().toISOString(),
-      source: "scanner",
-      scanCount: 1,
-    };
-
-    const updated = [newItem, ...all];
-    await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(updated));
-    return newItem;
-  } catch (err) {
-    console.log("❌ Error saving scanned product:", err);
+    await AsyncStorage.setItem(KEY, JSON.stringify(history));
+  } catch (e) {
+    console.warn("Error guardando historial", e);
   }
-};
+}
 
-export const removeScannedItem = async (barcode) => {
+export async function removeScannedItem(barcode) {
   try {
-    const all = await getScannedHistory();
-    const filtered = all.filter((item) => item.barcode !== barcode);
-    await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify(filtered));
-  } catch (err) {
-    console.log("❌ Error deleting scanned item:", err);
-  }
-};
-
-export const clearScannedHistory = async () => {
-  try {
-    await AsyncStorage.setItem(SCANNED_KEY, JSON.stringify([]));
-  } catch (err) {
-    console.log("❌ Error clearing scanned history:", err);
-  }
-};
+    const history = await getScannedHistory();
+    const filtered = history.filter((i) => i.barcode !== barcode);
+    await AsyncStorage.setItem(KEY, JSON.stringify(filtered));
+  } catch {}
+}

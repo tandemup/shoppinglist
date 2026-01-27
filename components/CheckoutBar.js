@@ -1,3 +1,29 @@
+/* export default function CheckoutBar({ total, currency, onCheckout }) {
+  if (!total || total <= 0) return null;
+
+  const currencyCode =
+    typeof currency === "string"
+      ? currency
+      : currency?.code ?? DEFAULT_CURRENCY.code;
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.totalRow}>
+        <Text style={styles.totalLabel}>Total:</Text>
+        <Text style={styles.totalValue}>
+          {formatCurrency(total, currencyCode)}
+        </Text>
+      </View>
+
+      <Pressable style={styles.button} onPress={onCheckout}>
+        <Ionicons name="cart" size={18} color="#fff" />
+        <Text style={styles.buttonText}>Finalizar compra</Text>
+      </Pressable>
+    </View>
+  );
+}
+ */
+
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,14 +34,12 @@ import { DEFAULT_CURRENCY } from "../constants/currency";
 export default function CheckoutBar({ total, currency, onCheckout }) {
   if (!total || total <= 0) return null;
 
-  const summaryCurrency = currency ?? DEFAULT_CURRENCY.code;
-
   return (
     <View style={styles.container}>
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>Total: </Text>
         <Text style={styles.totalValue}>
-          {total.toFixed(2)} {currency?.symbol ?? ""}
+          {total.toFixed(2)} {currency?.symbol}
         </Text>
       </View>
 
