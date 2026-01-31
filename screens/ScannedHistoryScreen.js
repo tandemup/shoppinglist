@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { ROUTES } from "../navigation/ROUTES";
-
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { safeAlert } from "../utils/core/safeAlert";
@@ -32,23 +32,7 @@ export default function ScannedHistoryScreen({ navigation }) {
   const isFocused = useIsFocused();
 
   //
-  // 🍔 MENÚ HAMBURGUESA
-  //
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate(ROUTES.MENU)}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="menu" size={26} color="black" />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
-
-  //
-  // 🔄 CARGAR HISTORIAL (al montar y al volver)
+  // 🔄 CARGAR HISTORIAL
   //
   useEffect(() => {
     if (isFocused) {
@@ -64,7 +48,7 @@ export default function ScannedHistoryScreen({ navigation }) {
 
       onlyScanned.sort(
         (a, b) =>
-          new Date(b.scannedAt).valueOf() - new Date(a.scannedAt).valueOf()
+          new Date(b.scannedAt).valueOf() - new Date(a.scannedAt).valueOf(),
       );
 
       setScannedItems(onlyScanned);
@@ -75,7 +59,7 @@ export default function ScannedHistoryScreen({ navigation }) {
   };
 
   //
-  // 🔎 FILTRAR RESULTADOS
+  // 🔎 FILTRADO
   //
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -114,15 +98,39 @@ export default function ScannedHistoryScreen({ navigation }) {
   };
 
   //
+  // 🖼 OBTENER IMAGEN
+  //
+  const getItemImage = (item) => {
+    return item.thumbnailUri || null;
+  };
+
+  //
   // 🎨 ITEM
   //
   const renderItem = ({ item }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate(ROUTES.EDIT_SCANNED_ITEM, { item })}
       onLongPress={() => handleDelete(item)}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
       <View style={[styles.card, item.isBook && styles.cardBook]}>
+        {/* 🖼 IMAGEN */}
+        <View style={styles.imageWrapper}>
+          {getItemImage(item) ? (
+            <Image
+              source={{ uri: getItemImage(item) }}
+              style={styles.image}
+              contentFit="cover"
+              cachePolicy="disk"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Ionicons name="cube-outline" size={26} color="#999" />
+            </View>
+          )}
+        </View>
+
+        {/* 📄 INFO */}
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>
             {item.isBook ? "📚 " : ""}
@@ -131,7 +139,11 @@ export default function ScannedHistoryScreen({ navigation }) {
 
           {item.barcode && (
             <View style={{ marginTop: 4 }}>
-              <BarcodeLink barcode={item.barcode} label="Buscar código" />
+              <BarcodeLink
+                barcode={item.barcode}
+                label="Buscar código"
+                iconColor="#0F52BA"
+              />
             </View>
           )}
 
@@ -141,7 +153,6 @@ export default function ScannedHistoryScreen({ navigation }) {
 
           {item.scannedAt && (
             <Text style={styles.date}>
-              Escaneado el{" "}
               {new Date(item.scannedAt).toLocaleDateString("es-ES")}
             </Text>
           )}
@@ -193,21 +204,23 @@ export default function ScannedHistoryScreen({ navigation }) {
   );
 }
 
-//
-// 🎨 ESTILOS (sin cambios)
-//
+/* =========================
+   🎨 ESTILOS
+========================= */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: "#FAFAFA",
   },
+
   title: {
     fontSize: 26,
     fontWeight: "800",
     textAlign: "center",
     marginBottom: 20,
   },
+
   empty: {
     marginTop: 40,
     fontSize: 16,
@@ -217,23 +230,38 @@ const styles = StyleSheet.create({
 
   card: {
     flexDirection: "row",
+    alignItems: "stretch", // 👈 CLAVE
     backgroundColor: "#fff",
     padding: 14,
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: "#E0E7FF",
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 2,
-    elevation: 1,
   },
 
   cardBook: {
     backgroundColor: "#E0F2FF",
     borderColor: "#60A5FA",
     borderWidth: 1.2,
+  },
+  imageWrapper: {
+    width: 64,
+    height: 64, // 👈 ahora SÍ fijo
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#F3F4F6",
+  },
+
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+
+  imagePlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   name: {
@@ -250,7 +278,7 @@ const styles = StyleSheet.create({
 
   date: {
     marginTop: 4,
-    color: "#0066CC",
+    color: "#444",
     fontSize: 12,
   },
 

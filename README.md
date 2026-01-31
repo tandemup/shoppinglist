@@ -2,6 +2,10 @@
 
 Lista de la compra
 
+# npm install
+
+# npx expo start
+
 local repository
 ~/Desktop/shoppinglist
 

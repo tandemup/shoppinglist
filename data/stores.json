@@ -7,8 +7,8 @@
     "address": "Camino de Cabueñes, Pl. Villamanín, 24, 33203 Gijón, Asturias",
     "zipcode": 33203,
     "location": {
-      "lat": 43.535,
-      "lng": -5.635,
+      "lat": 43.53411,
+      "lng": -5.62045,
       "source": "manual"
     },
     "favorite": false
@@ -203,8 +203,8 @@
     "address": "Centro Comercial Los Fresnos, 33206 Gijón, Asturias",
     "zipcode": 33206,
     "location": {
-      "lat": 43.5359,
-      "lng": -5.6706,
+      "lat": 43.53263,
+      "lng": -5.661265,
       "source": "manual"
     },
     "favorite": false

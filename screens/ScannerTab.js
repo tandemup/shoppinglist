@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,20 +8,21 @@ import {
   AppState,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
+import ScannerControls from "../components/ScannerControls";
 
 import { getGeneralSearchEngine } from "../utils/config/searchConfig";
+import { SEARCH_ENGINES } from "../constants/searchEngines";
 import { addScannedItem } from "../services/scannerHistory";
 
 /* -----------------------------------------
    🔍 CONFIGURACIÓN
 ------------------------------------------ */
-const ZOOM_LEVELS = [0, 0.15, 0.3, 0.45];
-const ZOOM_LABELS = ["1x", "1.3x", "1.6x", "2x"];
+import { SCANNER_ZOOM, getZoomValue } from "../constants/cameraZoom";
 
 /* -----------------------------------------
-   📦 COMPONENTE
+   📦 PANTALLA
 ------------------------------------------ */
 export default function ScannerTab() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -31,10 +32,13 @@ export default function ScannerTab() {
   const [engine, setEngine] = useState(null);
   const [lastCode, setLastCode] = useState(null);
 
+  // 🔒 bloqueo inmediato
+  const scanLock = useRef(false);
+
   // 🔦 / 🔍
   const [torch, setTorch] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
-  const zoom = ZOOM_LEVELS[zoomIndex];
+  const zoom = getZoomValue(SCANNER_ZOOM, zoomIndex);
 
   /* -----------------------------------------
      🔐 PERMISOS
@@ -65,23 +69,28 @@ export default function ScannerTab() {
   ------------------------------------------ */
   const handleBarcodeScanned = useCallback(
     async ({ data }) => {
-      if (!data || scanned || loading) return;
+      if (!data || scanLock.current) return;
 
+      scanLock.current = true;
       setScanned(true);
       setLoading(true);
       setLastCode(data);
 
       try {
-        // 📌 1. Guardar en historial
         await addScannedItem({
           barcode: data,
           scannedAt: new Date().toISOString(),
           source: "scanner",
         });
 
-        // 🌍 2. Lanzar búsqueda
-        const selectedEngine = engine ?? (await getGeneralSearchEngine());
-        await launchSearch(selectedEngine, data);
+        const engineId = engine ?? (await getGeneralSearchEngine());
+        const engineConfig = SEARCH_ENGINES[engineId] ?? SEARCH_ENGINES.google;
+
+        const url = engineConfig.buildUrl(data);
+        const canOpen = await Linking.canOpenURL(url);
+        if (!canOpen) throw new Error("No se puede abrir la URL");
+
+        await Linking.openURL(url);
       } catch (e) {
         console.warn("Error procesando el escaneo", e);
         resetScanner();
@@ -89,39 +98,14 @@ export default function ScannerTab() {
         setLoading(false);
       }
     },
-    [scanned, loading, engine],
+    [engine],
   );
-
-  /* -----------------------------------------
-     🌍 BÚSQUEDA
-  ------------------------------------------ */
-  const launchSearch = async (engineId, barcode) => {
-    let url;
-
-    switch (engineId) {
-      case "openfoodfacts":
-        url = `https://world.openfoodfacts.org/product/${barcode}`;
-        break;
-      case "google_shopping":
-        url = `https://www.google.com/search?tbm=shop&q=${barcode}`;
-        break;
-      case "duckduckgo":
-        url = `https://duckduckgo.com/?q=${barcode}`;
-        break;
-      case "barcodelookup":
-        url = `https://www.barcodelookup.com/${barcode}`;
-        break;
-      default:
-        url = `https://www.google.com/search?q=${barcode}`;
-    }
-
-    await Linking.openURL(url);
-  };
 
   /* -----------------------------------------
      🔄 RESET
   ------------------------------------------ */
   const resetScanner = () => {
+    scanLock.current = false;
     setScanned(false);
     setLoading(false);
     setLastCode(null);
@@ -130,7 +114,7 @@ export default function ScannerTab() {
   };
 
   /* -----------------------------------------
-     🛑 PERMISOS
+     🛑 SIN PERMISOS
   ------------------------------------------ */
   if (!permission?.granted) {
     return (
@@ -148,9 +132,10 @@ export default function ScannerTab() {
   ------------------------------------------ */
   return (
     <View style={styles.container}>
-      {/* 📷 CÁMARA */}
+      {/* Cámara */}
       <CameraView
         style={StyleSheet.absoluteFill}
+        pointerEvents="none"
         enableTorch={torch}
         zoom={zoom}
         barcodeScannerSettings={{
@@ -159,36 +144,21 @@ export default function ScannerTab() {
         onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
       />
 
-      {/* 🔘 CONTROLES */}
-      {!scanned && (
-        <View style={styles.sideControls}>
-          <Pressable
-            style={styles.controlButton}
-            onPress={() => setTorch((v) => !v)}
-          >
-            <MaterialCommunityIcons
-              name={torch ? "flashlight" : "flashlight-off"}
-              size={24}
-              color={torch ? "#22c55e" : "white"}
-            />
-          </Pressable>
-
-          <Pressable
-            style={styles.controlButton}
-            onPress={() => setZoomIndex((i) => (i + 1) % ZOOM_LEVELS.length)}
-          >
-            <MaterialCommunityIcons
-              name="magnify-plus-outline"
-              size={24}
-              color={zoomIndex > 0 ? "#22c55e" : "white"}
-            />
-            <Text style={styles.controlLabel}>{ZOOM_LABELS[zoomIndex]}</Text>
-          </Pressable>
-        </View>
+      {/* Controles */}
+      {!scanned && !loading && (
+        <ScannerControls
+          torch={torch}
+          zoomIndex={zoomIndex}
+          zoomLabels={SCANNER_ZOOM.labels}
+          onToggleTorch={() => setTorch((v) => !v)}
+          onZoomPress={() =>
+            setZoomIndex((i) => (i + 1) % SCANNER_ZOOM.levels.length)
+          }
+        />
       )}
 
-      {/* 🧭 OVERLAY */}
-      <View style={styles.overlay}>
+      {/* Overlay inferior */}
+      <View style={styles.overlay} pointerEvents="box-none">
         {loading ? (
           <>
             <ActivityIndicator size="large" color="#22c55e" />
@@ -216,55 +186,56 @@ export default function ScannerTab() {
    🎨 ESTILOS
 ------------------------------------------ */
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: "#000" },
+
+  center: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "#000",
   },
-  sideControls: {
-    position: "absolute",
-    top: 110,
-    right: 16,
-    alignItems: "center",
-  },
-  controlButton: {
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 26,
-    padding: 10,
-    marginBottom: 12,
-    alignItems: "center",
-    width: 56,
-  },
-  controlLabel: {
-    color: "white",
-    fontSize: 11,
-    fontWeight: "700",
-    marginTop: 2,
-  },
+
   overlay: {
     position: "absolute",
     bottom: 50,
     alignSelf: "center",
     alignItems: "center",
   },
-  text: {
-    color: "#fff",
-    fontSize: 16,
-    marginBottom: 8,
+
+  text: { color: "#fff", fontSize: 16, marginBottom: 8 },
+  subText: { color: "#aaa", fontSize: 14, marginBottom: 10 },
+  button: { color: "#22c55e", fontSize: 16, fontWeight: "600" },
+
+  controls: {
+    position: "absolute",
+    top: 110,
+    right: 16,
+    alignItems: "center",
+    gap: 16,
   },
-  subText: {
-    color: "#aaa",
-    fontSize: 14,
-    marginBottom: 10,
-  },
-  button: {
-    color: "#22c55e",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  center: {
-    flex: 1,
+
+  controlBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#000",
+  },
+
+  zoomText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+
+  eanBadge: {
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  eanText: {
+    color: "#22c55e",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

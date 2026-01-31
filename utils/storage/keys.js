@@ -1,7 +1,7 @@
 export const STORAGE_KEYS = {
-  ACTIVE_LISTS: "active_lists",
-  ARCHIVED_LISTS: "archived_lists",
-  PURCHASE_HISTORY: "purchase_history",
-  SCANNED_HISTORY: "scanned_history",
-  CONFIG: "app_config",
+  ACTIVE_LISTS: "ACTIVE_LISTS",
+  ARCHIVED_LISTS: "ARCHIVED_LISTS",
+  PURCHASE_HISTORY: "PURCHASE_HISTORY",
+  SCANNED_HISTORY: "SCANNED_HISTORY",
+  STORES_DATA: "STORES_DATA",
 };

@@ -17,6 +17,10 @@ import { ROUTES } from "../navigation/ROUTES";
 import StoreFilterBadges from "../components/StoreFilterBadges";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { buildPurchaseHistoryFromArchivedLists } from "../utils/buildPurchaseHistoryFromArchivedLists";
+import BarcodeLink from "../components/BarcodeLink";
+import { timeAgo } from "../utils/store/formatters";
+import { Image } from "react-native";
+import { getProductImage } from "../utils/products/getProductImage";
 
 import {
   queryProducts,
@@ -95,9 +99,11 @@ export default function PurchaseHistoryScreen() {
           <Text style={styles.name}>{item.name}</Text>
 
           {item.barcode ? (
-            <Pressable onPress={() => copyToClipboard(item.barcode)}>
-              <Text style={styles.barcode}>EAN: {item.barcode}</Text>
-            </Pressable>
+            <BarcodeLink
+              barcode={item.barcode}
+              label="Buscar código"
+              iconColor="#0F52BA"
+            />
           ) : null}
 
           <Text style={styles.meta}>
@@ -115,13 +121,15 @@ export default function PurchaseHistoryScreen() {
 
         {/* RIGHT SIDE */}
         <View style={styles.right}>
-          <Pressable onPress={goToDetail} hitSlop={10}>
-            <View style={styles.priceBox}>
-              <Ionicons name="pricetag-outline" size={18} color="#059669" />
-              <Text style={styles.price}>{priceText(item.priceInfo)}</Text>
-            </View>
-          </Pressable>
+          <View style={styles.priceBox}>
+            <Ionicons name="pricetag-outline" size={18} color="#059669" />
+            <Text style={styles.price}>{priceText(item.priceInfo)}</Text>
+          </View>
         </View>
+
+        <Pressable style={styles.chevron} onPress={goToDetail} hitSlop={10}>
+          <Ionicons name="chevron-forward" size={20} color="#999" />
+        </Pressable>
       </View>
     );
   };
@@ -276,5 +284,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#374151",
     fontWeight: "600",
+  },
+
+  chevron: {
+    paddingLeft: 6,
   },
 });

@@ -6,11 +6,12 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  Image,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+
+import { Image } from "expo-image";
 
 import {
   updateScannedEntry,
@@ -18,17 +19,30 @@ import {
 } from "../services/scannerHistory";
 
 import { safeAlert } from "../utils/core/safeAlert";
+import { createThumbnail } from "../utils/createThumbnail";
 
 export default function EditScannedItemScreen({ route, navigation }) {
   const { item } = route.params;
 
   const barcode = item.barcode;
 
+  // 📌 Estados
   const [name, setName] = useState(item.name ?? "");
   const [brand, setBrand] = useState(item.brand ?? "");
   const [url, setUrl] = useState(item.url ?? "");
   const [imageUrl, setImageUrl] = useState(item.imageUrl ?? "");
   const [notes, setNotes] = useState(item.notes ?? "");
+  const [thumbnailUri, setThumbnailUri] = useState(item.thumbnailUri ?? null);
+
+  /* -------------------------------------------------
+     Generar thumbnail al perder foco del input
+  -------------------------------------------------- */
+  const handleImageUrlBlur = async () => {
+    if (!imageUrl || imageUrl === item.imageUrl) return;
+
+    const thumb = await createThumbnail(imageUrl, barcode);
+    if (thumb) setThumbnailUri(thumb);
+  };
 
   /* -------------------------------------------------
      Guardar cambios
@@ -39,11 +53,19 @@ export default function EditScannedItemScreen({ route, navigation }) {
       return;
     }
 
+    let finalThumbnail = thumbnailUri;
+
+    // Si hay URL nueva y aún no hay thumbnail
+    if (imageUrl && imageUrl !== item.imageUrl && !thumbnailUri) {
+      finalThumbnail = await createThumbnail(imageUrl, barcode);
+    }
+
     await updateScannedEntry(barcode, {
       name: name.trim(),
       brand: brand.trim(),
       url: url.trim(),
       imageUrl: imageUrl.trim(),
+      thumbnailUri: finalThumbnail,
       notes: notes.trim(),
     });
 
@@ -112,20 +134,25 @@ export default function EditScannedItemScreen({ route, navigation }) {
           autoCapitalize="none"
         />
 
-        {/* IMAGEN */}
+        {/* IMAGEN / THUMBNAIL */}
         <Text style={styles.label}>Imagen del producto</Text>
 
-        {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} />
+        {thumbnailUri ? (
+          <Image
+            source={{ uri: thumbnailUri }}
+            style={styles.thumb}
+            contentFit="cover"
+          />
         ) : (
-          <View style={styles.noImage}>
-            <Text style={{ color: "#666" }}>Sin imagen</Text>
+          <View style={styles.noThumb}>
+            <Text style={{ color: "#555" }}>64×64</Text>
           </View>
         )}
 
         <TextInput
           value={imageUrl}
           onChangeText={setImageUrl}
+          onBlur={handleImageUrlBlur}
           placeholder="URL de la imagen"
           style={styles.input}
           autoCapitalize="none"
@@ -201,23 +228,24 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  image: {
-    width: 120,
-    height: 120,
+  thumb: {
+    width: 64,
+    height: 64,
     borderRadius: 8,
-    marginBottom: 10,
+    backgroundColor: "#eee",
     marginTop: 6,
+    marginBottom: 6,
   },
 
-  noImage: {
-    width: 120,
-    height: 120,
-    backgroundColor: "#ddd",
+  noThumb: {
+    width: 64,
+    height: 64,
     borderRadius: 8,
-    marginBottom: 10,
-    marginTop: 6,
-    justifyContent: "center",
+    backgroundColor: "#ddd",
     alignItems: "center",
+    justifyContent: "center",
+    marginTop: 6,
+    marginBottom: 6,
   },
 
   saveButton: {

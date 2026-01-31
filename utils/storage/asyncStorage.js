@@ -1,5 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+export async function clearStoresData() {
+  await AsyncStorage.removeItem("STORES_DATA");
+}
+
 export const getItem = async (key) => {
   try {
     const raw = await AsyncStorage.getItem(key);

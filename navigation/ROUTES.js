@@ -31,6 +31,7 @@ export const ROUTES = {
 
   // Scanner
   EDIT_SCANNED_ITEM: "EditScannedItem",
+  SHELF_LABEL_SCANNER: "ShelfLabelScanner",
 
   // Menu
   MENU: "Menu",

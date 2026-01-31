@@ -82,6 +82,7 @@ export default function StoresBrowseScreen() {
     });
   }, [orderedStores, query]);
 
+  console.log(filteredStores.map((item) => item.id));
   /* ---------------------------------------------
      Navegación
   ---------------------------------------------- */
@@ -150,6 +151,12 @@ export default function StoresBrowseScreen() {
         placeholder="Buscar tienda…"
         style={styles.search}
       />
+
+      <Text style={styles.countText}>
+        {query.trim()
+          ? `${filteredStores.length} resultado${filteredStores.length === 1 ? "" : "s"}`
+          : `${filteredStores.length} tienda${filteredStores.length === 1 ? "" : "s"}`}
+      </Text>
 
       <FlatList
         data={filteredStores}
@@ -235,5 +242,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
+  },
+  countText: {
+    marginHorizontal: 16,
+    marginBottom: 6,
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "600",
   },
 });

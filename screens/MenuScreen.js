@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { ROUTES } from "../navigation/ROUTES";
@@ -17,6 +18,7 @@ import {
   clearArchivedLists,
   clearPurchaseHistory,
   clearScannedHistory,
+  clearStoresData,
 } from "../utils/storage";
 
 import {
@@ -25,6 +27,8 @@ import {
   getBookSearchEngine,
   setBookSearchEngine,
 } from "../utils/config/searchConfig";
+
+import { SEARCH_ENGINES, BOOK_ENGINES } from "../constants/searchEngines";
 
 /* -----------------------------------------
    📋 COMPONENTE
@@ -54,22 +58,6 @@ export default function MenuScreen({ navigation }) {
     await setBookSearchEngine(id);
     setBookEngineState(id);
   };
-
-  /* -----------------------------------------
-     🔍 DEFINICIÓN DE MOTORES
-  ------------------------------------------ */
-  const generalEngines = [
-    { id: "openfoodfacts", label: "OpenFoodFacts", icon: "nutrition-outline" },
-    { id: "google_shopping", label: "Google Shopping", icon: "logo-google" },
-    { id: "duckduckgo", label: "DuckDuckGo", icon: "search-outline" },
-    { id: "barcodelookup", label: "BarcodeLookup", icon: "barcode-outline" },
-  ];
-
-  const bookEngines = [
-    { id: "google_books", label: "Google Books", icon: "book-outline" },
-    { id: "open_library", label: "Open Library", icon: "library-outline" },
-    { id: "amazon_books", label: "Amazon Books", icon: "cart-outline" },
-  ];
 
   /* -----------------------------------------
      🧱 COMPONENTES REUTILIZABLES
@@ -114,6 +102,38 @@ export default function MenuScreen({ navigation }) {
       <Ionicons name="warning" size={20} color="#b91c1c" />
     </TouchableOpacity>
   );
+
+  function MotorGeneral() {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Motor de búsqueda general</Text>
+        {Object.values(SEARCH_ENGINES).map((engine) => (
+          <EngineOption
+            key={engine.id}
+            engine={engine}
+            selectedId={generalEngine}
+            onSelect={selectGeneralEngine}
+          />
+        ))}
+      </View>
+    );
+  }
+
+  function MotorLibros() {
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Motor para libros</Text>
+        {Object.values(BOOK_ENGINES).map((engine) => (
+          <EngineOption
+            key={engine.id}
+            engine={engine}
+            selectedId={bookEngine}
+            onSelect={selectBookEngine}
+          />
+        ))}
+      </View>
+    );
+  }
 
   /* -----------------------------------------
      🖥 RENDER
@@ -165,31 +185,8 @@ export default function MenuScreen({ navigation }) {
           />
         </View>
 
-        {/* MOTOR GENERAL */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Motor de búsqueda general</Text>
-          {generalEngines.map((e) => (
-            <EngineOption
-              key={e.id}
-              engine={e}
-              selectedId={generalEngine}
-              onSelect={selectGeneralEngine}
-            />
-          ))}
-        </View>
-
-        {/* MOTOR LIBROS */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Motor para libros</Text>
-          {bookEngines.map((e) => (
-            <EngineOption
-              key={e.id}
-              engine={e}
-              selectedId={bookEngine}
-              onSelect={selectBookEngine}
-            />
-          ))}
-        </View>
+        <MotorGeneral />
+        {/* <MotorLibros /> */}
 
         {/* MANTENIMIENTO */}
         <View style={styles.section}>
@@ -256,6 +253,38 @@ export default function MenuScreen({ navigation }) {
           />
 
           <DangerRow
+            icon="refresh"
+            label="Recargar tiendas desde datos iniciales"
+            onPress={() =>
+              safeAlert(
+                "Recargar tiendas",
+                "Se eliminarán los cambios locales en tiendas y se volverán a cargar desde los datos iniciales. ¿Continuar?",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Recargar",
+                    style: "destructive",
+                    onPress: async () => {
+                      await clearStoresData();
+                      setTimeout(() => {
+                        navigation.reset({
+                          index: 0,
+                          routes: [
+                            {
+                              name: ROUTES.SHOPPING_TAB,
+                              params: { screen: ROUTES.SHOPPING_LISTS },
+                            },
+                          ],
+                        });
+                      }, 50);
+                    },
+                  },
+                ],
+              )
+            }
+          />
+
+          <DangerRow
             icon="close-circle"
             label="Borrar almacenamiento completo"
             onPress={() =>
@@ -269,10 +298,17 @@ export default function MenuScreen({ navigation }) {
                     style: "destructive",
                     onPress: async () => {
                       await clearStorage();
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: ROUTES.SHOPPING_LISTS }],
-                      });
+                      setTimeout(() => {
+                        navigation.reset({
+                          index: 0,
+                          routes: [
+                            {
+                              name: ROUTES.SHOPPING_TAB,
+                              params: { screen: ROUTES.SHOPPING_LISTS },
+                            },
+                          ],
+                        });
+                      }, 50);
                     },
                   },
                 ],
