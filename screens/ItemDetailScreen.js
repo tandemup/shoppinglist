@@ -7,7 +7,10 @@ import {
   Pressable,
   ScrollView,
   Linking,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getGeneralSearchEngine } from "../utils/config/searchConfig";
 
@@ -143,156 +146,164 @@ export default function ItemDetailScreen() {
      Render
   ----------------------------*/
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* NOMBRE */}
-        <Text style={styles.label}>Nombre</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} />
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {/* NOMBRE */}
+          <Text style={styles.label}>Nombre</Text>
+          <TextInput style={styles.input} value={name} onChangeText={setName} />
 
-        {/* CÓDIGO DE BARRAS */}
-        <Text style={styles.label}>Código de barras</Text>
-        <View style={styles.barcodeRow}>
-          <TextInput
-            style={[styles.input, { flex: 1 }]}
-            value={barcode}
-            onChangeText={setBarcode}
-            keyboardType="numeric"
-            placeholder="EAN-13"
-          />
+          {/* CÓDIGO DE BARRAS */}
+          <Text style={styles.label}>Código de barras</Text>
+          <View style={styles.barcodeRow}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={barcode}
+              onChangeText={setBarcode}
+              keyboardType="numeric"
+              placeholder="EAN-13"
+            />
 
-          {/* Escanear */}
-          <Pressable
-            style={styles.scanBtn}
-            onPress={() => setShowScanner(true)}
-          >
-            <Ionicons name="barcode-outline" size={22} color="#2563eb" />
-          </Pressable>
+            {/* Escanear */}
+            <Pressable
+              style={styles.scanBtn}
+              onPress={() => setShowScanner(true)}
+            >
+              <Ionicons name="barcode-outline" size={22} color="#2563eb" />
+            </Pressable>
 
-          {/* Buscar con motor configurado */}
-          <Pressable style={styles.scanBtn} onPress={handleSearch}>
-            <Ionicons name="search-outline" size={22} color="#2563eb" />
-          </Pressable>
-        </View>
+            {/* Buscar con motor configurado */}
+            <Pressable style={styles.scanBtn} onPress={handleSearch}>
+              <Ionicons name="search-outline" size={22} color="#2563eb" />
+            </Pressable>
+          </View>
 
-        {/* UNIDAD */}
-        <View style={styles.unitRow}>
-          <Text style={styles.label}>Unidad</Text>
-          <Text style={styles.unitHint}>
-            {
+          {/* UNIDAD */}
+          <View style={styles.unitRow}>
+            <Text style={styles.label}>Unidad</Text>
+            <Text style={styles.unitHint}>
               {
-                u: "🧩 Unidad (pieza)",
-                kg: "⚖️ Kilogramos",
-                g: "⚖️ Gramos",
-                l: "🧃 Litros",
-              }[unit]
-            }
-          </Text>
-        </View>
-
-        <View style={styles.unitRow}>
-          {["u", "kg", "g", "l"].map((u) => (
-            <Pressable
-              key={u}
-              style={[styles.unitBtn, unit === u && styles.unitBtnActive]}
-              onPress={() => setUnit(u)}
-            >
-              <Text
-                style={[styles.unitText, unit === u && styles.unitTextActive]}
-              >
-                {formatUnit(u)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.inlineRow}>
-          <View style={styles.inlineField}>
-            <Text style={styles.label}>Cantidad ({formatUnit(unit)})</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="decimal-pad"
-              value={qty}
-              onChangeText={setQty}
-            />
-          </View>
-
-          <View style={styles.inlineField}>
-            <Text style={styles.label}>Precio /{formatUnit(unit)}</Text>
-            <TextInput
-              style={styles.input}
-              keyboardType="decimal-pad"
-              value={unitPrice}
-              onChangeText={setUnitPrice}
-            />
-          </View>
-        </View>
-
-        {/* PROMOS */}
-        <Text style={styles.label}>Ofertas</Text>
-        <View style={styles.promoRow}>
-          {Object.entries(PROMOTIONS).map(([key, p]) => (
-            <Pressable
-              key={key}
-              style={[styles.promoBtn, promo === key && styles.promoBtnActive]}
-              onPress={() => setPromo(key)}
-            >
-              <Text
-                style={[
-                  styles.promoText,
-                  promo === key && styles.promoTextActive,
-                ]}
-              >
-                {p.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* RESUMEN */}
-        <View style={styles.summary}>
-          <Text style={styles.summaryTitle}>Total</Text>
-          <Text style={styles.summaryValue}>
-            {formatCurrency(priceInfo.total, summaryCurrency)}
-          </Text>
-
-          {priceInfo.savings > 0 && (
-            <Text style={styles.savings}>
-              Ahorro: {formatCurrency(priceInfo.savings, summaryCurrency)}
+                {
+                  u: "🧩 Unidad (pieza)",
+                  kg: "⚖️ Kilogramos",
+                  g: "⚖️ Gramos",
+                  l: "🧃 Litros",
+                }[unit]
+              }
             </Text>
-          )}
-        </View>
+          </View>
 
-        {/* ACCIONES */}
-        <View style={styles.actions}>
-          <Pressable style={styles.saveBtn} onPress={handleSave}>
-            <Ionicons name="save" size={18} color="#fff" />
-            <Text style={styles.saveText}>Guardar</Text>
-          </Pressable>
+          <View style={styles.unitRow}>
+            {["u", "kg", "g", "l"].map((u) => (
+              <Pressable
+                key={u}
+                style={[styles.unitBtn, unit === u && styles.unitBtnActive]}
+                onPress={() => setUnit(u)}
+              >
+                <Text
+                  style={[styles.unitText, unit === u && styles.unitTextActive]}
+                >
+                  {formatUnit(u)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
-          <Pressable style={styles.deleteBtn} onPress={handleDelete}>
-            <Ionicons name="trash" size={18} color="#fff" />
-            <Text style={styles.deleteText}>Eliminar</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+          <View style={styles.inlineRow}>
+            <View style={styles.inlineField}>
+              <Text style={styles.label}>Cantidad ({formatUnit(unit)})</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="decimal-pad"
+                value={qty}
+                onChangeText={setQty}
+              />
+            </View>
 
-      {showScanner && (
-        <View style={styles.scannerOverlay}>
-          <BarcodeScannerEAN13
-            onDetected={(code) => {
-              setBarcode(code);
-              setShowScanner(false);
-            }}
-          />
-          <Pressable
-            style={styles.closeScannerBtn}
-            onPress={() => setShowScanner(false)}
-          >
-            <Ionicons name="close" size={28} color="#fff" />
-          </Pressable>
-        </View>
-      )}
-    </SafeAreaView>
+            <View style={styles.inlineField}>
+              <Text style={styles.label}>Precio /{formatUnit(unit)}</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="decimal-pad"
+                value={unitPrice}
+                onChangeText={setUnitPrice}
+              />
+            </View>
+          </View>
+
+          {/* PROMOS */}
+          <Text style={styles.label}>Ofertas</Text>
+          <View style={styles.promoRow}>
+            {Object.entries(PROMOTIONS).map(([key, p]) => (
+              <Pressable
+                key={key}
+                style={[
+                  styles.promoBtn,
+                  promo === key && styles.promoBtnActive,
+                ]}
+                onPress={() => setPromo(key)}
+              >
+                <Text
+                  style={[
+                    styles.promoText,
+                    promo === key && styles.promoTextActive,
+                  ]}
+                >
+                  {p.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* RESUMEN */}
+          <View style={styles.summary}>
+            <Text style={styles.summaryTitle}>Total</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(priceInfo.total, summaryCurrency)}
+            </Text>
+
+            {priceInfo.savings > 0 && (
+              <Text style={styles.savings}>
+                Ahorro: {formatCurrency(priceInfo.savings, summaryCurrency)}
+              </Text>
+            )}
+          </View>
+
+          {/* ACCIONES */}
+          <View style={styles.actions}>
+            <Pressable style={styles.saveBtn} onPress={handleSave}>
+              <Ionicons name="save" size={18} color="#fff" />
+              <Text style={styles.saveText}>Guardar</Text>
+            </Pressable>
+
+            <Pressable style={styles.deleteBtn} onPress={handleDelete}>
+              <Ionicons name="trash" size={18} color="#fff" />
+              <Text style={styles.deleteText}>Eliminar</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+
+        {showScanner && (
+          <View style={styles.scannerOverlay}>
+            <BarcodeScannerEAN13
+              onDetected={(code) => {
+                setBarcode(code);
+                setShowScanner(false);
+              }}
+            />
+            <Pressable
+              style={styles.closeScannerBtn}
+              onPress={() => setShowScanner(false)}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </Pressable>
+          </View>
+        )}
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
