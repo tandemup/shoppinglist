@@ -25,6 +25,7 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
+      "display": "standalone",
       "build": {
         "minify": false
       },
