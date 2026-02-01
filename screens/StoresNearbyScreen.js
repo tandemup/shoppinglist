@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
 import { useNavigation } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";

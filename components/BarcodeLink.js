@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { Text, View, Pressable, Linking, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "./AppIcon";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../constants/searchEngines";
 

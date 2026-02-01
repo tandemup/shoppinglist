@@ -10,7 +10,8 @@ import {
 import { ROUTES } from "../navigation/ROUTES";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
+
 import { safeAlert } from "../utils/core/safeAlert";
 import BarcodeLink from "../components/BarcodeLink";
 
@@ -125,7 +126,7 @@ export default function ScannedHistoryScreen({ navigation }) {
             />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <Ionicons name="cube-outline" size={26} color="#999" />
+              <AppIcon name="cube-outline" size={26} color="#999" />
             </View>
           )}
         </View>

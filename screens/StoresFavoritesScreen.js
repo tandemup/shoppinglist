@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
 
 import { useStores } from "../context/StoresContext";
 import { useLocation } from "../context/LocationContext";

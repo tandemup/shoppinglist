@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
 import { useNavigation } from "@react-navigation/native";
 
 import { ROUTES } from "../navigation/ROUTES";
@@ -16,7 +16,7 @@ function MenuItem({ icon, title, subtitle, onPress }) {
       accessibilityRole="button"
     >
       <View style={styles.iconContainer}>
-        <Ionicons name={icon} size={26} color="#2e7d32" />
+        <AppIcon name={icon} size={26} color="#2e7d32" />
       </View>
 
       <View style={styles.textContainer}>
@@ -24,7 +24,7 @@ function MenuItem({ icon, title, subtitle, onPress }) {
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
 
-      <Ionicons name="chevron-forward" size={22} color="#999" />
+      <AppIcon name="chevron-forward" size={22} color="#999" />
     </Pressable>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
 import { useRoute } from "@react-navigation/native";
 
 import { useStores } from "../context/StoresContext";
@@ -74,7 +74,7 @@ export default function StoreDetailScreen() {
           </View>
         ) : (
           <View style={styles.mapPlaceholder}>
-            <Ionicons name="map-outline" size={36} color="#999" />
+            <AppIcon name="map-outline" size={36} color="#999" />
             <Text style={styles.mapPlaceholderText}>
               {coords ? "Previsualización del mapa" : "Ubicación no disponible"}
             </Text>
@@ -86,7 +86,7 @@ export default function StoreDetailScreen() {
             style={styles.secondaryButton}
             onPress={() => setShowMapPreview(true)}
           >
-            <Ionicons name="map-outline" size={18} color="#1a73e8" />
+            <AppIcon name="map-outline" size={18} color="#1a73e8" />
             <Text style={styles.secondaryButtonText}>
               Ver mapa (OpenStreetMap)
             </Text>
@@ -98,13 +98,13 @@ export default function StoreDetailScreen() {
             style={styles.secondaryButton}
             onPress={() => setShowMapPreview(false)}
           >
-            <Ionicons name="close-outline" size={18} color="#1a73e8" />
+            <AppIcon name="close-outline" size={18} color="#1a73e8" />
             <Text style={styles.secondaryButtonText}>Ocultar mapa</Text>
           </Pressable>
         )}
 
         <Pressable style={styles.mapsButton} onPress={openInGoogleMaps}>
-          <Ionicons name="navigate-outline" size={18} color="#fff" />
+          <AppIcon name="navigate-outline" size={18} color="#fff" />
           <Text style={styles.mapsButtonText}>Abrir en Google Maps</Text>
         </Pressable>
       </View>

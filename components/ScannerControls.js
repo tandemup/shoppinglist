@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "./AppIcon";
 
 /**
  * Controles overlay para cámara
@@ -19,7 +19,7 @@ export default function ScannerControls({
     <View style={styles.controls} pointerEvents="box-none">
       {/* Flash */}
       <Pressable style={styles.controlBtn} onPress={onToggleTorch}>
-        <Ionicons name={torch ? "flash" : "flash-off"} size={22} color="#fff" />
+        <AppIcon name={torch ? "flash" : "flash-off"} size={22} color="#fff" />
       </Pressable>
 
       {/* Zoom */}
@@ -31,7 +31,7 @@ export default function ScannerControls({
 
       {/* Badge */}
       <View style={styles.eanBadge}>
-        <Ionicons name="barcode" size={18} color="#22c55e" />
+        <AppIcon name="barcode" size={18} color="#22c55e" />
         <Text style={styles.eanText}>EAN</Text>
       </View>
     </View>

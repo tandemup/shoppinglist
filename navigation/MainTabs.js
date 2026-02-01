@@ -1,7 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
 
 import { ROUTES } from "./ROUTES";
 import ShoppingStack from "./ShoppingStack";
@@ -43,7 +43,7 @@ export default function MainTabs() {
         options={{
           title: "Tiendas",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="storefront-outline" size={size} color={color} />
+            <AppIcon name="storefront-outline" size={size} color={color} />
           ),
         }}
       />
@@ -66,7 +66,7 @@ export default function MainTabs() {
         options={{
           title: "Menu",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="menu" size={size} color={color} />
+            <AppIcon name="menu" size={size} color={color} />
           ),
         }}
       />

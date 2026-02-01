@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "./AppIcon";
 
 import { formatCurrency } from "../utils/store/formatters";
 import { formatUnit } from "../utils/pricing/unitFormat";
@@ -61,7 +61,7 @@ export default function ItemRow({ item, onToggle, onEdit }) {
       </Text>
 
       <Pressable style={styles.chevron} onPress={onEdit} hitSlop={10}>
-        <Ionicons name="chevron-forward" size={18} color="#999" />
+        <AppIcon name="chevron-forward" size={18} color="#999" />
       </Pressable>
     </View>
   );

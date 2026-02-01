@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
 
 import { useLists } from "../context/ListsContext";
 import { useStores } from "../context/StoresContext";
@@ -27,7 +27,7 @@ export default function PurchaseDetailScreen() {
   ----------------------------*/
   const purchases = useMemo(() => {
     return [...(product.purchases ?? [])].sort(
-      (a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt)
+      (a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt),
     );
   }, [product.purchases]);
 
@@ -39,7 +39,7 @@ export default function PurchaseDetailScreen() {
 
     const sum = purchases.reduce(
       (acc, p) => acc + (p.priceInfo?.total ?? 0),
-      0
+      0,
     );
 
     return sum / purchases.length;
@@ -107,7 +107,7 @@ export default function PurchaseDetailScreen() {
       />
 
       <Pressable style={styles.button} onPress={handleRepeatProduct}>
-        <Ionicons name="refresh-outline" size={20} color="#fff" />
+        <AppIcon name="refresh-outline" size={20} color="#fff" />
         <Text style={styles.buttonText}>Añadir a nueva lista</Text>
       </Pressable>
     </View>

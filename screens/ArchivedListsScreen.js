@@ -9,7 +9,8 @@ import {
   Linking,
 } from "react-native";
 import SearchBar from "../components/SearchBar";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
+
 import { ROUTES } from "../navigation/ROUTES";
 import { useLists } from "../context/ListsContext";
 import { useStores } from "../context/StoresContext";
@@ -28,13 +29,13 @@ const StoreSearchLink = ({ store, onPressStore }) => {
       return;
     }
     Linking.openURL(
-      `https://www.google.com/search?q=${encodeURIComponent(store.name)}`
+      `https://www.google.com/search?q=${encodeURIComponent(store.name)}`,
     );
   };
 
   return (
     <TouchableOpacity onPress={handlePress} style={styles.storeLink}>
-      <Ionicons name="location-outline" size={16} color="#2563eb" />
+      <AppIcon name="location-outline" size={16} color="#2563eb" />
       <Text style={styles.storeText}>{store.name}</Text>
     </TouchableOpacity>
   );
@@ -72,7 +73,7 @@ const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
 
 const InfoRow = ({ archivedAt, store, onPressStore }) => (
   <View style={styles.infoRow}>
-    <Ionicons name="calendar-outline" size={16} color="#777" />
+    <AppIcon name="calendar-outline" size={16} color="#777" />
     <Text style={styles.subInfo}>
       {new Date(archivedAt).toLocaleDateString("es-ES", {
         day: "numeric",
@@ -88,7 +89,7 @@ const InfoRow = ({ archivedAt, store, onPressStore }) => (
 const ProductsAndTotalRow = ({ count, total }) => (
   <View style={styles.bottomRow}>
     <View style={styles.iconRow}>
-      <Ionicons name="cart-outline" size={17} color="#777" />
+      <AppIcon name="cart-outline" size={17} color="#777" />
       <Text style={styles.productsText}>{count} productos</Text>
     </View>
     <Text style={styles.totalPrice}>{total.toFixed(2)} €</Text>
@@ -180,7 +181,7 @@ const ArchivedListCard = ({
   const items = list.items || [];
   const total = items.reduce(
     (sum, it) => sum + Number(it.priceInfo?.total ?? it.price ?? 0),
-    0
+    0,
   );
 
   return (
@@ -228,7 +229,7 @@ export default function ArchivedListsScreen({ navigation }) {
     return [...(archivedLists ?? [])].sort(
       (a, b) =>
         new Date(b.archivedAt || b.createdAt) -
-        new Date(a.archivedAt || a.createdAt)
+        new Date(a.archivedAt || a.createdAt),
     );
   }, [archivedLists]);
 

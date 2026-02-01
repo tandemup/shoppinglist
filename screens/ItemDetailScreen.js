@@ -15,7 +15,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getGeneralSearchEngine } from "../utils/config/searchConfig";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../components/AppIcon";
+
 import { useNavigation, useRoute } from "@react-navigation/native";
 
 import { DEFAULT_CURRENCY } from "../constants/currency";
@@ -172,12 +173,12 @@ export default function ItemDetailScreen() {
               style={styles.scanBtn}
               onPress={() => setShowScanner(true)}
             >
-              <Ionicons name="barcode-outline" size={22} color="#2563eb" />
+              <AppIcon name="barcode-outline" size={22} color="#2563eb" />
             </Pressable>
 
             {/* Buscar con motor configurado */}
             <Pressable style={styles.scanBtn} onPress={handleSearch}>
-              <Ionicons name="search-outline" size={22} color="#2563eb" />
+              <AppIcon name="search-outline" size={22} color="#2563eb" />
             </Pressable>
           </View>
 
@@ -275,12 +276,12 @@ export default function ItemDetailScreen() {
           {/* ACCIONES */}
           <View style={styles.actions}>
             <Pressable style={styles.saveBtn} onPress={handleSave}>
-              <Ionicons name="save" size={18} color="#fff" />
+              <AppIcon name="save" size={18} color="#fff" />
               <Text style={styles.saveText}>Guardar</Text>
             </Pressable>
 
             <Pressable style={styles.deleteBtn} onPress={handleDelete}>
-              <Ionicons name="trash" size={18} color="#fff" />
+              <AppIcon name="trash" size={18} color="#fff" />
               <Text style={styles.deleteText}>Eliminar</Text>
             </Pressable>
           </View>
@@ -298,7 +299,7 @@ export default function ItemDetailScreen() {
               style={styles.closeScannerBtn}
               onPress={() => setShowScanner(false)}
             >
-              <Ionicons name="close" size={28} color="#fff" />
+              <AppIcon name="close" size={28} color="#fff" />
             </Pressable>
           </View>
         )}
@@ -313,11 +314,19 @@ export default function ItemDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: "#fff" },
   label: { fontWeight: "600", marginBottom: 6, marginTop: 16 },
-  input: {
+  input1: {
     borderWidth: 1,
     borderColor: "#ddd",
     borderRadius: 8,
     padding: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16, // 🔑 CLAVE
+    lineHeight: 20,
   },
   barcodeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   scanBtn: {

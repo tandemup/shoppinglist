@@ -1,6 +1,6 @@
 import React from "react";
 import { View, TextInput, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "./AppIcon";
 
 export default function SearchBar({
   value,
@@ -10,7 +10,7 @@ export default function SearchBar({
 }) {
   return (
     <View style={[styles.container, style]}>
-      <Ionicons name="search" size={18} color="#777" style={styles.icon} />
+      <AppIcon name="search" size={18} color="#777" style={styles.icon} />
       <TextInput
         style={styles.input}
         placeholder={placeholder}

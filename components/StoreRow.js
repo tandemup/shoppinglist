@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "./AppIcon";
 
 import { useStores } from "../context/StoresContext";
 import { formatDistance } from "../utils/math/formatDistance";

@@ -8,7 +8,7 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "./AppIcon";
 
 export default function SearchBarBasic({
   placeholder = "Buscar producto...",
