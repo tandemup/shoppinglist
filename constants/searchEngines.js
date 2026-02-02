@@ -20,7 +20,7 @@ export const SEARCH_ENGINES = {
   bing: {
     id: "bing",
     label: "Bing",
-    icon: "search-outline", // Ionicons, consistente
+    icon: "search-outline",
     buildUrl: (query) =>
       `https://www.bing.com/search?q=${encodeURIComponent(query)}`,
   },

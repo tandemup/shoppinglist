@@ -15,7 +15,7 @@ export default function ItemRow({ item, onToggle, onEdit }) {
     <View style={[styles.container, !item.checked && styles.containerInactive]}>
       {/* Checkbox */}
       <Pressable style={styles.checkbox} onPress={onToggle} hitSlop={10}>
-        <Ionicons
+        <AppIcon
           name={item.checked ? "checkbox-outline" : "square-outline"}
           size={20}
           color={item.checked ? "#2e7d32" : "#999"}

@@ -59,7 +59,7 @@ const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
 
     {/* CHEVRON — always right */}
     <Pressable onPress={onToggle} style={styles.chevronPressable} hitSlop={10}>
-      <Ionicons
+      <AppIcon
         name="chevron-forward"
         size={22}
         color="#555"

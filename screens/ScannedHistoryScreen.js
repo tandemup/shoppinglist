@@ -159,7 +159,7 @@ export default function ScannedHistoryScreen({ navigation }) {
           )}
         </View>
 
-        <Ionicons
+        <AppIcon
           name="chevron-forward"
           size={26}
           color="#888"
@@ -177,7 +177,7 @@ export default function ScannedHistoryScreen({ navigation }) {
       <Text style={styles.title}>Historial de Escaneos</Text>
 
       <View style={styles.searchContainer}>
-        <Ionicons
+        <AppIcon
           name="search"
           size={20}
           color="#666"

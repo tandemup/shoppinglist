@@ -5,7 +5,7 @@ import AppIcon from "./AppIcon";
 export default function StoreSelector({ store, onPress, disabled = false }) {
   const content = (
     <>
-      <Ionicons
+      <AppIcon
         name="storefront"
         size={20}
         color={disabled ? "#999" : "#007bff"}

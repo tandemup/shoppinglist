@@ -81,7 +81,7 @@ export default function MenuScreen({ navigation }) {
         onPress={() => onSelect(engine.id)}
       >
         <View style={styles.configLeft}>
-          <Ionicons
+          <AppIcon
             name={engine.icon}
             size={20}
             color={selected ? "#2563eb" : "#666"}

@@ -121,7 +121,7 @@ export default function StoreDetailScreen() {
         <Text style={styles.name}>{store.name}</Text>
 
         <Pressable onPress={handleToggleFavorite} hitSlop={10}>
-          <Ionicons
+          <AppIcon
             name={isFavorite ? "star" : "star-outline"}
             size={26}
             color={isFavorite ? "#f5c518" : "#bbb"}

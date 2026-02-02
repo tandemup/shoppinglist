@@ -43,7 +43,7 @@ export default function BarcodeLink({
       style={Platform.OS === "web" ? { display: "inline-flex" } : undefined}
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Ionicons
+        <AppIcon
           name="barcode-outline"
           size={14}
           color={iconColor}

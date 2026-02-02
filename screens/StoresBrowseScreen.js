@@ -133,7 +133,7 @@ export default function StoresBrowseScreen() {
           hitSlop={10}
           style={styles.starButton}
         >
-          <Ionicons
+          <AppIcon
             name={isFavorite ? "star" : "star-outline"}
             size={22}
             color={isFavorite ? "#f5c518" : "#bbb"}

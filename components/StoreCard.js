@@ -13,7 +13,7 @@ export default function StoreCard({ store, onPress }) {
         <Text style={styles.name}>{store.name}</Text>
 
         <Pressable onPress={() => toggleFavoriteStore(store.id)} hitSlop={8}>
-          <Ionicons
+          <AppIcon
             name={isFav ? "star" : "star-outline"}
             size={22}
             color={isFav ? "#facc15" : "#9ca3af"}

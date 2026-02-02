@@ -28,7 +28,7 @@ export default function SearchBarBasic({
     <View style={styles.container}>
       {/* 🔍 INPUT */}
       <View style={styles.inputWrapper}>
-        <Ionicons
+        <AppIcon
           name="search"
           size={18}
           color="#666"
