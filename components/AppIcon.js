@@ -1,58 +1,67 @@
 import React from "react";
-import { Platform } from "react-native";
-import { SvgUri } from "react-native-svg";
-import { Asset } from "expo-asset";
+import { Platform, Image } from "react-native";
+
+import Cart from "../assets/icons/cart.svg";
+import Search from "../assets/icons/magnifying-glass.svg";
+import Chevron from "../assets/icons/chevron-right.svg";
+import Ellipsis from "../assets/icons/ellipsis-vertical.svg";
+import Trash from "../assets/icons/trash.svg";
+import Close from "../assets/icons/x-mark.svg";
+import Warning from "../assets/icons/exclamation-triangle.svg";
+import Store from "../assets/icons/building-storefront.svg";
+import QR from "../assets/icons/qr-code.svg";
+import Bars from "../assets/icons/bars-3.svg";
 
 const ICONS = {
-  "shopping-cart": require("../assets/icons/shopping-cart.svg"),
-  "cart-outline": require("../assets/icons/shopping-cart.svg"),
+  cart: Cart,
+  search: Search,
+  chevron: Chevron,
+  ellipsis: Ellipsis,
+  trash: Trash,
+  close: Close,
+  warning: Warning,
+  store: Store,
+  barcode: QR,
+  menu: Bars,
+};
 
-  "chevron-forward": require("../assets/icons/chevron-right.svg"),
-  "ellipsis-vertical": require("../assets/icons/ellipsis-vertical.svg"),
-  menu: require("../assets/icons/bars-3.svg"),
+const ICON_ALIASES = {
+  "shopping-cart": "cart",
+  "cart-outline": "cart",
 
-  search: require("../assets/icons/magnifying-glass.svg"),
-  "search-outline": require("../assets/icons/magnifying-glass.svg"),
+  "storefront-outline": "store",
 
-  barcode: require("../assets/icons/qr-code.svg"),
-  "barcode-outline": require("../assets/icons/qr-code.svg"),
+  "barcode-outline": "barcode",
+  "barcode-scan": "barcode",
 
-  flash: require("../assets/icons/bolt.svg"),
-  "flash-off": require("../assets/icons/bolt-slash.svg"),
+  "search-outline": "search",
 
-  "location-outline": require("../assets/icons/map-pin.svg"),
-  "storefront-outline": require("../assets/icons/building-storefront.svg"),
-  "navigate-outline": require("../assets/icons/arrow-top-right-on-square.svg"),
-  "map-outline": require("../assets/icons/map.svg"),
+  "chevron-forward": "chevron",
+  "chevron-right": "chevron",
 
-  "calendar-outline": require("../assets/icons/calendar.svg"),
-  "pricetag-outline": require("../assets/icons/tag.svg"),
-  "cube-outline": require("../assets/icons/cube.svg"),
-
-  save: require("../assets/icons/bookmark.svg"),
-  trash: require("../assets/icons/trash.svg"),
-  "refresh-outline": require("../assets/icons/arrow-path.svg"),
-  close: require("../assets/icons/x-mark.svg"),
-  "close-outline": require("../assets/icons/x-mark.svg"),
-
-  warning: require("../assets/icons/exclamation-triangle.svg"),
+  "ellipsis-vertical": "ellipsis",
 };
 
 export default function AppIcon({ name, size = 22, color = "#374151", style }) {
-  const source = ICONS[name];
-  if (!source) return null;
+  const resolved = ICON_ALIASES[name] || name;
+  const Icon = ICONS[resolved];
 
-  const asset = Asset.fromModule(source);
-  const uri = asset.uri || asset.localUri;
+  if (!Icon) {
+    if (__DEV__) {
+      console.warn(`[AppIcon] Icon not found: ${name}`);
+    }
+    return null;
+  }
 
+  // 🌐 WEB → SVG es un asset (Image)
+  if (Platform.OS === "web" && Icon?.uri) {
+    return (
+      <Image source={Icon} style={[{ width: size, height: size }, style]} />
+    );
+  }
+
+  // 📱 NATIVE → SVG es componente
   return (
-    <SvgUri
-      uri={uri}
-      width={size}
-      height={size}
-      stroke={color}
-      fill="none"
-      style={style}
-    />
+    <Icon width={size} height={size} stroke={color} fill="none" style={style} />
   );
 }

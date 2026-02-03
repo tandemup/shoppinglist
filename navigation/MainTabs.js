@@ -1,6 +1,5 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AppIcon from "../components/AppIcon";
 
 import { ROUTES } from "./ROUTES";
@@ -13,17 +12,19 @@ const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
   return (
-    <Tab.Navigator screenOptions={{ headerShown: false }}>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: "#2563EB",
+        tabBarInactiveTintColor: "#9CA3AF",
+      }}
+    >
       <Tab.Screen
         name={ROUTES.SHOPPING_TAB}
         component={ShoppingStack}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="cart-outline"
-              color={color}
-              size={size}
-            />
+            <AppIcon name="cart" color={color} size={size} />
           ),
         }}
       />
@@ -43,7 +44,7 @@ export default function MainTabs() {
         options={{
           title: "Tiendas",
           tabBarIcon: ({ color, size }) => (
-            <AppIcon name="storefront-outline" size={size} color={color} />
+            <AppIcon name="store" size={size} color={color} />
           ),
         }}
       />
@@ -52,11 +53,7 @@ export default function MainTabs() {
         component={ScannerStack}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="barcode-scan"
-              color={color}
-              size={size}
-            />
+            <AppIcon name="barcode" color={color} size={size} />
           ),
         }}
       />
