@@ -32,7 +32,7 @@ export default function SplashScreen({ navigation }) {
     <View style={styles.container}>
       <Animated.View style={{ alignItems: "center", opacity: fadeAnim }}>
         <Image
-          source={require("../assets/logo.png")} // ⚠️ asegúrate de tener este logo
+          source={require("../assets/splash-icon.png")} // ⚠️ asegúrate de tener este logo
           style={styles.logo}
           resizeMode="contain"
         />
