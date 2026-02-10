@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { Text, View, Pressable, Linking, Platform } from "react-native";
-import AppIcon from "./AppIcon";
+import { Ionicons } from "@expo/vector-icons";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../constants/searchEngines";
 
@@ -43,7 +44,7 @@ export default function BarcodeLink({
       style={Platform.OS === "web" ? { display: "inline-flex" } : undefined}
     >
       <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <AppIcon
+        <Ionicons
           name="barcode-outline"
           size={14}
           color={iconColor}

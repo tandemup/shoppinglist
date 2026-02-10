@@ -8,7 +8,7 @@ import {
   Pressable,
   Linking,
 } from "react-native";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useNavigation } from "@react-navigation/native";
 
@@ -123,13 +123,13 @@ export default function PurchaseHistoryScreen() {
         {/* RIGHT SIDE */}
         <View style={styles.right}>
           <View style={styles.priceBox}>
-            <AppIcon name="pricetag-outline" size={18} color="#059669" />
+            <Ionicons name="pricetag-outline" size={18} color="#059669" />
             <Text style={styles.price}>{priceText(item.priceInfo)}</Text>
           </View>
         </View>
 
         <Pressable style={styles.chevron} onPress={goToDetail} hitSlop={10}>
-          <AppIcon name="chevron-forward" size={20} color="#999" />
+          <Ionicons name="chevron-forward" size={20} color="#999" />
         </Pressable>
       </View>
     );

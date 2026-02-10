@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import AppIcon from "./AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 import { useConfig } from "../context/ConfigContext";
 
 export default function StoreCard({ store, onPress }) {
@@ -13,7 +13,7 @@ export default function StoreCard({ store, onPress }) {
         <Text style={styles.name}>{store.name}</Text>
 
         <Pressable onPress={() => toggleFavoriteStore(store.id)} hitSlop={8}>
-          <AppIcon
+          <Ionicons
             name={isFav ? "star" : "star-outline"}
             size={22}
             color={isFav ? "#facc15" : "#9ca3af"}

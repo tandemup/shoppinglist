@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import AppIcon from "./AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useStores } from "../context/StoresContext";
 import { formatDistance } from "../utils/math/formatDistance";
@@ -47,7 +47,7 @@ export default function StoreRow({ store, onPress }) {
         hitSlop={10}
         style={styles.starButton}
       >
-        <AppIcon
+        <Ionicons
           name={isFavorite ? "star" : "star-outline"}
           size={22}
           color={isFavorite ? "#f5c518" : "#bbb"}

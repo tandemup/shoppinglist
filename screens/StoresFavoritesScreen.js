@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useStores } from "../context/StoresContext";
 import { useLocation } from "../context/LocationContext";
@@ -69,7 +69,7 @@ export default function StoresFavoritesScreen() {
           hitSlop={10}
           style={styles.starButton}
         >
-          <AppIcon
+          <Ionicons
             name={isFavorite ? "star" : "star-outline"}
             size={22}
             color={isFavorite ? "#f5c518" : "#bbb"}

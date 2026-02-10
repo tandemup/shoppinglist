@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import AppIcon from "./AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { formatCurrency } from "../utils/store/formatters";
 import { formatUnit } from "../utils/pricing/unitFormat";
@@ -15,7 +15,7 @@ export default function ItemRow({ item, onToggle, onEdit }) {
     <View style={[styles.container, !item.checked && styles.containerInactive]}>
       {/* Checkbox */}
       <Pressable style={styles.checkbox} onPress={onToggle} hitSlop={10}>
-        <AppIcon
+        <Ionicons
           name={item.checked ? "checkbox-outline" : "square-outline"}
           size={20}
           color={item.checked ? "#2e7d32" : "#999"}
@@ -61,7 +61,7 @@ export default function ItemRow({ item, onToggle, onEdit }) {
       </Text>
 
       <Pressable style={styles.chevron} onPress={onEdit} hitSlop={10}>
-        <AppIcon name="chevron-forward" size={18} color="#999" />
+        <Ionicons name="chevron-forward" size={18} color="#999" />
       </Pressable>
     </View>
   );

@@ -1,6 +1,6 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ROUTES } from "./ROUTES";
 import ShoppingStack from "./ShoppingStack";
@@ -24,7 +24,7 @@ export default function MainTabs() {
         component={ShoppingStack}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <AppIcon name="cart" color={color} size={size} />
+            <Ionicons name="cart" color={color} size={size} />
           ),
         }}
       />
@@ -44,7 +44,7 @@ export default function MainTabs() {
         options={{
           title: "Tiendas",
           tabBarIcon: ({ color, size }) => (
-            <AppIcon name="store" size={size} color={color} />
+            <Ionicons name="storefront" size={size} color={color} />
           ),
         }}
       />
@@ -53,7 +53,7 @@ export default function MainTabs() {
         component={ScannerStack}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <AppIcon name="barcode" color={color} size={size} />
+            <Ionicons name="barcode" color={color} size={size} />
           ),
         }}
       />
@@ -63,7 +63,7 @@ export default function MainTabs() {
         options={{
           title: "Menu",
           tabBarIcon: ({ color, size }) => (
-            <AppIcon name="menu" size={size} color={color} />
+            <Ionicons name="menu" size={size} color={color} />
           ),
         }}
       />

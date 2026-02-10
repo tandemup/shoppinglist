@@ -8,7 +8,7 @@ import {
   AppState,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import * as Linking from "expo-linking";
 import ScannerControls from "../components/ScannerControls";

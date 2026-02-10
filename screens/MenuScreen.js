@@ -6,9 +6,10 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
-
+import Ionicons from "@expo/vector-icons/Ionicons";
+import Fontisto from "@expo/vector-icons/Fontisto";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AppIcon from "../components/AppIcon";
+
 import { ROUTES } from "../navigation/ROUTES";
 import { safeAlert } from "../utils/core/safeAlert";
 
@@ -29,6 +30,12 @@ import {
 } from "../utils/config/searchConfig";
 
 import { SEARCH_ENGINES, BOOK_ENGINES } from "../constants/searchEngines";
+const ICON_FAMILIES = {
+  Ionicons,
+  Fontisto,
+};
+
+// import { Ionicons } from "@expo/vector-icons";
 
 /* -----------------------------------------
    📋 COMPONENTE
@@ -62,16 +69,21 @@ export default function MenuScreen({ navigation }) {
   /* -----------------------------------------
      🧱 COMPONENTES REUTILIZABLES
   ------------------------------------------ */
-  const Row = ({ icon, label, onPress }) => (
-    <TouchableOpacity style={styles.row} onPress={onPress}>
-      <AppIcon name={icon} size={20} color="#2563eb" style={styles.rowIcon} />
-      <Text style={styles.rowText}>{label}</Text>
-      <AppIcon name="chevron-forward" size={20} color="#999" />
-    </TouchableOpacity>
-  );
+  const Row = ({ family = "Ionicons", icon, label, onPress }) => {
+    const Icon = ICON_FAMILIES[family] || Ionicons;
+
+    return (
+      <TouchableOpacity style={styles.row} onPress={onPress}>
+        <Icon name={icon} size={20} color="#2563eb" style={styles.rowIcon} />
+        <Text style={styles.rowText}>{label}</Text>
+        <Ionicons name="chevron-forward" size={20} color="#999" />
+      </TouchableOpacity>
+    );
+  };
 
   const EngineOption = ({ engine, selectedId, onSelect }) => {
     const selected = selectedId === engine.id;
+    const Icon = ICON_FAMILIES[engine.family] || Ionicons;
 
     return (
       <TouchableOpacity
@@ -79,7 +91,7 @@ export default function MenuScreen({ navigation }) {
         onPress={() => onSelect(engine.id)}
       >
         <View style={styles.configLeft}>
-          <AppIcon
+          <Icon
             name={engine.icon}
             size={20}
             color={selected ? "#2563eb" : "#666"}
@@ -95,13 +107,17 @@ export default function MenuScreen({ navigation }) {
     );
   };
 
-  const DangerRow = ({ icon, label, onPress }) => (
-    <TouchableOpacity style={styles.dangerRow} onPress={onPress}>
-      <AppIcon name={icon} size={20} color="#b91c1c" style={styles.rowIcon} />
-      <Text style={styles.dangerText}>{label}</Text>
-      <AppIcon name="warning" size={20} color="#b91c1c" />
-    </TouchableOpacity>
-  );
+  const DangerRow = ({ family = "Ionicons", icon, label, onPress }) => {
+    const Icon = ICON_FAMILIES[family] || Ionicons;
+
+    return (
+      <TouchableOpacity style={styles.dangerRow} onPress={onPress}>
+        <Icon name={icon} size={20} color="#b91c1c" style={styles.rowIcon} />
+        <Text style={styles.dangerText}>{label}</Text>
+        <Ionicons name="warning" size={20} color="#b91c1c" />
+      </TouchableOpacity>
+    );
+  };
 
   function MotorGeneral() {
     return (

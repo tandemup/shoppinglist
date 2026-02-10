@@ -1,6 +1,6 @@
 import React from "react";
 import { Text, TouchableOpacity, Linking } from "react-native";
-import AppIcon from "./AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function StoreSearchLink({
   store,
@@ -29,7 +29,7 @@ export default function StoreSearchLink({
       hitSlop={8}
       style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
     >
-      <AppIcon name="location-outline" size={16} color={iconColor} />
+      <Ionicons name="location-outline" size={16} color={iconColor} />
       <Text
         style={[
           { color: iconColor, fontSize: 14, fontWeight: "500" },

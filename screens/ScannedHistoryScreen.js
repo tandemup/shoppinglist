@@ -10,7 +10,7 @@ import {
 import { ROUTES } from "../navigation/ROUTES";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { safeAlert } from "../utils/core/safeAlert";
 import BarcodeLink from "../components/BarcodeLink";
@@ -126,7 +126,7 @@ export default function ScannedHistoryScreen({ navigation }) {
             />
           ) : (
             <View style={styles.imagePlaceholder}>
-              <AppIcon name="cube-outline" size={26} color="#999" />
+              <Ionicons name="cube-outline" size={26} color="#999" />
             </View>
           )}
         </View>
@@ -159,7 +159,7 @@ export default function ScannedHistoryScreen({ navigation }) {
           )}
         </View>
 
-        <AppIcon
+        <Ionicons
           name="chevron-forward"
           size={26}
           color="#888"
@@ -177,7 +177,7 @@ export default function ScannedHistoryScreen({ navigation }) {
       <Text style={styles.title}>Historial de Escaneos</Text>
 
       <View style={styles.searchContainer}>
-        <AppIcon
+        <Ionicons
           name="search"
           size={20}
           color="#666"

@@ -1,11 +1,11 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import AppIcon from "./AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function StoreSelector({ store, onPress, disabled = false }) {
   const content = (
     <>
-      <AppIcon
+      <Ionicons
         name="storefront"
         size={20}
         color={disabled ? "#999" : "#007bff"}
@@ -33,7 +33,7 @@ export default function StoreSelector({ store, onPress, disabled = false }) {
         )}
       </View>
 
-      {!disabled && <AppIcon name="chevron-forward" size={20} color="#777" />}
+      {!disabled && <Ionicons name="chevron-forward" size={20} color="#777" />}
     </>
   );
 

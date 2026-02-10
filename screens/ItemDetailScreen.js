@@ -15,7 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getGeneralSearchEngine } from "../utils/config/searchConfig";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useNavigation, useRoute } from "@react-navigation/native";
 
@@ -173,12 +173,12 @@ export default function ItemDetailScreen() {
               style={styles.scanBtn}
               onPress={() => setShowScanner(true)}
             >
-              <AppIcon name="barcode-outline" size={22} color="#2563eb" />
+              <Ionicons name="barcode-outline" size={22} color="#2563eb" />
             </Pressable>
 
             {/* Buscar con motor configurado */}
             <Pressable style={styles.scanBtn} onPress={handleSearch}>
-              <AppIcon name="search-outline" size={22} color="#2563eb" />
+              <Ionicons name="search-outline" size={22} color="#2563eb" />
             </Pressable>
           </View>
 
@@ -276,12 +276,12 @@ export default function ItemDetailScreen() {
           {/* ACCIONES */}
           <View style={styles.actions}>
             <Pressable style={styles.saveBtn} onPress={handleSave}>
-              <AppIcon name="save" size={18} color="#fff" />
+              <Ionicons name="save" size={18} color="#fff" />
               <Text style={styles.saveText}>Guardar</Text>
             </Pressable>
 
             <Pressable style={styles.deleteBtn} onPress={handleDelete}>
-              <AppIcon name="trash" size={18} color="#fff" />
+              <Ionicons name="trash" size={18} color="#fff" />
               <Text style={styles.deleteText}>Eliminar</Text>
             </Pressable>
           </View>
@@ -299,7 +299,7 @@ export default function ItemDetailScreen() {
               style={styles.closeScannerBtn}
               onPress={() => setShowScanner(false)}
             >
-              <AppIcon name="close" size={28} color="#fff" />
+              <Ionicons name="close" size={28} color="#fff" />
             </Pressable>
           </View>
         )}

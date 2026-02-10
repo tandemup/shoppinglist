@@ -6,9 +6,8 @@ import {
   ScrollView,
   StyleSheet,
 } from "react-native";
-
-import AppIcon from "../components/AppIcon";
-
+import Ionicons from "@expo/vector-icons/Ionicons";
+import Fontisto from "@expo/vector-icons/Fontisto";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ROUTES } from "../navigation/ROUTES";
@@ -31,6 +30,12 @@ import {
 } from "../utils/config/searchConfig";
 
 import { SEARCH_ENGINES, BOOK_ENGINES } from "../constants/searchEngines";
+const ICON_FAMILIES = {
+  Ionicons,
+  Fontisto,
+};
+
+// import { Ionicons } from "@expo/vector-icons";
 
 /* -----------------------------------------
    📋 COMPONENTE
@@ -64,13 +69,17 @@ export default function MenuScreen({ navigation }) {
   /* -----------------------------------------
      🧱 COMPONENTES REUTILIZABLES
   ------------------------------------------ */
-  const Row = ({ icon, label, onPress }) => (
-    <TouchableOpacity style={styles.row} onPress={onPress}>
-      <AppIcon name={icon} size={20} color="#2563eb" style={styles.rowIcon} />
-      <Text style={styles.rowText}>{label}</Text>
-      <AppIcon name="chevron-forward" size={20} color="#999" />
-    </TouchableOpacity>
-  );
+  const Row = ({ family = "Ionicons", icon, label, onPress }) => {
+    const Icon = ICON_FAMILIES[family] || Ionicons;
+
+    return (
+      <TouchableOpacity style={styles.row} onPress={onPress}>
+        <Icon name={icon} size={20} color="#2563eb" style={styles.rowIcon} />
+        <Text style={styles.rowText}>{label}</Text>
+        <Ionicons name="chevron-forward" size={20} color="#999" />
+      </TouchableOpacity>
+    );
+  };
 
   const EngineOption = ({ engine, selectedId, onSelect }) => {
     const selected = selectedId === engine.id;

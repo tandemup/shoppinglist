@@ -10,7 +10,7 @@ import {
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import { useNavigation } from "@react-navigation/native";
 
@@ -136,7 +136,7 @@ export default function ShoppingListsScreen() {
           </View>
 
           <Pressable onPress={(e) => openContextMenu(item, e)} hitSlop={8}>
-            <AppIcon name="ellipsis-vertical" size={20} color="#555" />
+            <Ionicons name="ellipsis-vertical" size={20} color="#555" />
           </Pressable>
         </View>
 

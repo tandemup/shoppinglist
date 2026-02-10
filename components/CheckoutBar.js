@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import AppIcon from "./AppIcon";
-
+import { Ionicons } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import { formatCurrency } from "../utils/store/prices";
 import { DEFAULT_CURRENCY } from "../constants/currency";
 
@@ -18,7 +18,7 @@ export default function CheckoutBar({ total, currency, onCheckout }) {
       </View>
 
       <Pressable style={styles.button} onPress={onCheckout}>
-        <AppIcon name="shopping-cart" size={18} color="#fff" />
+        <Feather name="shopping-cart" size={20} color="#fff" />
         <Text style={styles.buttonText}>Finalizar compra</Text>
       </Pressable>
     </View>

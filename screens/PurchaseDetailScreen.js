@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useLists } from "../context/ListsContext";
 import { useStores } from "../context/StoresContext";
@@ -107,7 +107,7 @@ export default function PurchaseDetailScreen() {
       />
 
       <Pressable style={styles.button} onPress={handleRepeatProduct}>
-        <AppIcon name="refresh-outline" size={20} color="#fff" />
+        <Ionicons name="refresh-outline" size={20} color="#fff" />
         <Text style={styles.buttonText}>Añadir a nueva lista</Text>
       </Pressable>
     </View>

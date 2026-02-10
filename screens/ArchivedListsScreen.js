@@ -9,7 +9,7 @@ import {
   Linking,
 } from "react-native";
 import SearchBar from "../components/SearchBar";
-import AppIcon from "../components/AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 import { ROUTES } from "../navigation/ROUTES";
 import { useLists } from "../context/ListsContext";
@@ -35,7 +35,7 @@ const StoreSearchLink = ({ store, onPressStore }) => {
 
   return (
     <TouchableOpacity onPress={handlePress} style={styles.storeLink}>
-      <AppIcon name="location-outline" size={16} color="#2563eb" />
+      <Ionicons name="location-outline" size={16} color="#2563eb" />
       <Text style={styles.storeText}>{store.name}</Text>
     </TouchableOpacity>
   );
@@ -59,7 +59,7 @@ const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
 
     {/* CHEVRON — always right */}
     <Pressable onPress={onToggle} style={styles.chevronPressable} hitSlop={10}>
-      <AppIcon
+      <Ionicons
         name="chevron-forward"
         size={22}
         color="#555"
@@ -73,7 +73,7 @@ const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
 
 const InfoRow = ({ archivedAt, store, onPressStore }) => (
   <View style={styles.infoRow}>
-    <AppIcon name="calendar-outline" size={16} color="#777" />
+    <Ionicons name="calendar-outline" size={16} color="#777" />
     <Text style={styles.subInfo}>
       {new Date(archivedAt).toLocaleDateString("es-ES", {
         day: "numeric",
@@ -89,7 +89,7 @@ const InfoRow = ({ archivedAt, store, onPressStore }) => (
 const ProductsAndTotalRow = ({ count, total }) => (
   <View style={styles.bottomRow}>
     <View style={styles.iconRow}>
-      <AppIcon name="cart-outline" size={17} color="#777" />
+      <Ionicons name="cart-outline" size={17} color="#777" />
       <Text style={styles.productsText}>{count} productos</Text>
     </View>
     <Text style={styles.totalPrice}>{total.toFixed(2)} €</Text>

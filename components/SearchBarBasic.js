@@ -8,7 +8,7 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
-import AppIcon from "./AppIcon";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function SearchBarBasic({
   placeholder = "Buscar producto...",
@@ -28,7 +28,7 @@ export default function SearchBarBasic({
     <View style={styles.container}>
       {/* 🔍 INPUT */}
       <View style={styles.inputWrapper}>
-        <AppIcon
+        <Ionicons
           name="search"
           size={18}
           color="#666"
