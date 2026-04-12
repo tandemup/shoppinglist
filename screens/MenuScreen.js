@@ -14,8 +14,8 @@ import { ROUTES } from "../navigation/ROUTES";
 import { safeAlert } from "../utils/core/safeAlert";
 
 import {
-  clearAppStorage,
-  clearLists,
+  clearAppStorage as clearStorage,
+  clearLists as clearActiveLists,
   clearPurchaseHistory,
   clearScannedHistory,
   clearStoresData,
@@ -26,46 +26,67 @@ import {
   setSearchSettings,
 } from "../src/storage/settingsStorage";
 
-import { SEARCH_ENGINES, BOOK_ENGINES } from "../constants/searchEngines";
+import {
+  SEARCH_ENGINES,
+  BOOK_ENGINES,
+  DEFAULT_ENGINE,
+  DEFAULT_BOOK_ENGINE,
+} from "../constants/searchEngines";
+
 const ICON_FAMILIES = {
   Ionicons,
   Fontisto,
 };
 
-// import { Ionicons } from "@expo/vector-icons";
-
-/* -----------------------------------------
-   📋 COMPONENTE
------------------------------------------- */
 export default function MenuScreen({ navigation }) {
-  // Estado local SOLO para pintar la UI
-  const [generalEngine, setGeneralEngineState] = useState(null);
-  const [bookEngine, setBookEngineState] = useState(null);
+  const [generalEngine, setGeneralEngineState] = useState(DEFAULT_ENGINE);
+  const [bookEngine, setBookEngineState] = useState(DEFAULT_BOOK_ENGINE);
 
-  /* -----------------------------------------
-     🔄 Cargar configuración
-  ------------------------------------------ */
   useEffect(() => {
-    getGeneralSearchEngine().then(setGeneralEngineState);
-    getBookSearchEngine().then(setBookEngineState);
+    loadSettings();
   }, []);
 
-  /* -----------------------------------------
-     🔘 Selección
-  ------------------------------------------ */
+  const loadSettings = async () => {
+    try {
+      const settings = await getSearchSettings();
+
+      setGeneralEngineState(settings?.generalEngine || DEFAULT_ENGINE);
+      setBookEngineState(settings?.bookEngine || DEFAULT_BOOK_ENGINE);
+    } catch (error) {
+      console.warn("Error cargando ajustes de búsqueda", error);
+      setGeneralEngineState(DEFAULT_ENGINE);
+      setBookEngineState(DEFAULT_BOOK_ENGINE);
+    }
+  };
+
   const selectGeneralEngine = async (id) => {
-    await setGeneralSearchEngine(id);
-    setGeneralEngineState(id);
+    try {
+      const current = await getSearchSettings();
+      await setSearchSettings({
+        ...current,
+        generalEngine: id,
+      });
+      setGeneralEngineState(id);
+    } catch (error) {
+      console.warn("Error guardando motor general", error);
+      safeAlert("Error", "No se pudo guardar el motor de búsqueda");
+    }
   };
 
   const selectBookEngine = async (id) => {
-    await setBookSearchEngine(id);
-    setBookEngineState(id);
+    try {
+      const current = await getSearchSettings();
+      await setSearchSettings({
+        ...current,
+        bookEngine: id,
+      });
+      setBookEngineState(id);
+    } catch (error) {
+      console.warn("Error guardando motor de libros", error);
+      safeAlert("Error", "No se pudo guardar el motor para libros");
+    }
   };
 
-  /* -----------------------------------------
-     🧱 COMPONENTES REUTILIZABLES
-  ------------------------------------------ */
   const Row = ({ family = "Ionicons", icon, label, onPress }) => {
     const Icon = ICON_FAMILIES[family] || Ionicons;
 
@@ -92,7 +113,7 @@ export default function MenuScreen({ navigation }) {
             name={engine.icon}
             size={20}
             color={selected ? "#2563eb" : "#666"}
-            style={{ marginRight: 10 }}
+            style={styles.engineIcon}
           />
           <Text style={styles.configLabel}>{engine.label}</Text>
         </View>
@@ -116,47 +137,18 @@ export default function MenuScreen({ navigation }) {
     );
   };
 
-  function MotorGeneral() {
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Motor de búsqueda general</Text>
-        {Object.values(SEARCH_ENGINES).map((engine) => (
-          <EngineOption
-            key={engine.id}
-            engine={engine}
-            selectedId={generalEngine}
-            onSelect={selectGeneralEngine}
-          />
-        ))}
-      </View>
+  const handleClearArchivedLists = () => {
+    safeAlert(
+      "Pendiente",
+      "No hay una función clearArchivedLists exportada en el storage actual.",
     );
-  }
+  };
 
-  function MotorLibros() {
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Motor para libros</Text>
-        {Object.values(BOOK_ENGINES).map((engine) => (
-          <EngineOption
-            key={engine.id}
-            engine={engine}
-            selectedId={bookEngine}
-            onSelect={selectBookEngine}
-          />
-        ))}
-      </View>
-    );
-  }
-
-  /* -----------------------------------------
-     🖥 RENDER
-  ------------------------------------------ */
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Menú</Text>
 
-        {/* NAVEGACIÓN */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Navegación</Text>
 
@@ -169,6 +161,7 @@ export default function MenuScreen({ navigation }) {
               })
             }
           />
+
           <Row
             icon="archive"
             label="Listas archivadas"
@@ -178,6 +171,7 @@ export default function MenuScreen({ navigation }) {
               })
             }
           />
+
           <Row
             icon="receipt"
             label="Historial de compras"
@@ -187,6 +181,7 @@ export default function MenuScreen({ navigation }) {
               })
             }
           />
+
           <Row
             icon="barcode"
             label="Historial de escaneos"
@@ -198,10 +193,30 @@ export default function MenuScreen({ navigation }) {
           />
         </View>
 
-        <MotorGeneral />
-        {/* <MotorLibros /> */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Motor de búsqueda general</Text>
+          {Object.values(SEARCH_ENGINES).map((engine) => (
+            <EngineOption
+              key={engine.id}
+              engine={engine}
+              selectedId={generalEngine}
+              onSelect={selectGeneralEngine}
+            />
+          ))}
+        </View>
 
-        {/* MANTENIMIENTO */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Motor para libros</Text>
+          {Object.values(BOOK_ENGINES).map((engine) => (
+            <EngineOption
+              key={engine.id}
+              engine={engine}
+              selectedId={bookEngine}
+              onSelect={selectBookEngine}
+            />
+          ))}
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mantenimiento</Text>
 
@@ -229,7 +244,7 @@ export default function MenuScreen({ navigation }) {
                 {
                   text: "Borrar",
                   style: "destructive",
-                  onPress: clearArchivedLists,
+                  onPress: handleClearArchivedLists,
                 },
               ])
             }
@@ -239,7 +254,7 @@ export default function MenuScreen({ navigation }) {
             icon="documents"
             label="Borrar historial de compras"
             onPress={() =>
-              safeAlert("Borrar historial", "¿Seguro?", [
+              safeAlert("Borrar historial de compras", "¿Seguro?", [
                 { text: "Cancelar", style: "cancel" },
                 {
                   text: "Borrar",
@@ -254,7 +269,7 @@ export default function MenuScreen({ navigation }) {
             icon="barcode"
             label="Borrar historial de escaneos"
             onPress={() =>
-              safeAlert("Borrar historial", "¿Seguro?", [
+              safeAlert("Borrar historial de escaneos", "¿Seguro?", [
                 { text: "Cancelar", style: "cancel" },
                 {
                   text: "Borrar",
@@ -279,17 +294,15 @@ export default function MenuScreen({ navigation }) {
                     style: "destructive",
                     onPress: async () => {
                       await clearStoresData();
-                      setTimeout(() => {
-                        navigation.reset({
-                          index: 0,
-                          routes: [
-                            {
-                              name: ROUTES.SHOPPING_TAB,
-                              params: { screen: ROUTES.SHOPPING_LISTS },
-                            },
-                          ],
-                        });
-                      }, 50);
+                      navigation.reset({
+                        index: 0,
+                        routes: [
+                          {
+                            name: ROUTES.SHOPPING_TAB,
+                            params: { screen: ROUTES.SHOPPING_LISTS },
+                          },
+                        ],
+                      });
                     },
                   },
                 ],
@@ -311,17 +324,15 @@ export default function MenuScreen({ navigation }) {
                     style: "destructive",
                     onPress: async () => {
                       await clearStorage();
-                      setTimeout(() => {
-                        navigation.reset({
-                          index: 0,
-                          routes: [
-                            {
-                              name: ROUTES.SHOPPING_TAB,
-                              params: { screen: ROUTES.SHOPPING_LISTS },
-                            },
-                          ],
-                        });
-                      }, 50);
+                      navigation.reset({
+                        index: 0,
+                        routes: [
+                          {
+                            name: ROUTES.SHOPPING_TAB,
+                            params: { screen: ROUTES.SHOPPING_LISTS },
+                          },
+                        ],
+                      });
                     },
                   },
                 ],
@@ -334,13 +345,14 @@ export default function MenuScreen({ navigation }) {
   );
 }
 
-/* -----------------------------------------
-   🎨 ESTILOS
------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fafafa",
+  },
+  scrollContent: {
+    paddingBottom: 120,
+    paddingHorizontal: 16,
   },
   title: {
     fontSize: 28,
@@ -354,6 +366,7 @@ const styles = StyleSheet.create({
     marginBottom: 22,
     borderWidth: 1,
     borderColor: "#e5e7eb",
+    overflow: "hidden",
   },
   sectionTitle: {
     fontSize: 15,
@@ -370,7 +383,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#f3f3f3",
   },
-  rowIcon: { marginRight: 12 },
+  rowIcon: {
+    marginRight: 12,
+  },
   rowText: {
     flex: 1,
     fontSize: 16,
@@ -389,6 +404,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
+  },
+  engineIcon: {
+    marginRight: 10,
   },
   configLabel: {
     fontSize: 16,

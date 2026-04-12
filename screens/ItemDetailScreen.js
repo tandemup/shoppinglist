@@ -130,9 +130,7 @@ export default function ItemDetailScreen() {
 
     try {
       const settings = await getSearchSettings();
-      const engineKey = settings?.productEngines?.googleShopping
-        ? "googleShopping"
-        : "google";
+      const engineKey = settings?.generalEngine || "google";
       const engine = SEARCH_ENGINES[engineKey] || SEARCH_ENGINES.google;
 
       Linking.openURL(engine.buildUrl(code));

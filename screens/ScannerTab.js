@@ -6,67 +6,77 @@ import {
   Pressable,
   ActivityIndicator,
   AppState,
+  Linking,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { Ionicons } from "@expo/vector-icons";
 
-import * as Linking from "expo-linking";
 import ScannerControls from "../components/ScannerControls";
 import { getSearchSettings } from "../src/storage/settingsStorage";
-import { SEARCH_ENGINES } from "../constants/searchEngines";
+import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../constants/searchEngines";
 import { addScannedItem } from "../services/scannerHistory";
-
-/* -----------------------------------------
-   🔍 CONFIGURACIÓN
------------------------------------------- */
 import { SCANNER_ZOOM, getZoomValue } from "../constants/cameraZoom";
 
-/* -----------------------------------------
-   📦 PANTALLA
------------------------------------------- */
 export default function ScannerTab() {
   const [permission, requestPermission] = useCameraPermissions();
 
   const [scanned, setScanned] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [engine, setEngine] = useState(null);
   const [lastCode, setLastCode] = useState(null);
 
-  // 🔒 bloqueo inmediato
   const scanLock = useRef(false);
 
-  // 🔦 / 🔍
   const [torch, setTorch] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
   const zoom = getZoomValue(SCANNER_ZOOM, zoomIndex);
 
-  /* -----------------------------------------
-     🔐 PERMISOS
-  ------------------------------------------ */
   useEffect(() => {
-    if (!permission) requestPermission();
-  }, [permission]);
+    if (!permission) {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
 
-  /* -----------------------------------------
-     ⚙️ Motor elegido
-  ------------------------------------------ */
-  useEffect(() => {
-    getGeneralSearchEngine().then(setEngine);
-  }, []);
-
-  /* -----------------------------------------
-     🔄 Reset al volver a la app
-  ------------------------------------------ */
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active") resetScanner();
+      if (state === "active") {
+        resetScanner();
+      }
     });
+
     return () => sub.remove();
   }, []);
 
-  /* -----------------------------------------
-     🔍 ESCANEO
-  ------------------------------------------ */
+  const resetScanner = useCallback(() => {
+    scanLock.current = false;
+    setScanned(false);
+    setLoading(false);
+    setLastCode(null);
+    setTorch(false);
+    setZoomIndex(0);
+  }, []);
+
+  const resolveEngineKey = useCallback(async () => {
+    try {
+      const settings = await getSearchSettings();
+
+      if (settings?.generalEngine && SEARCH_ENGINES[settings.generalEngine]) {
+        return settings.generalEngine;
+      }
+
+      if (settings?.productEngine && SEARCH_ENGINES[settings.productEngine]) {
+        return settings.productEngine;
+      }
+
+      if (settings?.productEngines?.googleShopping) {
+        return "google_shopping";
+      }
+
+      return DEFAULT_ENGINE;
+    } catch (error) {
+      console.warn("Error leyendo ajustes de búsqueda", error);
+      return DEFAULT_ENGINE;
+    }
+  }, []);
+
   const handleBarcodeScanned = useCallback(
     async ({ data }) => {
       if (!data || scanLock.current) return;
@@ -83,41 +93,38 @@ export default function ScannerTab() {
           source: "scanner",
         });
 
-        const settings = await getSearchSettings();
-        const engineKey = settings?.generalEngine || "google";
-        const engineConfig = SEARCH_ENGINES[engineId] ?? SEARCH_ENGINES.google;
+        const engineKey = await resolveEngineKey();
+        const engineConfig =
+          SEARCH_ENGINES[engineKey] ?? SEARCH_ENGINES[DEFAULT_ENGINE];
 
         const url = engineConfig.buildUrl(data);
         const canOpen = await Linking.canOpenURL(url);
-        if (!canOpen) throw new Error("No se puede abrir la URL");
+
+        if (!canOpen) {
+          throw new Error("No se puede abrir la URL");
+        }
 
         await Linking.openURL(url);
-      } catch (e) {
-        console.warn("Error procesando el escaneo", e);
+      } catch (error) {
+        console.warn("Error procesando el escaneo", error);
         resetScanner();
       } finally {
         setLoading(false);
       }
     },
-    [engine],
+    [resetScanner, resolveEngineKey],
   );
 
-  /* -----------------------------------------
-     🔄 RESET
-  ------------------------------------------ */
-  const resetScanner = () => {
-    scanLock.current = false;
-    setScanned(false);
-    setLoading(false);
-    setLastCode(null);
-    setTorch(false);
-    setZoomIndex(0);
-  };
+  if (!permission) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#22c55e" />
+        <Text style={styles.text}>Solicitando acceso a la cámara…</Text>
+      </View>
+    );
+  }
 
-  /* -----------------------------------------
-     🛑 SIN PERMISOS
-  ------------------------------------------ */
-  if (!permission?.granted) {
+  if (!permission.granted) {
     return (
       <View style={styles.center}>
         <Text style={styles.text}>Necesitamos permiso para usar la cámara</Text>
@@ -128,15 +135,10 @@ export default function ScannerTab() {
     );
   }
 
-  /* -----------------------------------------
-     🖥 RENDER
-  ------------------------------------------ */
   return (
     <View style={styles.container}>
-      {/* Cámara */}
       <CameraView
         style={StyleSheet.absoluteFill}
-        pointerEvents="none"
         enableTorch={torch}
         zoom={zoom}
         barcodeScannerSettings={{
@@ -145,7 +147,6 @@ export default function ScannerTab() {
         onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
       />
 
-      {/* Controles */}
       {!scanned && !loading && (
         <ScannerControls
           torch={torch}
@@ -158,7 +159,6 @@ export default function ScannerTab() {
         />
       )}
 
-      {/* Overlay inferior */}
       <View style={styles.overlay} pointerEvents="box-none">
         {loading ? (
           <>
@@ -169,7 +169,13 @@ export default function ScannerTab() {
           <>
             <Text style={styles.text}>Apunta al código de barras</Text>
 
-            {lastCode && <Text style={styles.subText}>Código: {lastCode}</Text>}
+            {lastCode ? (
+              <Text style={styles.subText}>Código: {lastCode}</Text>
+            ) : (
+              <Text style={styles.subText}>
+                Compatible con EAN-13, EAN-8 y UPC
+              </Text>
+            )}
 
             {scanned && (
               <Pressable onPress={resetScanner}>
@@ -183,17 +189,18 @@ export default function ScannerTab() {
   );
 }
 
-/* -----------------------------------------
-   🎨 ESTILOS
------------------------------------------- */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
+  container: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
 
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#000",
+    paddingHorizontal: 24,
   },
 
   overlay: {
@@ -201,11 +208,28 @@ const styles = StyleSheet.create({
     bottom: 50,
     alignSelf: "center",
     alignItems: "center",
+    paddingHorizontal: 20,
   },
 
-  text: { color: "#fff", fontSize: 16, marginBottom: 8 },
-  subText: { color: "#aaa", fontSize: 14, marginBottom: 10 },
-  button: { color: "#22c55e", fontSize: 16, fontWeight: "600" },
+  text: {
+    color: "#fff",
+    fontSize: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  subText: {
+    color: "#aaa",
+    fontSize: 14,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+
+  button: {
+    color: "#22c55e",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 
   controls: {
     position: "absolute",
