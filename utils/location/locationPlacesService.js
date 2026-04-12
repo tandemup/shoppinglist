@@ -1,11 +1,9 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "../storage/storage";
+import { STORAGE_KEYS } from "../storage/storageKeys";
 
-const HOME_KEY = "@expo-shop/location/home";
-const SHOPPING_KEY = "@expo-shop/location/shopping";
-
-// ────────────────────────────────────────────────
-// CASA
-// ────────────────────────────────────────────────
+/* -------------------------------------------------
+   CASA
+-------------------------------------------------- */
 export async function saveHomeLocation(coords) {
   const payload = {
     coords,
@@ -13,17 +11,16 @@ export async function saveHomeLocation(coords) {
     timestamp: Date.now(),
   };
 
-  await AsyncStorage.setItem(HOME_KEY, JSON.stringify(payload));
+  await storage.setJSON(STORAGE_KEYS.HOME_LOCATION, payload);
 }
 
 export async function loadHomeLocation() {
-  const raw = await AsyncStorage.getItem(HOME_KEY);
-  return raw ? JSON.parse(raw) : null;
+  return await storage.getJSON(STORAGE_KEYS.HOME_LOCATION, null);
 }
 
-// ────────────────────────────────────────────────
-// TIENDA ACTUAL
-// ────────────────────────────────────────────────
+/* -------------------------------------------------
+   TIENDA ACTUAL
+-------------------------------------------------- */
 export async function saveShoppingLocation({ coords, store }) {
   const payload = {
     coords,
@@ -32,14 +29,13 @@ export async function saveShoppingLocation({ coords, store }) {
     timestamp: Date.now(),
   };
 
-  await AsyncStorage.setItem(SHOPPING_KEY, JSON.stringify(payload));
+  await storage.setJSON(STORAGE_KEYS.SHOPPING_LOCATION, payload);
 }
 
 export async function loadShoppingLocation() {
-  const raw = await AsyncStorage.getItem(SHOPPING_KEY);
-  return raw ? JSON.parse(raw) : null;
+  return await storage.getJSON(STORAGE_KEYS.SHOPPING_LOCATION, null);
 }
 
 export async function clearShoppingLocation() {
-  await AsyncStorage.removeItem(SHOPPING_KEY);
+  await storage.remove(STORAGE_KEYS.SHOPPING_LOCATION);
 }

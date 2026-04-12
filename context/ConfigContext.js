@@ -1,35 +1,47 @@
-/**
- * ConfigContext
- *
- * Contexto global de configuración de la aplicación.
- * Centraliza flags, preferencias del usuario y ajustes generales
- * que afectan al comportamiento global de la app.
- */
-
 import React, { createContext, useContext, useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "@/src/storage/storage";
+import { STORAGE_KEYS } from "@/src/storage/storageKeys";
 
 const ConfigContext = createContext();
-const FAVORITES_KEY = "favoriteStores";
 
 export function ConfigProvider({ children }) {
   const [favoriteStores, setFavoriteStores] = useState([]);
+  const [isReady, setIsReady] = useState(false);
 
+  /* -------------------------------------------------
+     Rehidratación
+  -------------------------------------------------- */
   useEffect(() => {
-    AsyncStorage.getItem(FAVORITES_KEY).then((raw) => {
-      if (raw) setFavoriteStores(JSON.parse(raw));
-    });
+    const init = async () => {
+      try {
+        const data = await storage.getJSON(STORAGE_KEYS.FAVORITE_STORES, []);
+        setFavoriteStores(data);
+      } catch (err) {
+        console.warn("Error loading favorite stores", err);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    init();
   }, []);
 
+  /* -------------------------------------------------
+     Persistencia
+  -------------------------------------------------- */
   useEffect(() => {
-    AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteStores));
-  }, [favoriteStores]);
+    if (!isReady) return;
+    storage.setJSON(STORAGE_KEYS.FAVORITE_STORES, favoriteStores);
+  }, [favoriteStores, isReady]);
 
+  /* -------------------------------------------------
+     API
+  -------------------------------------------------- */
   const toggleFavoriteStore = (storeId) => {
     setFavoriteStores((prev) =>
       prev.includes(storeId)
         ? prev.filter((id) => id !== storeId)
-        : [...prev, storeId]
+        : [...prev, storeId],
     );
   };
 
@@ -41,6 +53,7 @@ export function ConfigProvider({ children }) {
         favoriteStores,
         toggleFavoriteStore,
         isFavoriteStore,
+        isReady,
       }}
     >
       {children}

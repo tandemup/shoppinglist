@@ -1,10 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadLists } from "../storage/listsStorage";
 
 /**
  * Busca productos en TODAS las listas archivadas / históricas
- * (excluye la lista activa actual)
- *
- * Devuelve resultados normalizados para sugerencias inteligentes
  */
 export async function searchItemsAcrossLists(query) {
   if (!query || query.trim().length < 2) return [];
@@ -12,11 +9,8 @@ export async function searchItemsAcrossLists(query) {
   const q = normalize(query);
 
   try {
-    // 📦 Cargar todas las listas guardadas
-    const raw = await AsyncStorage.getItem("@shoppingLists");
-    if (!raw) return [];
-
-    const lists = JSON.parse(raw);
+    // ✅ usar storage centralizado
+    const lists = await loadLists();
     if (!Array.isArray(lists)) return [];
 
     const results = [];
@@ -27,7 +21,6 @@ export async function searchItemsAcrossLists(query) {
       for (const item of list.items) {
         if (!item?.name) continue;
 
-        // 🔍 match por nombre
         if (!normalize(item.name).includes(q)) continue;
 
         results.push({
@@ -39,12 +32,10 @@ export async function searchItemsAcrossLists(query) {
             unitType: item.priceInfo?.unitType ?? "unidad",
           },
 
-          // contexto
           listId: list.id,
           listName: list.name ?? "Lista sin nombre",
           storeId: list.storeId ?? null,
 
-          // 🕒 fecha de compra (CLAVE para ranking temporal)
           purchasedAt:
             item.purchasedAt ?? list.purchasedAt ?? list.updatedAt ?? null,
         });
@@ -61,7 +52,6 @@ export async function searchItemsAcrossLists(query) {
 /* -------------------------------------------------
    Helpers
 -------------------------------------------------- */
-
 function normalize(text = "") {
   return text
     .toLowerCase()

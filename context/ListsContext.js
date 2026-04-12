@@ -5,9 +5,9 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { loadLists, saveLists } from "../storage/listsStorage";
-import { DEFAULT_CURRENCY } from "../constants/currency";
 
+import { loadLists, saveLists } from "../src/storage/listsStorage";
+import { DEFAULT_CURRENCY } from "../constants/currency";
 import { buildPurchaseHistoryFromArchivedLists } from "../utils/buildPurchaseHistoryFromArchivedLists";
 
 /* -------------------------------------------------
@@ -23,60 +23,49 @@ export function ListsProvider({ children }) {
   const [purchaseHistory, setPurchaseHistory] = useState([]);
   const [isReady, setIsReady] = useState(false);
 
-  const LISTS_KEY = "@shoppingLists";
-  const HISTORY_KEY = "@purchaseHistory";
-
   /* -------------------------------------------------
-     Rehidratación
+     Rehidratación (solo listas)
   -------------------------------------------------- */
   useEffect(() => {
-    const load = async () => {
+    const init = async () => {
       try {
-        const [listsRaw, historyRaw] = await Promise.all([
-          AsyncStorage.getItem(LISTS_KEY),
-          AsyncStorage.getItem(HISTORY_KEY),
-        ]);
-
-        if (listsRaw) setLists(JSON.parse(listsRaw));
-        if (historyRaw) setPurchaseHistory(JSON.parse(historyRaw));
+        const data = await loadLists();
+        setLists(data);
       } catch (err) {
-        console.warn("Error loading lists context", err);
+        console.warn("Error loading lists", err);
       } finally {
         setIsReady(true);
       }
     };
 
-    load();
+    init();
   }, []);
 
   /* -------------------------------------------------
-     Persistencia
+     Persistencia (solo listas)
   -------------------------------------------------- */
   useEffect(() => {
     if (!isReady) return;
-    AsyncStorage.setItem(LISTS_KEY, JSON.stringify(lists));
+    saveLists(lists);
   }, [lists, isReady]);
 
+  /* -------------------------------------------------
+     Derivar purchaseHistory (NO persistido)
+  -------------------------------------------------- */
+  const archivedLists = useMemo(() => lists.filter((l) => l.archived), [lists]);
+
   useEffect(() => {
-    if (!isReady) return;
-    AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(purchaseHistory));
-  }, [purchaseHistory, isReady]);
+    const rebuilt = buildPurchaseHistoryFromArchivedLists(archivedLists);
+    setPurchaseHistory(rebuilt);
+  }, [archivedLists]);
+
+  const activeLists = useMemo(() => lists.filter((l) => !l.archived), [lists]);
 
   /* -------------------------------------------------
      Helpers
   -------------------------------------------------- */
   const generateId = () =>
     Date.now().toString(36) + Math.random().toString(36).slice(2);
-
-  /* -------------------------------------------------
-     Derivados
-  -------------------------------------------------- */
-  const activeLists = useMemo(() => lists.filter((l) => !l.archived), [lists]);
-  const archivedLists = useMemo(() => lists.filter((l) => l.archived), [lists]);
-  const rebuildPurchaseHistory = () => {
-    const rebuilt = buildPurchaseHistoryFromArchivedLists(archivedLists);
-    setPurchaseHistory(rebuilt);
-  };
 
   /* -------------------------------------------------
      API pública — Listas
@@ -87,7 +76,7 @@ export function ListsProvider({ children }) {
       {
         id: generateId(),
         name,
-        currency: DEFAULT_CURRENCY,
+        currency: currency ?? DEFAULT_CURRENCY,
         items: [],
         createdAt: Date.now(),
         archived: false,
@@ -111,23 +100,12 @@ export function ListsProvider({ children }) {
     setLists((prev) => prev.filter((l) => l.id !== listId));
   };
 
-  /* -------------------------------------------------
-     🔑 ARCHIVE LIST = REBUILD PURCHASE HISTORY
-  -------------------------------------------------- */
   const archiveList = (listId) => {
-    setLists((prev) => {
-      const updated = prev.map((l) =>
+    setLists((prev) =>
+      prev.map((l) =>
         l.id === listId ? { ...l, archived: true, archivedAt: Date.now() } : l,
-      );
-
-      const archived = updated.filter((l) => l.archived);
-
-      const rebuiltHistory = buildPurchaseHistoryFromArchivedLists(archived);
-
-      setPurchaseHistory(rebuiltHistory);
-
-      return updated;
-    });
+      ),
+    );
   };
 
   const restoreList = (listId) => {
@@ -196,7 +174,6 @@ export function ListsProvider({ children }) {
   /* -------------------------------------------------
      Memo
   -------------------------------------------------- */
-
   const value = useMemo(
     () => ({
       lists,
@@ -212,7 +189,6 @@ export function ListsProvider({ children }) {
       archiveList,
       restoreList,
 
-      rebuildPurchaseHistory,
       addItem,
       updateItem,
       deleteItem,

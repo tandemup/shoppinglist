@@ -1,30 +1,31 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "../storage/storage";
+import { STORAGE_KEYS } from "../storage/storageKeys";
 
-const LOCATION_CACHE_KEY = "@expo-shop/location/cache";
 const MAX_AGE_MS = 10 * 60 * 1000; // 10 minutos
 
 export async function getCachedLocation() {
   try {
-    const raw = await AsyncStorage.getItem(LOCATION_CACHE_KEY);
+    const parsed = await storage.getJSON(STORAGE_KEYS.LOCATION_CACHE, null);
 
-    if (!raw) {
+    if (!parsed) {
       console.log("📍 Cache location: MISS");
       return null;
     }
 
-    const parsed = JSON.parse(raw);
     if (!parsed?.coords || !parsed?.timestamp) {
       console.log("📍 Cache location: INVALID");
       return null;
     }
 
     const expired = Date.now() - parsed.timestamp > MAX_AGE_MS;
+
     if (expired) {
       console.log("📍 Cache location: EXPIRED");
       return null;
     }
 
     console.log("📍 Cache location: HIT");
+
     return {
       coords: parsed.coords,
       timestamp: parsed.timestamp,
@@ -42,7 +43,7 @@ export async function setCachedLocation(coords) {
       timestamp: Date.now(),
     };
 
-    await AsyncStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify(payload));
+    await storage.setJSON(STORAGE_KEYS.LOCATION_CACHE, payload);
 
     console.log("📍 Cache location: SAVED", payload);
   } catch (e) {
@@ -52,7 +53,7 @@ export async function setCachedLocation(coords) {
 
 export async function clearCachedLocation() {
   try {
-    await AsyncStorage.removeItem(LOCATION_CACHE_KEY);
+    await storage.remove(STORAGE_KEYS.LOCATION_CACHE);
     console.log("📍 Cache location: CLEARED");
   } catch (e) {
     console.warn("Error limpiando caché de ubicación", e);

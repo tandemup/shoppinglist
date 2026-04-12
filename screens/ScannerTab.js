@@ -12,8 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import * as Linking from "expo-linking";
 import ScannerControls from "../components/ScannerControls";
-
-import { getGeneralSearchEngine } from "../utils/config/searchConfig";
+import { getSearchSettings } from "../src/storage/settingsStorage";
 import { SEARCH_ENGINES } from "../constants/searchEngines";
 import { addScannedItem } from "../services/scannerHistory";
 
@@ -84,7 +83,8 @@ export default function ScannerTab() {
           source: "scanner",
         });
 
-        const engineId = engine ?? (await getGeneralSearchEngine());
+        const settings = await getSearchSettings();
+        const engineKey = settings?.generalEngine || "google";
         const engineConfig = SEARCH_ENGINES[engineId] ?? SEARCH_ENGINES.google;
 
         const url = engineConfig.buildUrl(data);

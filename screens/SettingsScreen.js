@@ -1,11 +1,11 @@
-// screens/SettingsScreen.js
 import React, { useEffect, useState } from "react";
 import { View, Text, Switch, StyleSheet, ScrollView } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SETTINGS_KEY = "@expo-shop/search-settings";
+import {
+  getSearchSettings,
+  setSearchSettings,
+} from "../src/storage/settingsStorage";
 
-// 🔧 Valores por defecto
 const DEFAULT_SETTINGS = {
   bookEngines: {
     googleBooks: true,
@@ -23,34 +23,43 @@ const DEFAULT_SETTINGS = {
 
 export default function SettingsScreen() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [isReady, setIsReady] = useState(false);
 
-  // 📌 Cargar preferencias al inicio
+  /* ---------------------------
+     Load
+  ----------------------------*/
   useEffect(() => {
-    loadSettings();
+    const init = async () => {
+      try {
+        const data = await getSearchSettings();
+        setSettings(data);
+      } catch (err) {
+        console.log("❌ Error loading settings:", err);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    init();
   }, []);
 
-  const loadSettings = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(SETTINGS_KEY);
-      if (stored) {
-        setSettings(JSON.parse(stored));
-      }
-    } catch (err) {
-      console.log("❌ Error loading settings:", err);
-    }
-  };
-
-  // 💾 Guardar automáticamente cada cambio
+  /* ---------------------------
+     Save helper
+  ----------------------------*/
   const saveSettings = async (updated) => {
     try {
       setSettings(updated);
-      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+
+      if (!isReady) return;
+      await setSearchSettings(updated);
     } catch (err) {
       console.log("❌ Error saving settings:", err);
     }
   };
 
-  // 🔄 Cambiar un switch
+  /* ---------------------------
+     Toggle
+  ----------------------------*/
   const toggleEngine = (category, key) => {
     const updated = {
       ...settings,
@@ -59,6 +68,7 @@ export default function SettingsScreen() {
         [key]: !settings[category][key],
       },
     };
+
     saveSettings(updated);
   };
 
@@ -66,7 +76,7 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Configuración</Text>
 
-      {/* 📚 Motores para libros */}
+      {/* 📚 Libros */}
       <Text style={styles.sectionTitle}>Motores de búsqueda para libros</Text>
 
       {Object.entries(settings.bookEngines).map(([key, value]) => (
@@ -79,7 +89,7 @@ export default function SettingsScreen() {
         </View>
       ))}
 
-      {/* 🛒 Motores para productos */}
+      {/* 🛒 Productos */}
       <Text style={styles.sectionTitle}>
         Motores de búsqueda para productos
       </Text>
@@ -99,7 +109,9 @@ export default function SettingsScreen() {
   );
 }
 
-// 🏷 Formato de nombres
+/* ---------------------------
+   Helpers
+----------------------------*/
 const formatEngineName = (key) => {
   const map = {
     googleBooks: "Google Books",
@@ -114,9 +126,9 @@ const formatEngineName = (key) => {
   return map[key] ?? key;
 };
 
-//
-// 🎨 ESTILOS
-//
+/* ---------------------------
+   Styles
+----------------------------*/
 const styles = StyleSheet.create({
   container: {
     flex: 1,

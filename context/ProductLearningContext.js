@@ -5,32 +5,44 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { storage } from "../src/storage/storage";
+import { STORAGE_KEYS } from "../src/storage/storageKeys";
 
 const ProductLearningContext = createContext(null);
-const STORAGE_KEY = "@productLearning";
 
 /* -------------------------------------------------
    Provider
 -------------------------------------------------- */
 export function ProductLearningProvider({ children }) {
   const [learning, setLearning] = useState({});
+  const [isReady, setIsReady] = useState(false);
 
   /* ---------------------------
      Load
   ----------------------------*/
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) setLearning(JSON.parse(raw));
-    });
+    const init = async () => {
+      try {
+        const data = await storage.getJSON(STORAGE_KEYS.PRODUCT_LEARNING, {});
+        setLearning(data);
+      } catch (err) {
+        console.warn("Error loading product learning", err);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    init();
   }, []);
 
   /* ---------------------------
      Persist
   ----------------------------*/
   useEffect(() => {
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(learning));
-  }, [learning]);
+    if (!isReady) return;
+    storage.setJSON(STORAGE_KEYS.PRODUCT_LEARNING, learning);
+  }, [learning, isReady]);
 
   /* ---------------------------
      API
@@ -56,8 +68,9 @@ export function ProductLearningProvider({ children }) {
     () => ({
       learning,
       recordSelection,
+      isReady,
     }),
-    [learning]
+    [learning, isReady],
   );
 
   return (
@@ -74,7 +87,7 @@ export function useProductLearning() {
   const ctx = useContext(ProductLearningContext);
   if (!ctx) {
     throw new Error(
-      "useProductLearning must be used inside ProductLearningProvider"
+      "useProductLearning must be used inside ProductLearningProvider",
     );
   }
   return ctx;

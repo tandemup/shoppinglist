@@ -10,10 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getGeneralSearchEngine } from "../utils/config/searchConfig";
-
+import { getSearchSettings } from "../src/storage/settingsStorage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -132,7 +129,10 @@ export default function ItemDetailScreen() {
     }
 
     try {
-      const engineKey = (await getGeneralSearchEngine()) || "google";
+      const settings = await getSearchSettings();
+      const engineKey = settings?.productEngines?.googleShopping
+        ? "googleShopping"
+        : "google";
       const engine = SEARCH_ENGINES[engineKey] || SEARCH_ENGINES.google;
 
       Linking.openURL(engine.buildUrl(code));

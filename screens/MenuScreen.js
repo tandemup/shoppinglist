@@ -14,20 +14,17 @@ import { ROUTES } from "../navigation/ROUTES";
 import { safeAlert } from "../utils/core/safeAlert";
 
 import {
-  clearStorage,
-  clearActiveLists,
-  clearArchivedLists,
+  clearAppStorage,
+  clearLists,
   clearPurchaseHistory,
   clearScannedHistory,
   clearStoresData,
-} from "../utils/storage";
+} from "../src/storage";
 
 import {
-  getGeneralSearchEngine,
-  setGeneralSearchEngine,
-  getBookSearchEngine,
-  setBookSearchEngine,
-} from "../utils/config/searchConfig";
+  getSearchSettings,
+  setSearchSettings,
+} from "../src/storage/settingsStorage";
 
 import { SEARCH_ENGINES, BOOK_ENGINES } from "../constants/searchEngines";
 const ICON_FAMILIES = {

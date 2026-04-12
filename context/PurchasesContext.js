@@ -1,11 +1,3 @@
-/**
- * PurchasesContext
- *
- * Contexto encargado del historial de compras realizadas.
- * Gestiona la persistencia y consulta de compras finalizadas,
- * separando este flujo del manejo de listas activas.
- */
-
 import React, {
   createContext,
   useContext,
@@ -13,14 +5,14 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { storage } from "../src/storage/storage";
+import { STORAGE_KEYS } from "../src/storage/storageKeys";
 
 /* -------------------------------------------------
    Context
 -------------------------------------------------- */
 const PurchasesContext = createContext(null);
-
-const STORAGE_KEY = "@purchaseHistory";
 
 /* -------------------------------------------------
    Provider
@@ -30,15 +22,13 @@ export function PurchasesProvider({ children }) {
   const [isReady, setIsReady] = useState(false);
 
   /* -------------------------------------------------
-     Load from storage
+     Load
   -------------------------------------------------- */
   useEffect(() => {
-    const load = async () => {
+    const init = async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          setPurchases(JSON.parse(raw));
-        }
+        const data = await storage.getJSON(STORAGE_KEYS.PURCHASES, []);
+        setPurchases(data);
       } catch (err) {
         console.warn("Error loading purchases", err);
       } finally {
@@ -46,7 +36,7 @@ export function PurchasesProvider({ children }) {
       }
     };
 
-    load();
+    init();
   }, []);
 
   /* -------------------------------------------------
@@ -54,7 +44,7 @@ export function PurchasesProvider({ children }) {
   -------------------------------------------------- */
   useEffect(() => {
     if (!isReady) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(purchases));
+    storage.setJSON(STORAGE_KEYS.PURCHASES, purchases);
   }, [purchases, isReady]);
 
   /* -------------------------------------------------
@@ -67,11 +57,10 @@ export function PurchasesProvider({ children }) {
      API
   -------------------------------------------------- */
 
-  // ➕ Añadir compra
   const addPurchase = ({ store, items }) => {
     const total = (items ?? []).reduce(
       (sum, i) => sum + (i.priceInfo?.total ?? 0),
-      0
+      0,
     );
 
     const purchase = {
@@ -87,12 +76,10 @@ export function PurchasesProvider({ children }) {
     return purchase;
   };
 
-  // 🗑 Eliminar compra
   const deletePurchase = (purchaseId) => {
     setPurchases((prev) => prev.filter((p) => p.id !== purchaseId));
   };
 
-  // 🧹 Limpiar historial
   const clearPurchases = () => {
     setPurchases([]);
   };
@@ -109,7 +96,7 @@ export function PurchasesProvider({ children }) {
       deletePurchase,
       clearPurchases,
     }),
-    [purchases, isReady]
+    [purchases, isReady],
   );
 
   return (

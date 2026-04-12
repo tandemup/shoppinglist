@@ -1,13 +1,12 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-const KEY = "stores_distance_cache";
+import { storage } from "@/src/storage/storage";
+import { STORAGE_KEYS } from "@/src/storage/storageKeys";
 
 /**
  * Guarda distancias y ubicación
  */
 export async function saveStoresDistance(data) {
   try {
-    await AsyncStorage.setItem(KEY, JSON.stringify(data));
+    await storage.setJSON(STORAGE_KEYS.STORES_DISTANCE_CACHE, data);
   } catch (err) {
     console.warn("Error guardando cache:", err);
   }
@@ -18,8 +17,7 @@ export async function saveStoresDistance(data) {
  */
 export async function loadStoresDistance() {
   try {
-    const raw = await AsyncStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : null;
+    return await storage.getJSON(STORAGE_KEYS.STORES_DISTANCE_CACHE, null);
   } catch (err) {
     console.warn("Error cargando cache:", err);
     return null;

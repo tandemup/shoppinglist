@@ -16,12 +16,7 @@ import { useLists } from "../context/ListsContext";
 import { useStores } from "../context/StoresContext";
 import { ROUTES } from "../navigation/ROUTES";
 import StoreFilterBadges from "../components/StoreFilterBadges";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { buildPurchaseHistoryFromArchivedLists } from "../utils/buildPurchaseHistoryFromArchivedLists";
 import BarcodeLink from "../components/BarcodeLink";
-import { timeAgo } from "../utils/store/formatters";
-import { Image } from "react-native";
-import { getProductImage } from "../utils/products/getProductImage";
 
 import {
   queryProducts,
@@ -40,7 +35,7 @@ import {
 -------------------------------------------------- */
 export default function PurchaseHistoryScreen() {
   const navigation = useNavigation();
-  const { purchaseHistory, archivedLists, rebuildPurchaseHistory } = useLists();
+  const { purchaseHistory, rebuildPurchaseHistory } = useLists();
 
   const { getStoreById } = useStores();
 
@@ -135,15 +130,9 @@ export default function PurchaseHistoryScreen() {
     );
   };
 
-  const reloadPurchaseHistory = async () => {
+  const reloadPurchaseHistory = () => {
     try {
       rebuildPurchaseHistory();
-
-      await AsyncStorage.setItem(
-        "@purchaseHistory",
-        JSON.stringify(buildPurchaseHistoryFromArchivedLists(archivedLists)),
-      );
-
       console.log("purchaseHistory reconstruido");
     } catch (e) {
       console.error("Error al reconstruir purchaseHistory", e);

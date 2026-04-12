@@ -48,10 +48,10 @@ export default function ProductLearningDebugScreen() {
             {item.selects >= 10
               ? "+5"
               : item.selects >= 5
-              ? "+3"
-              : item.selects >= 2
-              ? "+1"
-              : "+0"}
+                ? "+3"
+                : item.selects >= 2
+                  ? "+1"
+                  : "+0"}
           </Text>
 
           {/* Debug helpers */}
@@ -70,9 +70,8 @@ export default function ProductLearningDebugScreen() {
       <TouchableOpacity
         style={styles.resetAll}
         onPress={() => {
-          // ⚠️ Solo para debug: recargar la app limpia AsyncStorage
           alert(
-            "Para limpiar el aprendizaje, borra AsyncStorage (@productLearning)"
+            "Para limpiar el aprendizaje, borra AsyncStorage (@productLearning)",
           );
         }}
       >
