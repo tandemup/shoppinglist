@@ -5,7 +5,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loadLists, saveLists } from "../storage/listsStorage";
 import { DEFAULT_CURRENCY } from "../constants/currency";
 
 import { buildPurchaseHistoryFromArchivedLists } from "../utils/buildPurchaseHistoryFromArchivedLists";

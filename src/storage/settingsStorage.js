@@ -1,38 +1,17 @@
-import { asyncStorageClient } from "./asyncStorageClient";
+import { storage } from "./storage";
 import { STORAGE_KEYS } from "./storageKeys";
-import { DEFAULT_ENGINE } from "../constants/searchEngines";
 
-async function getSearchEngine() {
-  return await asyncStorageClient.getString(
-    STORAGE_KEYS.SEARCH_ENGINE,
-    DEFAULT_ENGINE,
-  );
+export async function getSearchEngine() {
+  return await storage.getString(STORAGE_KEYS.SEARCH_ENGINE);
 }
 
-async function setSearchEngine(engineKey) {
-  return await asyncStorageClient.setString(
-    STORAGE_KEYS.SEARCH_ENGINE,
-    engineKey,
-  );
+export async function setSearchEngine(engineKey) {
+  return await storage.setString(STORAGE_KEYS.SEARCH_ENGINE, engineKey);
 }
 
-async function getSearchSettings() {
-  return await asyncStorageClient.getJSON(STORAGE_KEYS.SEARCH_SETTINGS, {
-    generalEngine: DEFAULT_ENGINE,
-    bookEngine: DEFAULT_ENGINE,
+export async function getSearchSettings() {
+  return await storage.getJSON(STORAGE_KEYS.SEARCH_SETTINGS, {
+    generalEngine: "google",
+    bookEngine: "google",
   });
 }
-
-async function updateSearchSettings(partialSettings) {
-  return await asyncStorageClient.mergeJSON(
-    STORAGE_KEYS.SEARCH_SETTINGS,
-    partialSettings,
-  );
-}
-
-export const settingsStorage = {
-  getSearchEngine,
-  setSearchEngine,
-  getSearchSettings,
-  updateSearchSettings,
-};
