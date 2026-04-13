@@ -1,5 +1,6 @@
 import { storage } from "../src/storage/storage";
 import { STORAGE_KEYS } from "../src/storage/storageKeys";
+
 /* -------------------------------------------------
    Helpers internos
 -------------------------------------------------- */
@@ -42,10 +43,17 @@ export const addScannedItem = async (item) => {
   const now = new Date().toISOString();
 
   if (index !== -1) {
+    const previous = all[index];
+
     const updatedItem = {
-      ...all[index],
-      scanCount: (all[index].scanCount || 1) + 1,
+      ...previous,
+      ...item,
+      name: item.name || previous.name || "",
+      thumbnailUri: item.thumbnailUri || previous.thumbnailUri || "",
+      scanCount: (previous.scanCount || 1) + 1,
+      scannedAt: previous.scannedAt || now,
       updatedAt: now,
+      source: "scanner",
     };
 
     const updated = [
@@ -59,6 +67,8 @@ export const addScannedItem = async (item) => {
 
   const newItem = {
     ...item,
+    name: item.name || "",
+    thumbnailUri: item.thumbnailUri || "",
     scanCount: 1,
     scannedAt: now,
     updatedAt: now,

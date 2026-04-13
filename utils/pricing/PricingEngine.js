@@ -1,351 +1,297 @@
-// pricingEngine.js
-// 🧠 Motor único de precios, promociones y formateo
+// utils/pricing/PricingEngine.js
 
-/* ======================================================
- * 📦 PROMOCIONES
- * ====================================================== */
 export const NO_PROMO = "none";
+
+const round2 = (value) =>
+  Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+
+const toSafeNumber = (value, fallback = 0) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
 
 export const PROMOTIONS = {
   [NO_PROMO]: {
+    id: "none",
     label: "Sin oferta",
-    isApplicable: () => true,
-    apply: (price, qty) => price * qty,
+    type: "none",
   },
 
   "2x1": {
+    id: "2x1",
     label: "2x1",
-    isApplicable: (qty) => qty >= 2,
-    apply: (price, qty) => {
-      const pairs = Math.floor(qty / 2);
-      const rest = qty % 2;
-      return (pairs + rest) * price;
-    },
+    type: "multi",
+    buy: 2,
+    pay: 1,
   },
 
   "3x2": {
+    id: "3x2",
     label: "3x2",
-    isApplicable: (qty) => qty >= 3,
-    apply: (price, qty) => {
-      const sets = Math.floor(qty / 3);
-      const rest = qty % 3;
-      return (sets * 2 + rest) * price;
-    },
+    type: "multi",
+    buy: 3,
+    pay: 2,
   },
 
-  discount10: {
-    label: "10%",
-    isApplicable: () => true,
-    apply: (price, qty) => price * qty * 0.9,
+  discount5: {
+    id: "discount5",
+    label: "-5€",
+    type: "discount",
+    value: 5,
   },
 
-  discount20: {
-    label: "20%",
-    isApplicable: () => true,
-    apply: (price, qty) => price * qty * 0.8,
-  },
-};
-
-// 🧮 Calcula el total aplicando la promoción seleccionada
-export function calcularPromoTotal(promoKey, price, qty) {
-  const promo = PROMOTIONS[promoKey] || PROMOTIONS.none;
-
-  if (isNaN(price) || isNaN(qty)) {
-    return { total: 0, warning: "Valores inválidos", label: promo.label };
-  }
-
-  const isValid = promo.isApplicable(qty);
-  const total = promo.apply(price, qty);
-
-  let warning = null;
-  if (!isValid && promoKey !== "none") {
-    warning = `Esta oferta no aplica a la cantidad (${qty}) seleccionada.`;
-  }
-
-  return { total, warning, label: promo.label };
-}
-
-/* ======================================================
- * 🌐 I18N / TEXTO
- * ====================================================== */
-
-const LANG = {
-  es: {
-    unitFallback: "u",
-    plural: {
-      u: "u",
-      unit: "unidades",
-      kg: "kg",
-      g: "g",
-      l: "l",
-      ml: "ml",
-    },
-    multiply: "×",
-    arrow: "→",
+  percent10: {
+    id: "percent10",
+    label: "-10%",
+    type: "percent",
+    value: 10,
   },
 };
 
-/* ======================================================
- * 🔧 HELPERS
- * ====================================================== */
+export function toPromotion(promoKey) {
+  const entry = PROMOTIONS[promoKey];
 
-function formatMoney(value, currency, position = "after") {
-  const n = Number(value || 0).toFixed(2);
-  return position === "before" ? `${currency}${n}` : `${n} ${currency}`;
-}
+  if (!entry) return { type: "none" };
 
-function pluralizeUnit(unit, qty, lang = "es") {
-  const dict = LANG[lang].plural;
-  const fallback = LANG[lang].unitFallback;
+  switch (entry.type) {
+    case "multi":
+      return {
+        type: "multi",
+        buy: Number(entry.buy ?? 0),
+        pay: Number(entry.pay ?? 0),
+      };
 
-  if (!unit) return `${qty} ${fallback}`;
-  if (qty === 1) return `${qty} ${unit}`;
+    case "percent":
+      return {
+        type: "percent",
+        value: Number(entry.value ?? 0),
+      };
 
-  return `${qty} ${dict[unit] ?? unit}`;
-}
+    case "discount":
+      return {
+        type: "discount",
+        value: Number(entry.value ?? 0),
+      };
 
-function applyPromotion(unitPrice, qty, promoKey) {
-  const promo = PROMOTIONS[promoKey] ?? PROMOTIONS.none;
-
-  if (!promo.isApplicable(qty)) {
-    return {
-      total: PROMOTIONS.none.apply(unitPrice, qty),
-      savings: 0,
-      warning: `Esta oferta no aplica a ${qty} unidades`,
-      promoLabel: promo.label,
-    };
+    case "none":
+    default:
+      return { type: "none" };
   }
-
-  const subtotal = unitPrice * qty;
-  const total = promo.apply(unitPrice, qty);
-
-  return {
-    total,
-    savings: subtotal - total,
-    warning: null,
-    promoLabel: promo.label,
-  };
 }
 
-/* ======================================================
- * 🧮 PRICING ENGINE (API PÚBLICA)
- * ====================================================== */
+export function fromPromotion(promo) {
+  if (!promo || promo.type === "none") return "none";
+
+  switch (promo.type) {
+    case "multi":
+      return `${promo.buy}x${promo.pay}`;
+    case "percent":
+      return `percent${promo.value}`;
+    case "discount":
+      return `discount${promo.value}`;
+    default:
+      return "none";
+  }
+}
+
+export function getPromotionLabel(promo) {
+  if (!promo || promo.type === "none") return "";
+
+  switch (promo.type) {
+    case "multi":
+      return `${promo.buy}x${promo.pay}`;
+    case "percent":
+      return `-${promo.value}%`;
+    case "discount":
+      return `-${promo.value}€`;
+    default:
+      return "";
+  }
+}
+
+export function normalizePromotion(promo) {
+  if (!promo) return { type: "none" };
+
+  switch (promo.type) {
+    case "2x1":
+      return { type: "multi", buy: 2, pay: 1 };
+
+    case "3x2":
+      return { type: "multi", buy: 3, pay: 2 };
+
+    case "multi":
+      return {
+        type: "multi",
+        buy: Number(promo.buy ?? 0),
+        pay: Number(promo.pay ?? 0),
+      };
+
+    case "percent":
+      return {
+        type: "percent",
+        value: Number(promo.value ?? 0),
+      };
+
+    case "discount":
+      return {
+        type: "discount",
+        value: Number(promo.value ?? 0),
+      };
+
+    case "none":
+    default:
+      return { type: "none" };
+  }
+}
+
+export function hasPromotion(promoKey) {
+  return !!promoKey && promoKey !== "none";
+}
+
+export function validatePromotion(promo, quantity, unitPrice) {
+  const p = normalizePromotion(promo);
+  const qty = Math.max(0, toSafeNumber(quantity));
+  const price = Math.max(0, toSafeNumber(unitPrice));
+
+  switch (p.type) {
+    case "none":
+      return { valid: true };
+
+    case "multi":
+      if (p.buy <= 0 || p.pay <= 0 || p.pay > p.buy) {
+        return { valid: false, message: "Oferta inválida" };
+      }
+
+      return qty >= p.buy
+        ? { valid: true }
+        : { valid: false, message: `Mínimo ${p.buy} unidades` };
+
+    case "percent":
+      if (p.value <= 0 || p.value > 100) {
+        return { valid: false, message: "Descuento inválido" };
+      }
+
+      return price > 0
+        ? { valid: true }
+        : { valid: false, message: "Precio inválido" };
+
+    case "discount": {
+      const baseTotal = qty * price;
+
+      if (p.value <= 0) {
+        return { valid: false, message: "Descuento inválido" };
+      }
+
+      if (p.value > baseTotal) {
+        return {
+          valid: false,
+          message: "El descuento supera el subtotal",
+        };
+      }
+
+      return { valid: true };
+    }
+
+    default:
+      return { valid: true };
+  }
+}
+
+function applyPromotion(promo, quantity, unitPrice) {
+  const base = quantity * unitPrice;
+
+  switch (promo.type) {
+    case "multi": {
+      const groups = Math.floor(quantity / promo.buy);
+      const remainder = quantity % promo.buy;
+      const payableUnits = groups * promo.pay + remainder;
+      return payableUnits * unitPrice;
+    }
+
+    case "percent":
+      return base * (1 - promo.value / 100);
+
+    case "discount":
+      return Math.max(0, base - promo.value);
+
+    case "none":
+    default:
+      return base;
+  }
+}
+
+function buildSummary({ qty, unit, unitPrice, currency, total }) {
+  return `${qty} ${unit} × ${unitPrice.toFixed(2)} ${currency} → ${total.toFixed(
+    2,
+  )} ${currency}`;
+}
 
 export class PricingEngine {
-  /**
-   * Calcula toda la info de precio normalizada
-   */
   static calculate({
     qty = 1,
     unit = "u",
     unitPrice = 0,
     currency = "EUR",
     promo = "none",
-    lang = "es",
   }) {
-    const subtotal = qty * unitPrice;
+    const quantity = Math.max(0, toSafeNumber(qty, 1));
+    const price = Math.max(0, toSafeNumber(unitPrice, 0));
+    const normalizedPromo = normalizePromotion(toPromotion(promo));
 
-    const promoResult = applyPromotion(unitPrice, qty, promo);
+    const subtotal = round2(quantity * price);
+    const validation = validatePromotion(normalizedPromo, quantity, price);
 
-    const unitLabel = unit || LANG[lang].unitFallback;
+    if (!validation.valid) {
+      return {
+        qty: quantity,
+        unit,
+        unitPrice: price,
+        currency,
 
-    const baseLine =
-      `${pluralizeUnit(unitLabel, qty, lang)} ` +
-      `${LANG[lang].multiply} ` +
-      `${formatMoney(unitPrice, currency)}/${unitLabel}`;
+        promo,
+        promoLabel: getPromotionLabel(normalizedPromo),
 
-    const summary =
-      `${baseLine}\n` +
-      `${LANG[lang].arrow} ${formatMoney(promoResult.total, currency)}`;
+        subtotal,
+        total: subtotal,
+        savings: 0,
+
+        summary: buildSummary({
+          qty: quantity,
+          unit,
+          unitPrice: price,
+          currency,
+          total: subtotal,
+        }),
+        warning: validation.message,
+        valid: false,
+      };
+    }
+
+    const total = round2(applyPromotion(normalizedPromo, quantity, price));
+    const savings = round2(subtotal - total);
 
     return {
-      qty,
-      unit: unitLabel,
-      unitPrice,
+      qty: quantity,
+      unit,
+      unitPrice: price,
       currency,
 
       promo,
-      promoLabel: promoResult.promoLabel,
+      promoLabel: getPromotionLabel(normalizedPromo),
 
       subtotal,
-      total: promoResult.total,
-      savings: promoResult.savings,
-
-      summary,
-      warning: promoResult.warning,
-    };
-  }
-}
-
-export class PriceFormatter {
-  //
-  // 🌐 Idiomas soportados
-  //
-  static LANG = {
-    es: {
-      unitFallback: "u",
-      plural: {
-        u: "unidades",
-        unit: "unidades",
-        unidad: "unidades",
-        kg: "kg",
-        g: "g",
-        l: "L",
-        ml: "ml",
-      },
-      promoDescription: (promo, qty, paid) =>
-        `${promo}: pagas ${paid} y te llevas ${qty}`,
-      arrow: "→",
-      multiply: "×",
-    },
-
-    en: {
-      unitFallback: "u",
-      plural: {
-        u: "units",
-        unit: "units",
-        kg: "kg",
-        g: "g",
-        l: "L",
-        ml: "ml",
-      },
-      promoDescription: (promo, qty, paid) =>
-        `${promo}: pay ${paid} get ${qty}`,
-      arrow: "→",
-      multiply: "×",
-    },
-  };
-
-  //
-  // 🔢 Aplica la promo real
-  //
-  static applyPromotion(unitPrice, qty, promoKey) {
-    const promo = PROMOTIONS[promoKey] ?? PROMOTIONS.none;
-
-    if (!promo.isApplicable(qty)) {
-      return PROMOTIONS.none.apply(unitPrice, qty);
-    }
-    return promo.apply(unitPrice, qty);
-  }
-
-  //
-  // 💰 Formato monetario flexible
-  //
-  static formatMoney(value, currency, position = "after") {
-    const n = value.toFixed(2);
-    return position === "before" ? `${currency}${n}` : `${n} ${currency}`;
-  }
-
-  //
-  // 🔤 Pluralización automática por unidad
-  //
-  static pluralizeUnit(unit, qty, lang = "es") {
-    const dict = this.LANG[lang].plural;
-    const fallback = this.LANG[lang].unitFallback;
-
-    if (!unit) return `${qty} ${fallback}`;
-    if (qty === 1) return `${qty} ${unit}`;
-
-    return `${qty} ${dict[unit] ?? unit}`;
-  }
-
-  //
-  // 🧠 Genera texto descriptivo de la promoción
-  //
-  static promoExplanation(promoKey, qty, lang = "es") {
-    if (!promoKey || promoKey === "none") return "";
-
-    const promo = PROMOTIONS[promoKey];
-    if (!promo || !promo.explain) return `(${promoKey})`;
-
-    // promo.explain debe devolver: { qty: 3, pay: 2 }
-    const data = promo.explain(qty) ?? null;
-    if (!data) return `(${promoKey})`;
-
-    const { qty: offerQty, pay } = data;
-    const explainFn = this.LANG[lang].promoDescription;
-
-    return `${explainFn(promoKey, offerQty, pay)}`;
-  }
-
-  //
-  // 🧾 Línea completa estilo ItemRow
-  //
-  static formatLine({
-    qty,
-    unitPrice,
-    promo = "none",
-    unit = "u",
-    currency = "EUR",
-    currencyPosition = "after",
-    lang = "es",
-    showPromoExplain = false,
-  }) {
-    const L = this.LANG[lang];
-
-    // Total real
-    const total = this.applyPromotion(unitPrice, qty, promo);
-
-    // 3 u × 3.00 €/u
-    const unitLabel = unit || L.unitFallback;
-
-    const baseLeft =
-      `${this.pluralizeUnit(unitLabel, qty, lang)} ` +
-      `${L.multiply} ` +
-      `${this.formatMoney(unitPrice, currency, currencyPosition)}/${unitLabel}`;
-
-    const totalStr = this.formatMoney(total, currency, currencyPosition);
-
-    let promoLabel = "";
-    if (promo !== "none") {
-      promoLabel = showPromoExplain
-        ? ` (${this.promoExplanation(promo, qty, lang)})`
-        : ` (${promo})`;
-    }
-
-    return `${baseLeft} ${L.arrow} ${totalStr}${promoLabel}`;
-  }
-  static formatLineDetailed({
-    qty,
-    unitPrice,
-    promo = "none",
-    unit = "u",
-    currency = "EUR",
-    lang = "es",
-    currencyPosition = "after",
-    showPromoExplain = false,
-  }) {
-    const promoObj = PROMOTIONS[promo] ?? PROMOTIONS.none;
-    const promoLabel = promoObj.label ?? promo;
-
-    // Total calculado con la promoción
-    const total = this.applyPromotion(unitPrice, qty, promo);
-
-    // Línea ya generada en la función base
-    const line = this.formatLine({
-      qty,
-      unitPrice,
-      promo: promoLabel, // <-- usa LABEL ahora
-      unit,
-      currency,
-      lang,
-      currencyPosition,
-      showPromoExplain,
-    });
-
-    return {
-      line,
       total,
-      currency,
-      promoKey: promo,
-      promoLabel,
-    };
-  }
+      savings,
 
-  //
-  // Solo total, sin texto
-  //
-  static calculateTotal({ qty, unitPrice, promo = "none" }) {
-    return this.applyPromotion(unitPrice, qty, promo);
+      summary: buildSummary({
+        qty: quantity,
+        unit,
+        unitPrice: price,
+        currency,
+        total,
+      }),
+      warning: null,
+      valid: true,
+    };
   }
 }

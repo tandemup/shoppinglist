@@ -1,14 +1,18 @@
+// utils/core/defaultItem.js
+
 export const defaultPriceInfo = () => ({
-  currency: "€",
-  promo: "",
+  currency: "EUR",
+  promo: "none",
   promoLabel: "",
   qty: 1,
   savings: 0,
   subtotal: 0,
-  summary: 0,
+  summary: "",
   total: 0,
   unit: "u",
   unitPrice: 0,
+  warning: null,
+  valid: true,
 });
 
 export const defaultItem = {
@@ -20,17 +24,17 @@ export const defaultItem = {
   checked: true,
   priceInfo: defaultPriceInfo(),
 };
+
 const normalizePromoText = (value) => {
-  if (typeof value !== "string") return "";
+  if (typeof value !== "string") return "none";
   const v = value.trim().toLowerCase();
-  if (!v || v === "none") return "";
+  if (!v || v === "none") return "none";
   return value;
 };
 
 export const normalizePriceInfo = (priceInfo) => {
   const base = defaultPriceInfo();
 
-  // 🔒 Protección absoluta
   if (!priceInfo || typeof priceInfo !== "object") {
     return base;
   }
@@ -39,17 +43,28 @@ export const normalizePriceInfo = (priceInfo) => {
     ...base,
     ...priceInfo,
 
-    // Normalización defensiva
+    currency:
+      typeof priceInfo.currency === "string" && priceInfo.currency.trim()
+        ? priceInfo.currency
+        : base.currency,
+
     qty: Number(priceInfo.qty ?? base.qty),
     unit: priceInfo.unit ?? base.unit,
     unitPrice: Number(priceInfo.unitPrice ?? base.unitPrice),
     subtotal: Number(priceInfo.subtotal ?? base.subtotal),
     total: Number(priceInfo.total ?? base.total),
-    savings: Number(priceInfo.savings ?? 0),
-    promo: normalizePromoText(priceInfo.promo),
-    promoLabel: normalizePromoText(priceInfo.promoLabel),
+    savings: Number(priceInfo.savings ?? base.savings),
 
-    summary: priceInfo.summary ?? base.summary,
-    warning: priceInfo.warning ?? null,
+    promo: normalizePromoText(priceInfo.promo),
+    promoLabel:
+      typeof priceInfo.promoLabel === "string"
+        ? priceInfo.promoLabel
+        : base.promoLabel,
+
+    summary:
+      typeof priceInfo.summary === "string" ? priceInfo.summary : base.summary,
+
+    warning: priceInfo.warning ?? base.warning,
+    valid: typeof priceInfo.valid === "boolean" ? priceInfo.valid : base.valid,
   };
 };

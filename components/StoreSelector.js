@@ -8,9 +8,8 @@ export default function StoreSelector({ store, onPress, disabled = false }) {
       <Ionicons
         name="storefront"
         size={20}
-        color={disabled ? "#999" : "#007bff"}
+        color={disabled ? "#999" : store ? "#007bff" : "#9ca3af"}
       />
-
       <View style={styles.middleColumn}>
         <Text style={styles.label}>Tienda seleccionada</Text>
 

@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   AppState,
   Linking,
+  SafeAreaView,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 
@@ -16,7 +17,7 @@ import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../constants/searchEngines";
 import { addScannedItem } from "../services/scannerHistory";
 import { SCANNER_ZOOM, getZoomValue } from "../constants/cameraZoom";
 
-export default function ScannerTab() {
+export default function ScannerQuickMode({ embedded = false }) {
   const [permission, requestPermission] = useCameraPermissions();
 
   const [scanned, setScanned] = useState(false);
@@ -28,6 +29,17 @@ export default function ScannerTab() {
   const [torch, setTorch] = useState(false);
   const [zoomIndex, setZoomIndex] = useState(0);
   const zoom = getZoomValue(SCANNER_ZOOM, zoomIndex);
+
+  const Wrapper = embedded ? View : SafeAreaView;
+
+  const resetScanner = useCallback(() => {
+    scanLock.current = false;
+    setScanned(false);
+    setLoading(false);
+    setLastCode(null);
+    setTorch(false);
+    setZoomIndex(0);
+  }, []);
 
   useEffect(() => {
     if (!permission) {
@@ -43,16 +55,7 @@ export default function ScannerTab() {
     });
 
     return () => sub.remove();
-  }, []);
-
-  const resetScanner = useCallback(() => {
-    scanLock.current = false;
-    setScanned(false);
-    setLoading(false);
-    setLastCode(null);
-    setTorch(false);
-    setZoomIndex(0);
-  }, []);
+  }, [resetScanner]);
 
   const resolveEngineKey = useCallback(async () => {
     try {
@@ -117,26 +120,26 @@ export default function ScannerTab() {
 
   if (!permission) {
     return (
-      <View style={styles.center}>
+      <Wrapper style={styles.center}>
         <ActivityIndicator size="large" color="#22c55e" />
         <Text style={styles.text}>Solicitando acceso a la cámara…</Text>
-      </View>
+      </Wrapper>
     );
   }
 
   if (!permission.granted) {
     return (
-      <View style={styles.center}>
+      <Wrapper style={styles.center}>
         <Text style={styles.text}>Necesitamos permiso para usar la cámara</Text>
         <Pressable onPress={requestPermission}>
           <Text style={styles.button}>Conceder permiso</Text>
         </Pressable>
-      </View>
+      </Wrapper>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <Wrapper style={styles.container}>
       <CameraView
         style={StyleSheet.absoluteFill}
         enableTorch={torch}
@@ -185,7 +188,7 @@ export default function ScannerTab() {
           </>
         )}
       </View>
-    </View>
+    </Wrapper>
   );
 }
 
@@ -194,7 +197,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
   },
-
   center: {
     flex: 1,
     justifyContent: "center",
@@ -202,7 +204,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
     paddingHorizontal: 24,
   },
-
   overlay: {
     position: "absolute",
     bottom: 50,
@@ -210,57 +211,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
   },
-
   text: {
     color: "#fff",
     fontSize: 16,
     marginBottom: 8,
     textAlign: "center",
   },
-
   subText: {
     color: "#aaa",
     fontSize: 14,
     marginBottom: 10,
     textAlign: "center",
   },
-
   button: {
     color: "#22c55e",
     fontSize: 16,
-    fontWeight: "600",
-  },
-
-  controls: {
-    position: "absolute",
-    top: 110,
-    right: 16,
-    alignItems: "center",
-    gap: 16,
-  },
-
-  controlBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  zoomText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-
-  eanBadge: {
-    alignItems: "center",
-    marginTop: 4,
-  },
-
-  eanText: {
-    color: "#22c55e",
-    fontSize: 12,
     fontWeight: "600",
   },
 });

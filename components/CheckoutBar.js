@@ -1,6 +1,7 @@
+// components/CheckoutBar.js
+
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
 import { formatCurrency } from "../utils/store/prices";
 import { DEFAULT_CURRENCY } from "../constants/currency";
@@ -8,12 +9,17 @@ import { DEFAULT_CURRENCY } from "../constants/currency";
 export default function CheckoutBar({ total, currency, onCheckout }) {
   if (!total || total <= 0) return null;
 
+  const currencyCode =
+    typeof currency === "string"
+      ? currency
+      : (currency?.code ?? DEFAULT_CURRENCY.code);
+
   return (
     <View style={styles.container}>
       <View style={styles.totalRow}>
-        <Text style={styles.totalLabel}>Total: </Text>
+        <Text style={styles.totalLabel}>Total:</Text>
         <Text style={styles.totalValue}>
-          {total.toFixed(2)} {currency?.symbol}
+          {formatCurrency(total, currencyCode)}
         </Text>
       </View>
 
@@ -34,8 +40,7 @@ const styles = StyleSheet.create({
   },
   totalRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 22,
+    justifyContent: "space-between",
     marginBottom: 10,
   },
   totalLabel: {
@@ -46,7 +51,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
-
   button: {
     flexDirection: "row",
     gap: 6,
@@ -56,7 +60,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   buttonText: {
     color: "#FFFFFF",
     fontWeight: "600",

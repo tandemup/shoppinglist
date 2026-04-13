@@ -11,30 +11,22 @@ import { ROUTES } from "../navigation/ROUTES";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 
 import { safeAlert } from "../utils/core/safeAlert";
 import BarcodeLink from "../components/BarcodeLink";
-
 import {
   getScannedHistory,
   removeScannedItem,
 } from "../services/scannerHistory";
 
-import { useIsFocused } from "@react-navigation/native";
-
 export default function ScannedHistoryScreen({ navigation }) {
-  //
-  // 📌 ESTADOS
-  //
   const [scannedItems, setScannedItems] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredItems, setFilteredItems] = useState([]);
 
   const isFocused = useIsFocused();
 
-  //
-  // 🔄 CARGAR HISTORIAL
-  //
   useEffect(() => {
     if (isFocused) {
       loadScannedHistory();
@@ -49,7 +41,8 @@ export default function ScannedHistoryScreen({ navigation }) {
 
       onlyScanned.sort(
         (a, b) =>
-          new Date(b.scannedAt).valueOf() - new Date(a.scannedAt).valueOf(),
+          new Date(b.updatedAt || b.scannedAt).valueOf() -
+          new Date(a.updatedAt || a.scannedAt).valueOf(),
       );
 
       setScannedItems(onlyScanned);
@@ -59,9 +52,6 @@ export default function ScannedHistoryScreen({ navigation }) {
     }
   };
 
-  //
-  // 🔎 FILTRADO
-  //
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredItems(scannedItems);
@@ -81,9 +71,6 @@ export default function ScannedHistoryScreen({ navigation }) {
     setFilteredItems(results);
   }, [searchQuery, scannedItems]);
 
-  //
-  // 🗑 BORRAR ITEM
-  //
   const handleDelete = (item) => {
     safeAlert("Eliminar", `¿Deseas eliminar este escaneo?\n\n${item.name}`, [
       { text: "Cancelar", style: "cancel" },
@@ -98,24 +85,22 @@ export default function ScannedHistoryScreen({ navigation }) {
     ]);
   };
 
-  //
-  // 🖼 OBTENER IMAGEN
-  //
   const getItemImage = (item) => {
     return item.thumbnailUri || null;
   };
 
-  //
-  // 🎨 ITEM
-  //
+  const openItem = (item) => {
+    navigation.navigate(ROUTES.EDIT_SCANNED_ITEM, { item });
+  };
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate(ROUTES.EDIT_SCANNED_ITEM, { item })}
-      onLongPress={() => handleDelete(item)}
-      activeOpacity={0.85}
-    >
-      <View style={[styles.card, item.isBook && styles.cardBook]}>
-        {/* 🖼 IMAGEN */}
+    <View style={[styles.card, item.isBook && styles.cardBook]}>
+      <TouchableOpacity
+        style={styles.mainPressable}
+        onPress={() => openItem(item)}
+        onLongPress={() => handleDelete(item)}
+        activeOpacity={0.85}
+      >
         <View style={styles.imageWrapper}>
           {getItemImage(item) ? (
             <Image
@@ -131,47 +116,38 @@ export default function ScannedHistoryScreen({ navigation }) {
           )}
         </View>
 
-        {/* 📄 INFO */}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>
+        <View style={styles.infoContent}>
+          <Text style={styles.name} numberOfLines={2}>
             {item.isBook ? "📚 " : ""}
-            {item.name}
+            {item.name || "Sin nombre"}
           </Text>
 
-          {item.barcode && (
-            <View style={{ marginTop: 4 }}>
-              <BarcodeLink
-                barcode={item.barcode}
-                label="Buscar código"
-                iconColor="#0F52BA"
-              />
-            </View>
-          )}
+          <Text style={styles.count}>Búsquedas: {item.scanCount ?? 1}</Text>
 
-          {item.scanCount > 1 && (
-            <Text style={styles.count}>Escaneado {item.scanCount} veces</Text>
-          )}
-
-          {item.scannedAt && (
+          {item.scannedAt ? (
             <Text style={styles.date}>
-              {new Date(item.scannedAt).toLocaleDateString("es-ES")}
+              Fecha: {new Date(item.scannedAt).toLocaleDateString("es-ES")}
             </Text>
-          )}
+          ) : null}
         </View>
 
-        <Ionicons
-          name="chevron-forward"
-          size={26}
-          color="#888"
-          style={{ alignSelf: "center", marginLeft: 6 }}
-        />
-      </View>
-    </TouchableOpacity>
+        <View style={styles.actionsCol}>
+          <Ionicons name="chevron-forward" size={26} color="#888" />
+        </View>
+      </TouchableOpacity>
+
+      {item.barcode ? (
+        <View style={styles.barcodeRow}>
+          <BarcodeLink
+            barcode={item.barcode}
+            label={item.barcode}
+            iconColor="#2563eb"
+          />
+        </View>
+      ) : null}
+    </View>
   );
 
-  //
-  // 🖥 RENDER
-  //
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <Text style={styles.title}>Historial de Escaneos</Text>
@@ -205,9 +181,6 @@ export default function ScannedHistoryScreen({ navigation }) {
   );
 }
 
-/* =========================
-   🎨 ESTILOS
-========================= */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -230,14 +203,12 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    flexDirection: "row",
-    alignItems: "stretch", // 👈 CLAVE
     backgroundColor: "#fff",
-    padding: 14,
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: "#E0E7FF",
+    padding: 14,
   },
 
   cardBook: {
@@ -245,9 +216,15 @@ const styles = StyleSheet.create({
     borderColor: "#60A5FA",
     borderWidth: 1.2,
   },
+
+  mainPressable: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+
   imageWrapper: {
     width: 64,
-    height: 64, // 👈 ahora SÍ fijo
+    height: 64,
     borderRadius: 8,
     overflow: "hidden",
     backgroundColor: "#F3F4F6",
@@ -265,13 +242,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  infoContent: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: "center",
+  },
+
   name: {
     fontSize: 16,
     fontWeight: "600",
+    color: "#111",
+  },
+
+  barcodeRow: {
+    marginTop: 10,
+    marginLeft: 76,
+    alignItems: "flex-start",
   },
 
   count: {
-    marginTop: 2,
+    marginTop: 4,
     fontSize: 12,
     color: "#444",
     fontStyle: "italic",
@@ -281,6 +271,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: "#444",
     fontSize: 12,
+  },
+
+  actionsCol: {
+    justifyContent: "center",
+    marginLeft: 6,
   },
 
   searchContainer: {

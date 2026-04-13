@@ -1,9 +1,9 @@
 import React, { useCallback } from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text } from "react-native";
 import { settingsStorage } from "../src/storage";
 import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../constants/searchEngines";
 
-export default function BarcodeLink({ barcode }) {
+export default function BarcodeLink({ barcode, label, iconColor = "#2563eb" }) {
   const handlePress = useCallback(
     async (e) => {
       e.stopPropagation();
@@ -22,11 +22,20 @@ export default function BarcodeLink({ barcode }) {
     [barcode],
   );
 
+  if (!barcode) return null;
+
   return (
     <Pressable onPress={handlePress}>
-      <View>
-        <Text>Buscar código</Text>
-      </View>
+      <Text
+        style={{
+          color: iconColor,
+          fontSize: 13,
+          fontWeight: "600",
+          textDecorationLine: "underline",
+        }}
+      >
+        {label || barcode}
+      </Text>
     </Pressable>
   );
 }

@@ -62,15 +62,27 @@ export default function ItemDetailScreen() {
   /* ---------------------------
      Cálculo de precios
   ----------------------------*/
+  const rawListCurrency = list?.currency ?? DEFAULT_CURRENCY;
+
+  const listCurrencyCode =
+    typeof rawListCurrency === "string"
+      ? rawListCurrency
+      : rawListCurrency?.code || DEFAULT_CURRENCY.code;
+
+  const listCurrencySymbol =
+    typeof rawListCurrency === "string"
+      ? rawListCurrency
+      : rawListCurrency?.symbol || DEFAULT_CURRENCY.symbol;
+
   const priceInfo = useMemo(() => {
     return PricingEngine.calculate({
       qty: Number(qty.replace(",", ".")) || 0,
       unit,
       unitPrice: Number(unitPrice.replace(",", ".")) || 0,
       promo,
-      currency: DEFAULT_CURRENCY.code,
+      currency: listCurrencyCode,
     });
-  }, [qty, unit, unitPrice, promo]);
+  }, [qty, unit, unitPrice, promo, listCurrencyCode]);
 
   useEffect(() => {
     navigation.setOptions({ title: "Editar producto" });
@@ -223,7 +235,9 @@ export default function ItemDetailScreen() {
             </View>
 
             <View style={styles.inlineField}>
-              <Text style={styles.label}>Precio /{formatUnit(unit)}</Text>
+              <Text style={styles.label}>
+                Precio unitario {listCurrencySymbol}/{formatUnit(unit)}
+              </Text>
               <TextInput
                 style={styles.input}
                 keyboardType="decimal-pad"
@@ -256,7 +270,14 @@ export default function ItemDetailScreen() {
               </Pressable>
             ))}
           </View>
-
+          {promo !== "none" && priceInfo.valid === false && (
+            <View style={styles.promoErrorBox}>
+              <Ionicons name="alert-circle-outline" size={16} color="#b91c1c" />
+              <Text style={styles.promoErrorText}>
+                {priceInfo.reason || "La oferta seleccionada no es aplicable"}
+              </Text>
+            </View>
+          )}
           {/* RESUMEN */}
           <View style={styles.summary}>
             <Text style={styles.summaryTitle}>Total</Text>
