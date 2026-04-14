@@ -1,3 +1,5 @@
+import UNITS from "../data/units.json";
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
@@ -10,22 +12,237 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { getSearchSettings } from "../src/storage/settingsStorage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useNavigation, useRoute } from "@react-navigation/native";
 
+import { getSearchSettings } from "../src/storage/settingsStorage";
 import { DEFAULT_CURRENCY } from "../constants/currency";
 import { SEARCH_ENGINES } from "../constants/searchEngines";
-
 import BarcodeScannerEAN13 from "../components/BarcodeScannerEAN13";
 import { useLists } from "../context/ListsContext";
 
-import { PricingEngine, PROMOTIONS } from "../utils/pricing/PricingEngine";
+import {
+  PricingEngine,
+  PROMOTIONS,
+  normalizePromotion,
+  validatePromotion,
+} from "../utils/pricing/PricingEngine";
+import { isSamePromotion } from "../utils/pricing/isSamePromotion";
+
 import { formatCurrency } from "../utils/store/prices";
 import { formatUnit } from "../utils/pricing/unitFormat";
 import { safeAlert } from "../utils/core/safeAlert";
+
+function CardNombreBarcode({
+  nameItem,
+  barcodeItem,
+  onChangeName,
+  onChangeBarcode,
+  onScanner,
+  onSearch,
+}) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.label}>Nombre</Text>
+
+      <TextInput
+        style={styles.input}
+        value={nameItem}
+        onChangeText={onChangeName}
+        placeholder="Nombre del producto"
+        placeholderTextColor="#9ca3af"
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      <View style={{ height: 12 }} />
+      <Text style={styles.label}>Código de barras</Text>
+      <View style={styles.barcodeRow}>
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          value={barcodeItem}
+          onChangeText={onChangeBarcode}
+          placeholder="EAN-13"
+          placeholderTextColor="#9ca3af"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Pressable style={styles.scanBtn} onPress={onScanner}>
+          <Ionicons name="barcode-outline" size={22} color="#2563eb" />
+        </Pressable>
+
+        <Pressable style={styles.scanBtn} onPress={onSearch}>
+          <Ionicons name="search-outline" size={22} color="#2563eb" />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function Unidades({
+  qty,
+  price,
+  unit,
+  currencySymbol,
+  onChangeQty,
+  onChangePrice,
+  onChangeUnit,
+}) {
+  return (
+    <>
+      <View style={styles.unitHeader}>
+        <Text style={styles.label}>Unidad</Text>
+
+        <Text style={styles.unitHint}>
+          {
+            {
+              u: "🧩 Unidad (pieza)",
+              kg: "⚖️ Kilogramos",
+              g: "⚖️ Gramos",
+              l: "🧃 Litros",
+            }[unit]
+          }
+        </Text>
+      </View>
+
+      <View style={styles.unitRow}>
+        {UNITS.map((u) => (
+          <Pressable
+            key={u}
+            style={[styles.unitBtn, unit === u && styles.unitBtnActive]}
+            onPress={() => onChangeUnit(u)}
+          >
+            <Text
+              style={[styles.unitText, unit === u && styles.unitTextActive]}
+            >
+              {formatUnit(u)}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={styles.inlineRow}>
+        <View style={styles.inlineField}>
+          <Text style={styles.label}>Cantidad ({formatUnit(unit)})</Text>
+          <TextInput
+            inputMode="decimal"
+            style={styles.input}
+            keyboardType="decimal-pad"
+            value={qty}
+            onChangeText={onChangeQty}
+          />
+        </View>
+
+        <View style={styles.inlineField}>
+          <Text style={styles.label}>
+            Precio unitario ({currencySymbol}/{formatUnit(unit)})
+          </Text>
+          <TextInput
+            inputMode="decimal"
+            style={styles.input}
+            keyboardType="decimal-pad"
+            value={price}
+            onChangeText={onChangePrice}
+          />
+        </View>
+      </View>
+    </>
+  );
+}
+
+function PromotionList({ quantity, unitPrice, selectedPromo, onSelect }) {
+  const qty = Number(String(quantity).replace(",", ".")) || 0;
+  const price = Number(String(unitPrice).replace(",", ".")) || 0;
+
+  const selectedPromoSafe = selectedPromo ?? "none";
+
+  return (
+    <View style={styles.promoWrap}>
+      {Object.values(PROMOTIONS).map((option) => {
+        const promo = normalizePromotion(option.id);
+
+        const validation = validatePromotion(promo, qty, price);
+        const disabled = !validation.valid;
+
+        const selected = selectedPromoSafe === option.id;
+
+        return (
+          <Pressable
+            key={option.id}
+            onPress={() => {
+              if (disabled) return;
+              onSelect(option.id);
+            }}
+            disabled={disabled}
+            style={({ pressed }) => [
+              styles.promoChip,
+              selected && styles.promoChipSelected,
+              disabled && styles.promoChipDisabled,
+              pressed && !disabled && { opacity: 0.8 },
+            ]}
+          >
+            <Text
+              style={[
+                styles.promoChipText,
+                selected && styles.promoChipTextSelected,
+                disabled && styles.promoChipTextDisabled,
+              ]}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function Ofertas({ quantity, unitPrice, selectedPromo, onSelect }) {
+  const promoValidation = validatePromotion(selectedPromo, quantity, unitPrice);
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.label}>Ofertas</Text>
+
+      <PromotionList
+        quantity={quantity}
+        unitPrice={unitPrice}
+        selectedPromo={selectedPromo}
+        onSelect={onSelect}
+      />
+
+      {!promoValidation.valid && (
+        <View style={styles.offerWarningBox}>
+          <Text style={styles.offerWarning}>
+            {promoValidation.message ?? "Oferta no válida"}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function Summary({ base, savings, total }) {
+  return (
+    <View style={styles.summaryCard}>
+      <Text style={styles.summaryTitle}>Resumen</Text>
+
+      <Text style={styles.summaryLine}>Base: {formatCurrency(base)}</Text>
+
+      {savings > 0 && (
+        <Text style={styles.summarySavings}>
+          Ahorro: {formatCurrency(savings)}
+        </Text>
+      )}
+
+      <View style={styles.summaryTotalRow}>
+        <Text style={styles.summaryTotalLabel}>Total</Text>
+        <Text style={styles.summaryTotalValue}>{formatCurrency(total)}</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function ItemDetailScreen() {
   const navigation = useNavigation();
@@ -162,135 +379,38 @@ export default function ItemDetailScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-          {/* NOMBRE */}
-          <Text style={styles.label}>Nombre</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} />
+        <ScrollView contentContainerStyle={styles.content}>
+          <CardNombreBarcode
+            nameItem={name}
+            barcodeItem={barcode}
+            onChangeName={setName}
+            onChangeBarcode={setBarcode}
+            onScanner={() => setShowScanner(true)}
+            onSearch={handleSearch}
+          />
 
-          {/* CÓDIGO DE BARRAS */}
-          <Text style={styles.label}>Código de barras</Text>
-          <View style={styles.barcodeRow}>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              value={barcode}
-              onChangeText={setBarcode}
-              keyboardType="numeric"
-              placeholder="EAN-13"
-            />
+          <Unidades
+            qty={qty}
+            price={unitPrice}
+            unit={unit}
+            currencySymbol={listCurrencySymbol}
+            onChangeQty={setQty}
+            onChangePrice={setUnitPrice}
+            onChangeUnit={setUnit}
+          />
 
-            {/* Escanear */}
-            <Pressable
-              style={styles.scanBtn}
-              onPress={() => setShowScanner(true)}
-            >
-              <Ionicons name="barcode-outline" size={22} color="#2563eb" />
-            </Pressable>
+          <Ofertas
+            quantity={qty}
+            unitPrice={unitPrice}
+            selectedPromo={promo}
+            onSelect={setPromo}
+          />
 
-            {/* Buscar con motor configurado */}
-            <Pressable style={styles.scanBtn} onPress={handleSearch}>
-              <Ionicons name="search-outline" size={22} color="#2563eb" />
-            </Pressable>
-          </View>
-
-          {/* UNIDAD */}
-          <View style={styles.unitRow}>
-            <Text style={styles.label}>Unidad</Text>
-            <Text style={styles.unitHint}>
-              {
-                {
-                  u: "🧩 Unidad (pieza)",
-                  kg: "⚖️ Kilogramos",
-                  g: "⚖️ Gramos",
-                  l: "🧃 Litros",
-                }[unit]
-              }
-            </Text>
-          </View>
-
-          <View style={styles.unitRow}>
-            {["u", "kg", "g", "l"].map((u) => (
-              <Pressable
-                key={u}
-                style={[styles.unitBtn, unit === u && styles.unitBtnActive]}
-                onPress={() => setUnit(u)}
-              >
-                <Text
-                  style={[styles.unitText, unit === u && styles.unitTextActive]}
-                >
-                  {formatUnit(u)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <View style={styles.inlineRow}>
-            <View style={styles.inlineField}>
-              <Text style={styles.label}>Cantidad ({formatUnit(unit)})</Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="decimal-pad"
-                value={qty}
-                onChangeText={setQty}
-              />
-            </View>
-
-            <View style={styles.inlineField}>
-              <Text style={styles.label}>
-                Precio unitario {listCurrencySymbol}/{formatUnit(unit)}
-              </Text>
-              <TextInput
-                style={styles.input}
-                keyboardType="decimal-pad"
-                value={unitPrice}
-                onChangeText={setUnitPrice}
-              />
-            </View>
-          </View>
-
-          {/* PROMOS */}
-          <Text style={styles.label}>Ofertas</Text>
-          <View style={styles.promoRow}>
-            {Object.entries(PROMOTIONS).map(([key, p]) => (
-              <Pressable
-                key={key}
-                style={[
-                  styles.promoBtn,
-                  promo === key && styles.promoBtnActive,
-                ]}
-                onPress={() => setPromo(key)}
-              >
-                <Text
-                  style={[
-                    styles.promoText,
-                    promo === key && styles.promoTextActive,
-                  ]}
-                >
-                  {p.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          {promo !== "none" && priceInfo.valid === false && (
-            <View style={styles.promoErrorBox}>
-              <Ionicons name="alert-circle-outline" size={16} color="#b91c1c" />
-              <Text style={styles.promoErrorText}>
-                {priceInfo.reason || "La oferta seleccionada no es aplicable"}
-              </Text>
-            </View>
-          )}
-          {/* RESUMEN */}
-          <View style={styles.summary}>
-            <Text style={styles.summaryTitle}>Total</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(priceInfo.total, summaryCurrency)}
-            </Text>
-
-            {priceInfo.savings > 0 && (
-              <Text style={styles.savings}>
-                Ahorro: {formatCurrency(priceInfo.savings, summaryCurrency)}
-              </Text>
-            )}
-          </View>
+          <Summary
+            base={priceInfo.subtotal}
+            savings={priceInfo.savings}
+            total={priceInfo.total}
+          />
 
           {/* ACCIONES */}
           <View style={styles.actions}>
@@ -327,104 +447,250 @@ export default function ItemDetailScreen() {
   );
 }
 
-/* ---------------------------
-   Estilos
-----------------------------*/
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
-  label: { fontWeight: "600", marginBottom: 6, marginTop: 16 },
-  input1: {
+  container: {
+    flex: 1,
+    backgroundColor: "#f2f2f7",
+  },
+
+  content: {
+    padding: 16,
+    gap: 16,
+    paddingBottom: 28,
+  },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
+    borderColor: "#e5e7eb",
+  },
+
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
   },
   input: {
+    backgroundColor: "#f9fafb",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16, // 🔑 CLAVE
-    lineHeight: 20,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: "#111827",
   },
-  barcodeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+
+  barcodeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
   scanBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
+    width: 46,
+    height: 46,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#2563eb",
+    borderColor: "#e5e7eb",
+    backgroundColor: "#fff",
+    alignItems: "center",
     justifyContent: "center",
+  },
+
+  unitHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  unitRow: { flexDirection: "row", gap: 8 },
+
+  unitRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
   unitBtn: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#d1d5db",
+    backgroundColor: "#fff",
   },
-  unitBtnActive: { backgroundColor: "#2563eb", borderColor: "#2563eb" },
-  unitText: { color: "#111", fontWeight: "500" },
-  unitTextActive: { color: "#fff" },
-  unitHint: { marginTop: 16, fontSize: 13, color: "#64748b" },
-  inlineRow: { flexDirection: "row", gap: 12 },
-  inlineField: { flex: 1 },
-  promoRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  promoBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+
+  unitBtnActive: {
+    backgroundColor: "#111827",
+    borderColor: "#111827",
+  },
+
+  unitText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+
+  unitTextActive: {
+    color: "#fff",
+  },
+
+  unitHint: {
+    fontSize: 13,
+    color: "#64748b",
+    marginTop: 0, // 👈 importante quitarlo
+  },
+
+  inlineRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  inlineField: {
+    flex: 1,
+  },
+
+  /* PROMOS */
+  promoWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+
+  promoChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#d1d5db",
+    backgroundColor: "#fff",
   },
-  promoBtnActive: { backgroundColor: "#16a34a", borderColor: "#16a34a" },
-  promoText: { fontSize: 13, color: "#111" },
-  promoTextActive: { color: "#fff", fontWeight: "600" },
-  summary: {
-    marginTop: 24,
-    padding: 16,
+
+  promoChipSelected: {
+    backgroundColor: "#111827",
+    borderColor: "#111827",
+  },
+  promoChipDisabled: {
+    backgroundColor: "#f9fafb",
+    borderColor: "#e5e7eb",
+    opacity: 1,
+  },
+
+  promoChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+
+  promoChipTextSelected: {
+    color: "#fff",
+  },
+
+  promoChipTextDisabled: {
+    color: "#9ca3af",
+  },
+
+  offerWarningBox: {
+    marginTop: 12,
+    padding: 10,
     borderRadius: 12,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fff7ed",
+    borderWidth: 1,
+    borderColor: "#fdba74",
   },
-  summaryTitle: { fontSize: 14, color: "#555" },
-  summaryValue: { fontSize: 22, fontWeight: "700", marginTop: 4 },
-  savings: { marginTop: 4, color: "#15803d", fontWeight: "600" },
-  actions: { flexDirection: "row", gap: 12, marginTop: 24 },
+
+  offerWarning: {
+    color: "#9a3412",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+
+  /* SUMMARY */
+  summaryCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+
+  summaryTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 10,
+  },
+
+  summaryLine: {
+    fontSize: 14,
+    color: "#374151",
+    marginBottom: 6,
+  },
+
+  summarySavings: {
+    fontSize: 14,
+    color: "#16a34a",
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+
+  summaryTotalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  summaryTotalLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  summaryTotalValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#111827",
+  },
+
+  /* ACTIONS */
+  actions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 8,
+  },
+
   saveBtn: {
     flex: 1,
     flexDirection: "row",
     gap: 6,
     backgroundColor: "#22c55e",
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  saveText: { color: "#fff", fontWeight: "600" },
+
+  saveText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+
   deleteBtn: {
     flex: 1,
     flexDirection: "row",
     gap: 6,
     backgroundColor: "#ef4444",
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  deleteText: { color: "#fff", fontWeight: "600" },
-  scannerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#000",
-    zIndex: 100,
-  },
-  closeScannerBtn: {
-    position: "absolute",
-    top: 50,
-    right: 20,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: 20,
-    padding: 6,
+
+  deleteText: {
+    color: "#fff",
+    fontWeight: "700",
   },
 });
