@@ -10,8 +10,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { ROUTES } from "../navigation/ROUTES";
-import { safeAlert } from "../utils/core/safeAlert";
+import { ROUTES } from "../../navigation/ROUTES";
+import { safeAlert } from "../../utils/core/safeAlert";
 
 import {
   clearAppStorage as clearStorage,
@@ -19,19 +19,19 @@ import {
   clearPurchaseHistory,
   clearScannedHistory,
   clearStoresData,
-} from "../src/storage";
+} from "../../src/storage";
 
 import {
   getSearchSettings,
   setSearchSettings,
-} from "../src/storage/settingsStorage";
+} from "../../src/storage/settingsStorage";
 
 import {
   SEARCH_ENGINES,
   BOOK_ENGINES,
   DEFAULT_ENGINE,
   DEFAULT_BOOK_ENGINE,
-} from "../constants/searchEngines";
+} from "../../constants/searchEngines";
 
 const ICON_FAMILIES = {
   Ionicons,

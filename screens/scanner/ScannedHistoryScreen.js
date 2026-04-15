@@ -7,18 +7,18 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { ROUTES } from "../navigation/ROUTES";
+import { ROUTES } from "../../navigation/ROUTES";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 
-import { safeAlert } from "../utils/core/safeAlert";
-import BarcodeLink from "../components/BarcodeLink";
+import { safeAlert } from "../../utils/core/safeAlert";
+import BarcodeLink from "../../components/BarcodeLink";
 import {
   getScannedHistory,
   removeScannedItem,
-} from "../services/scannerHistory";
+} from "../../services/scannerHistory";
 
 export default function ScannedHistoryScreen({ navigation }) {
   const [scannedItems, setScannedItems] = useState([]);

@@ -2,9 +2,9 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./ROUTES";
 
-import ScannerSelectorScreen from "../screens/ScannerSelectorScreen";
-import EditScannedItemScreen from "../screens/EditScannedItemScreen";
-import ScannedHistoryScreen from "../screens/ScannedHistoryScreen";
+import ScannerSelectorScreen from "../screens/scanner/ScannerSelectorScreen";
+import EditScannedItemScreen from "../screens/scanner/EditScannedItemScreen";
+import ScannedHistoryScreen from "../screens/scanner/ScannedHistoryScreen";
 
 const Stack = createNativeStackNavigator();
 

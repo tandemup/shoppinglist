@@ -3,14 +3,14 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
 
-import { useStores } from "../context/StoresContext";
-import { getValidCoords } from "../utils/maps/getValidCoords";
+import { useStores } from "../../context/StoresContext";
+import { getValidCoords } from "../../utils/maps/getValidCoords";
 import {
   openGoogleMaps,
   openGoogleMapsSearch,
-} from "../utils/maps/openGoogleMaps";
+} from "../../utils/maps/openGoogleMaps";
 
-import StoreMapPreview from "../components/StoreMapPreview";
+import StoreMapPreview from "../../components/StoreMapPreview";
 
 export default function StoreDetailScreen() {
   const route = useRoute();

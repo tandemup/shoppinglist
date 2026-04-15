@@ -2,20 +2,20 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./ROUTES";
 
-import ShoppingListsScreen from "../screens/ShoppingListsScreen";
-import ShoppingListScreen from "../screens/ShoppingListScreen";
-import ItemDetailScreen from "../screens/ItemDetailScreen";
-import StoresScreen from "../screens/StoresScreen";
-import StoreSelectScreen from "../screens/StoreSelectScreen";
-import ArchivedListsScreen from "../screens/ArchivedListsScreen";
+import ShoppingListsScreen from "../screens/lists/ShoppingListsScreen";
+import ShoppingListScreen from "../screens/lists/ShoppingListScreen";
+import ItemDetailScreen from "../screens/lists/ItemDetailScreen";
+import StoresScreen from "../screens/stores/StoresScreen";
+import StoreSelectScreen from "../screens/stores/StoreSelectScreen";
+import ArchivedListsScreen from "../screens/lists/ArchivedListsScreen";
 
-import PurchaseHistoryScreen from "../screens/PurchaseHistoryScreen";
-import PurchaseDetailScreen from "../screens/PurchaseDetailScreen";
+import PurchaseHistoryScreen from "../screens/history/PurchaseHistoryScreen";
+import PurchaseDetailScreen from "../screens/history/PurchaseDetailScreen";
 
-import ScannedHistoryScreen from "../screens/ScannedHistoryScreen";
-import EditScannedItemScreen from "../screens/EditScannedItemScreen";
-import StoreMapScreen from "../screens/StoreMapScreen";
-import MenuScreen from "../screens/MenuScreen";
+import ScannedHistoryScreen from "../screens/scanner/ScannedHistoryScreen";
+import EditScannedItemScreen from "../screens/scanner/EditScannedItemScreen";
+import StoreMapScreen from "../screens/stores/StoreMapScreen";
+import MenuScreen from "../screens/settings/MenuScreen";
 
 const Stack = createNativeStackNavigator();
 

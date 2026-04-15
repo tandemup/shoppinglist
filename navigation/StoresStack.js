@@ -1,13 +1,13 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./ROUTES";
 
-import StoresHomeScreen from "../screens/StoresHomeScreen";
-import StoreSelectScreen from "../screens/StoreSelectScreen";
-import StoresBrowseScreen from "../screens/StoresBrowseScreen";
-import StoresFavoritesScreen from "../screens/StoresFavoritesScreen";
-import StoresNearbyScreen from "../screens/StoresNearbyScreen";
-import StoreDetailScreen from "../screens/StoreDetailScreen";
-import StoreInfoScreen from "../screens/StoreInfoScreen";
+import StoresHomeScreen from "../screens/stores/StoresHomeScreen";
+import StoreSelectScreen from "../screens/stores/StoreSelectScreen";
+import StoresBrowseScreen from "../screens/stores/StoresBrowseScreen";
+import StoresFavoritesScreen from "../screens/stores/StoresFavoritesScreen";
+import StoresNearbyScreen from "../screens/stores/StoresNearbyScreen";
+import StoreDetailScreen from "../screens/stores/StoreDetailScreen";
+import StoreInfoScreen from "../screens/stores/StoreInfoScreen";
 
 const Stack = createNativeStackNavigator();
 

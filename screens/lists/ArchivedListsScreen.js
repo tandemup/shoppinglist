@@ -8,13 +8,13 @@ import {
   FlatList,
   Linking,
 } from "react-native";
-import SearchBar from "../components/SearchBar";
+import SearchBar from "../../components/SearchBar";
 import { Ionicons } from "@expo/vector-icons";
 
-import { ROUTES } from "../navigation/ROUTES";
-import { useLists } from "../context/ListsContext";
-import { useStores } from "../context/StoresContext";
-import { normalizePriceInfo } from "../utils/core/defaultItem";
+import { ROUTES } from "../../navigation/ROUTES";
+import { useLists } from "../../context/ListsContext";
+import { useStores } from "../../context/StoresContext";
+import { normalizePriceInfo } from "../../utils/core/defaultItem";
 
 /* ────────────────────────────────────────────────
    STORE LINK

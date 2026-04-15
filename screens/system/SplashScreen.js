@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Animated,
 } from "react-native";
+import splashIcon from "../../assets/images/splash-icon.png";
+//source={require("../assets/images/splash-icon.png")}
 
 export default function SplashScreen({ navigation }) {
   const fadeAnim = useRef(new Animated.Value(0)).current; // valor inicial de opacidad 0
@@ -31,11 +33,7 @@ export default function SplashScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Animated.View style={{ alignItems: "center", opacity: fadeAnim }}>
-        <Image
-          source={require("../assets/splash-icon.png")} // ⚠️ asegúrate de tener este logo
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <Image source={splashIcon} style={styles.logo} resizeMode="contain" />
         <Text style={styles.title}>Shop</Text>
         <Text style={styles.subtitle}>Tu lista de compras inteligente</Text>
       </Animated.View>

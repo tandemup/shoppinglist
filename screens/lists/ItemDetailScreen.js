@@ -1,4 +1,4 @@
-import UNITS from "../data/units.json";
+import UNITS from "../../data/units.json";
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -16,23 +16,23 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-import { getSearchSettings } from "../src/storage/settingsStorage";
-import { DEFAULT_CURRENCY } from "../constants/currency";
-import { SEARCH_ENGINES } from "../constants/searchEngines";
-import BarcodeScannerEAN13 from "../components/BarcodeScannerEAN13";
-import { useLists } from "../context/ListsContext";
+import { getSearchSettings } from "../../src/storage/settingsStorage";
+import { DEFAULT_CURRENCY } from "../../constants/currency";
+import { SEARCH_ENGINES } from "../../constants/searchEngines";
+import BarcodeScannerEAN13 from "../../components/BarcodeScannerEAN13";
+import { useLists } from "../../context/ListsContext";
 
 import {
   PricingEngine,
   PROMOTIONS,
   normalizePromotion,
   validatePromotion,
-} from "../utils/pricing/PricingEngine";
-import { isSamePromotion } from "../utils/pricing/isSamePromotion";
+} from "../../utils/pricing/PricingEngine";
+import { isSamePromotion } from "../../utils/pricing/isSamePromotion";
 
-import { formatCurrency } from "../utils/store/prices";
-import { formatUnit } from "../utils/pricing/unitFormat";
-import { safeAlert } from "../utils/core/safeAlert";
+import { formatCurrency } from "../../utils/store/prices";
+import { formatUnit } from "../../utils/pricing/unitFormat";
+import { safeAlert } from "../../utils/core/safeAlert";
 
 function CardNombreBarcode({
   nameItem,

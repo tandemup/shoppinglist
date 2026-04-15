@@ -1,42 +1,44 @@
 import React from "react";
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 
-import { useStores } from "../context/StoresContext";
-import { useStoresWithDistance } from "../hooks/useStoresWithDistance";
-import { ROUTES } from "../navigation/ROUTES";
+import { useStores } from "../../context/StoresContext";
+import { useLocation } from "../../context/LocationContext";
+import { distanceMetersBetween } from "../../utils/math/distance";
+import { formatDistance } from "../../utils/math/formatDistance";
+import { ROUTES } from "../../navigation/ROUTES";
 
-/* ---------------------------------------------
-   Helpers
----------------------------------------------- */
-const formatDistanceKm = (distance) => {
-  if (!Number.isFinite(distance)) return null;
+export default function StoresFavoritesScreen() {
+  const navigation = useNavigation();
+  const route = useRoute();
 
-  if (distance < 1) {
-    return `${Math.round(distance * 1000)} m`;
+  const { listId } = route.params || {};
+  const { favoriteStores, toggleFavoriteStore, isFavoriteStore } = useStores();
+
+  if (!favoriteStores || favoriteStores.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyTitle}>No tienes tiendas favoritas</Text>
+        <Text style={styles.emptyText}>
+          Marca una tienda con la estrella para acceder rápidamente a ella
+        </Text>
+      </View>
+    );
   }
 
-  return `${distance.toFixed(1)} km`;
-};
-
-/* ---------------------------------------------
-   Screen
----------------------------------------------- */
-export default function StoresNearbyScreen() {
-  const navigation = useNavigation();
-
-  const { toggleFavoriteStore, isFavoriteStore } = useStores();
-  const { sortedStores, loading, hasLocation } = useStoresWithDistance();
-
+  /* ---------------------------------------------
+     Navigation
+  ---------------------------------------------- */
   const handlePressStore = (store) => {
     navigation.navigate(ROUTES.STORE_DETAIL, {
       storeId: store.id,
+      listId,
     });
   };
 
   /* ---------------------------------------------
-     Render fila (MISMO PATRÓN que StoresBrowseScreen)
+     Render fila
   ---------------------------------------------- */
   const renderStoreRow = ({ item: store }) => {
     const isFavorite = isFavoriteStore(store.id);
@@ -56,12 +58,9 @@ export default function StoresNearbyScreen() {
 
           <Text style={styles.rowMeta}>
             <Text style={styles.rowMetaCity}>{store.city}</Text>
-            {Number.isFinite(store.distance) && (
-              <Text style={styles.rowMetaDistance}>
-                {" · a "}
-                {formatDistanceKm(store.distance)}
-              </Text>
-            )}
+            <Text style={styles.rowMetaDistance}>
+              {store.distance != null && ` · ${formatDistance(store.distance)}`}
+            </Text>
           </Text>
         </Pressable>
 
@@ -80,53 +79,51 @@ export default function StoresNearbyScreen() {
     );
   };
 
-  /* ---------------------------------------------
-     Render
-  ---------------------------------------------- */
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.muted}>Buscando tiendas cercanas…</Text>
-      </View>
-    );
-  }
-
-  if (!hasLocation) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.muted}>No se pudo obtener tu ubicación</Text>
-      </View>
-    );
-  }
-
   return (
     <FlatList
-      data={sortedStores}
+      data={favoriteStores}
       keyExtractor={(item) => item.id}
       renderItem={renderStoreRow}
+      style={styles.container}
       contentContainerStyle={styles.content}
     />
   );
 }
 
-/* ---------------------------------------------
-   Styles (COPIADOS de StoresBrowseScreen)
----------------------------------------------- */
+/* -------------------------------------------------
+   Styles
+-------------------------------------------------- */
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f6f6f6",
+  },
+
   content: {
     padding: 12,
     paddingBottom: 24,
   },
 
-  center: {
+  list: {
+    paddingVertical: 8,
+  },
+
+  empty: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 24,
   },
 
-  muted: {
-    fontSize: 14,
-    color: "#777",
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+
+  emptyText: {
+    textAlign: "center",
+    color: "#666",
   },
 
   rowContainer: {
@@ -151,9 +148,9 @@ const styles = StyleSheet.create({
   },
 
   rowAddress: {
-    marginTop: 4,
+    marginTop: 2,
     fontSize: 13,
-    color: "#444",
+    color: "#555",
   },
 
   rowMeta: {
@@ -164,12 +161,14 @@ const styles = StyleSheet.create({
   },
 
   rowMetaCity: {
+    marginTop: 4,
     fontSize: 13,
     fontWeight: "800",
     color: "#666",
   },
 
   rowMetaDistance: {
+    marginTop: 4,
     fontSize: 13,
     fontWeight: "600",
     color: "#666",

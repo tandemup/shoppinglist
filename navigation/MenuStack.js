@@ -1,8 +1,8 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./ROUTES";
-import ProductLearningDebugScreen from "../screens/ProductLearningDebugScreen";
-import MenuScreen from "../screens/MenuScreen";
+import ProductLearningDebugScreen from "../screens/debug/ProductLearningDebugScreen";
+import MenuScreen from "../screens/settings/MenuScreen";
 
 import HistoryStack from "./HistoryStack";
 

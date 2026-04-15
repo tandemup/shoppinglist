@@ -14,15 +14,15 @@ import { Ionicons } from "@expo/vector-icons";
 import Entypo from "@expo/vector-icons/Entypo";
 import { useNavigation } from "@react-navigation/native";
 
-import getDaysSinceJanuary1 from "../utils/helpers/newListName";
-import validarNombreListaEnTiempoReal from "../utils/validation";
-import { normalizarNombre } from "../utils/normalize";
-import { safeAlert } from "../utils/core/safeAlert";
+//import getDaysSinceJanuary1 from "../utils/helpers/newListName";
+import validarNombreListaEnTiempoReal from "../../utils/validation";
+import { normalizarNombre } from "../../utils/normalize";
+import { safeAlert } from "../../utils/core/safeAlert";
 
-import { useLists } from "../context/ListsContext";
-import { ROUTES } from "../navigation/ROUTES";
-import { DEFAULT_CURRENCY } from "../constants/currency";
-import CurrencyBadge from "../components/CurrencyBadge";
+import { useLists } from "../../context/ListsContext";
+import { ROUTES } from "../../navigation/ROUTES";
+import { DEFAULT_CURRENCY } from "../../constants/currency";
+import CurrencyBadge from "../../components/CurrencyBadge";
 
 /* -------------------------------------------------
    Screen

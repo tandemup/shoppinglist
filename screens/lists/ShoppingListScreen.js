@@ -10,16 +10,16 @@ import {
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
-import { useLists } from "../context/ListsContext";
-import { useStores } from "../context/StoresContext";
+import { useLists } from "../../context/ListsContext";
+import { useStores } from "../../context/StoresContext";
 
-import StoreSelector from "../components/StoreSelector";
-import ItemRow from "../components/ItemRow";
-import SearchCombinedBar from "../components/SearchCombinedBar";
-import CheckoutBar from "../components/CheckoutBar";
-import CurrencyBadge from "../components/CurrencyBadge";
-import { ROUTES } from "../navigation/ROUTES";
-import { safeAlert } from "../utils/core/safeAlert";
+import StoreSelector from "../../components/StoreSelector";
+import ItemRow from "../../components/ItemRow";
+import SearchCombinedBar from "../../components/SearchCombinedBar";
+import CheckoutBar from "../../components/CheckoutBar";
+import CurrencyBadge from "../../components/CurrencyBadge";
+import { ROUTES } from "../../navigation/ROUTES";
+import { safeAlert } from "../../utils/core/safeAlert";
 
 export default function ShoppingListScreen() {
   const route = useRoute();

@@ -1,4 +1,4 @@
-import BarcodeScanner from "../components/scanner/BarcodeScanner";
+import BarcodeScanner from "../../components/scanner/BarcodeScanner";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { addScannedItem } from "../services/scannerHistory";
+import { addScannedItem } from "../../services/scannerHistory";
 
 function BarcodeInfoCard({
   barcode,

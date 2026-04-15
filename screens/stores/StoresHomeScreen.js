@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-import { ROUTES } from "../navigation/ROUTES";
+import { ROUTES } from "../../navigation/ROUTES";
 
 /* -------------------------------------------------
    Menu Item

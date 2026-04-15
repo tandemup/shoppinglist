@@ -12,23 +12,23 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useNavigation } from "@react-navigation/native";
 
-import { useLists } from "../context/ListsContext";
-import { useStores } from "../context/StoresContext";
-import { ROUTES } from "../navigation/ROUTES";
-import StoreFilterBadges from "../components/StoreFilterBadges";
-import BarcodeLink from "../components/BarcodeLink";
+import { useLists } from "../../context/ListsContext";
+import { useStores } from "../../context/StoresContext";
+import { ROUTES } from "../../navigation/ROUTES";
+import StoreFilterBadges from "../../components/StoreFilterBadges";
+import BarcodeLink from "../../components/BarcodeLink";
 
 import {
   queryProducts,
   getStoresFromPurchaseHistory,
-} from "../utils/queries/products";
+} from "../../utils/queries/products";
 
 import {
   joinText,
   priceText,
   purchaseMetaText,
   formatCurrency,
-} from "../utils/store/formatters";
+} from "../../utils/store/formatters";
 
 /* -------------------------------------------------
    Screen

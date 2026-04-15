@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useStores } from "../context/StoresContext";
-import { useLocation } from "../context/LocationContext";
-import { distanceMetersBetween } from "../utils/math/distance";
-import { formatDistance } from "../utils/math/formatDistance";
+import { useStores } from "../../context/StoresContext";
+import { useLocation } from "../../context/LocationContext";
+import { distanceMetersBetween } from "../../utils/math/distance";
+import { formatDistance } from "../../utils/math/formatDistance";
 
-import SearchBar from "../components/SearchBar";
-import { ROUTES } from "../navigation/ROUTES";
+import SearchBar from "../../components/SearchBar";
+import { ROUTES } from "../../navigation/ROUTES";
 
 /* -------------------------------------------------
    Screen

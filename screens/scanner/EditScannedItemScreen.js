@@ -16,10 +16,10 @@ import { Image } from "expo-image";
 import {
   updateScannedEntry,
   removeScannedItem,
-} from "../services/scannerHistory";
+} from "../../services/scannerHistory";
 
-import { safeAlert } from "../utils/core/safeAlert";
-import { createThumbnail } from "../utils/createThumbnail";
+import { safeAlert } from "../../utils/core/safeAlert";
+import { createThumbnail } from "../../utils/createThumbnail";
 
 export default function EditScannedItemScreen({ route, navigation }) {
   const { item } = route.params;

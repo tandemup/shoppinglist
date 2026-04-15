@@ -11,11 +11,11 @@ import {
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 
-import ScannerControls from "../components/ScannerControls";
-import { getSearchSettings } from "../src/storage/settingsStorage";
-import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../constants/searchEngines";
-import { addScannedItem } from "../services/scannerHistory";
-import { SCANNER_ZOOM, getZoomValue } from "../constants/cameraZoom";
+import ScannerControls from "../../components/ScannerControls";
+import { getSearchSettings } from "../../src/storage/settingsStorage";
+import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
+import { addScannedItem } from "../../services/scannerHistory";
+import { SCANNER_ZOOM, getZoomValue } from "../../constants/cameraZoom";
 
 export default function ScannerQuickMode({ embedded = false }) {
   const [permission, requestPermission] = useCameraPermissions();

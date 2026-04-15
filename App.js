@@ -17,7 +17,7 @@ import { ProductLearningProvider } from "./context/ProductLearningContext";
 /* -----------------------------
    Screens
 ------------------------------ */
-import SplashScreen from "./screens/SplashScreen";
+import SplashScreen from "./screens/system/SplashScreen";
 /* -----------------------------
    Navigation
 ------------------------------ */

@@ -3,9 +3,9 @@ import React, { useMemo, useState } from "react";
 import { View, Text, FlatList, StyleSheet, TextInput } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
-import { useStores } from "../context/StoresContext";
-import StoreCard from "../components/StoreCard";
-import { ROUTES } from "../navigation/ROUTES";
+import { useStores } from "../../context/StoresContext";
+import StoreCard from "../../components/StoreCard";
+import { ROUTES } from "../../navigation/ROUTES";
 
 export default function StoresScreen() {
   const navigation = useNavigation();
@@ -24,7 +24,8 @@ export default function StoresScreen() {
     const q = query.toLowerCase();
     return stores.filter(
       (s) =>
-        s.name.toLowerCase().includes(q) || s.address?.toLowerCase().includes(q)
+        s.name.toLowerCase().includes(q) ||
+        s.address?.toLowerCase().includes(q),
     );
   }, [stores, query]);
 

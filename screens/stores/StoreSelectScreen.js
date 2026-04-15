@@ -4,9 +4,9 @@ import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useStores } from "../context/StoresContext";
-import { useLists } from "../context/ListsContext";
-import { ROUTES } from "../navigation/ROUTES";
+import { useStores } from "../../context/StoresContext";
+import { useLists } from "../../context/ListsContext";
+import { ROUTES } from "../../navigation/ROUTES";
 
 /* --------------------------------------------------
  Helpers
