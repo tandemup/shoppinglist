@@ -1,3 +1,5 @@
+// ItemDetailScreen.js
+
 import UNITS from "../data/units.json";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -11,11 +13,13 @@ import {
   Linking,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
+import { validatePricing } from "../utils/pricing/validatePricing";
 import { getSearchSettings } from "../src/storage/settingsStorage";
 import { DEFAULT_CURRENCY } from "../constants/currency";
 import { SEARCH_ENGINES } from "../constants/searchEngines";
@@ -28,11 +32,12 @@ import {
   normalizePromotion,
   validatePromotion,
 } from "../utils/pricing/PricingEngine";
-import { isSamePromotion } from "../utils/pricing/isSamePromotion";
 
 import { formatCurrency } from "../utils/store/prices";
 import { formatUnit } from "../utils/pricing/unitFormat";
 import { safeAlert } from "../utils/core/safeAlert";
+
+/* ---------------- COMPONENTES ---------------- */
 
 function CardNombreBarcode({
   nameItem,
@@ -55,8 +60,11 @@ function CardNombreBarcode({
         autoCapitalize="none"
         autoCorrect={false}
       />
+
       <View style={{ height: 12 }} />
+
       <Text style={styles.label}>Código de barras</Text>
+
       <View style={styles.barcodeRow}>
         <TextInput
           style={[styles.input, { flex: 1 }]}
@@ -64,8 +72,6 @@ function CardNombreBarcode({
           onChangeText={onChangeBarcode}
           placeholder="EAN-13"
           placeholderTextColor="#9ca3af"
-          autoCapitalize="none"
-          autoCorrect={false}
         />
 
         <Pressable style={styles.scanBtn} onPress={onScanner}>
@@ -88,12 +94,12 @@ function Unidades({
   onChangeQty,
   onChangePrice,
   onChangeUnit,
+  isUnitInvalid,
 }) {
   return (
     <View style={styles.card00}>
       <View style={styles.unitHeader}>
         <Text style={styles.label}>Unidad</Text>
-
         <Text style={styles.unitHint}>
           {
             {
@@ -121,29 +127,36 @@ function Unidades({
           </Pressable>
         ))}
       </View>
+
       <View style={styles.divider}>
         <View style={styles.inlineRow}>
           <View style={styles.inlineField}>
             <Text style={styles.label}>Cantidad ({formatUnit(unit)})</Text>
+
             <TextInput
-              inputMode="decimal"
               style={styles.inputNum}
-              keyboardType="decimal-pad"
               value={qty}
               onChangeText={onChangeQty}
+              keyboardType="decimal-pad"
             />
+
+            {isUnitInvalid && (
+              <Text style={styles.inputError}>
+                ⚠️ No se permiten decimales en "unidad"
+              </Text>
+            )}
           </View>
 
           <View style={styles.inlineField}>
             <Text style={styles.label}>
               Precio unitario ({currencySymbol}/{formatUnit(unit)})
             </Text>
+
             <TextInput
-              inputMode="decimal"
               style={styles.inputNum}
-              keyboardType="decimal-pad"
               value={price}
               onChangeText={onChangePrice}
+              keyboardType="decimal-pad"
             />
           </View>
         </View>
@@ -265,7 +278,7 @@ function SummaryRow({ label, value, bold, valueStyle }) {
         style={[
           styles.summaryValue,
           bold && styles.summaryValueBold,
-          valueStyle, // 👈 clave
+          valueStyle,
         ]}
       >
         {value}
@@ -275,12 +288,19 @@ function SummaryRow({ label, value, bold, valueStyle }) {
 }
 
 function Summary({ qty, unitPrice, unit, base, savings, total }) {
-  const q = Number(qty) || 0;
-  const up = Number(unitPrice) || 0;
-
   return (
-    <View style={styles.summaryCard}>
+    <View style={styles.card}>
       <Text style={styles.summaryTitle}>Resumen</Text>
+
+      <SummaryRow
+        label={`Cantidad (${formatUnit(unit)})`}
+        value={Number(qty).toFixed(2)}
+      />
+
+      <SummaryRow
+        label="Precio unitario"
+        value={`${formatCurrency(unitPrice)} / ${formatUnit(unit)}`}
+      />
 
       <SummaryRow label="Base imponible" value={formatCurrency(base)} />
 
@@ -296,154 +316,69 @@ function Summary({ qty, unitPrice, unit, base, savings, total }) {
     </View>
   );
 }
+/* ---------------- PANTALLA ---------------- */
 
 export default function ItemDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { listId, itemId } = route.params || {};
 
-  const { lists, updateItem, deleteItem } = useLists();
+  const { lists, updateItem } = useLists();
   const list = lists.find((l) => l.id === listId);
   const item = list?.items.find((i) => i.id === itemId);
 
   const [showScanner, setShowScanner] = useState(false);
 
-  if (!item) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text>Producto no encontrado</Text>
-      </SafeAreaView>
-    );
-  }
-
-  /* ---------------------------
-     Estado local
-  ----------------------------*/
-  const [name, setName] = useState(item.name ?? "");
-  const [barcode, setBarcode] = useState(item.barcode ?? "");
-
-  const [qty, setQty] = useState(String(item.priceInfo?.qty ?? "1"));
-  const [unitPrice, setUnitPrice] = useState(
-    String(item.priceInfo?.unitPrice ?? "0"),
-  );
-  const [unit, setUnit] = useState(item.priceInfo?.unit ?? "u");
-  const [promo, setPromo] = useState(item.priceInfo?.promo ?? "none");
+  const [name, setName] = useState(item?.name ?? "");
+  const [barcode, setBarcode] = useState(item?.barcode ?? "");
 
   const [pricing, setPricing] = useState({
-    qty: String(item.priceInfo?.qty ?? "1"),
-    unitPrice: String(item.priceInfo?.unitPrice ?? "0"),
-    unit: item.priceInfo?.unit ?? "u",
-    promo: item.priceInfo?.promo ?? "none",
+    qty: String(item?.priceInfo?.qty ?? "1"),
+    unitPrice: String(item?.priceInfo?.unitPrice ?? "0"),
+    unit: item?.priceInfo?.unit ?? "u",
+    promo: item?.priceInfo?.promo ?? "none",
   });
-  const updatePricing = (patch) => {
-    setPricing((prev) => ({ ...prev, ...patch }));
-  };
-  /* ---------------------------
-     Cálculo de precios
-  ----------------------------*/
-  const rawListCurrency = list?.currency ?? DEFAULT_CURRENCY;
 
-  const listCurrencyCode =
-    typeof rawListCurrency === "string"
-      ? rawListCurrency
-      : rawListCurrency?.code || DEFAULT_CURRENCY.code;
+  const updatePricing = (patch) =>
+    setPricing((prev) => ({ ...prev, ...patch }));
 
   const listCurrencySymbol =
-    typeof rawListCurrency === "string"
-      ? rawListCurrency
-      : rawListCurrency?.symbol || DEFAULT_CURRENCY.symbol;
+    typeof list?.currency === "string"
+      ? list.currency
+      : list?.currency?.symbol || DEFAULT_CURRENCY.symbol;
 
   const priceInfo = useMemo(() => {
     return PricingEngine.calculate({
-      qty: Number(pricing.qty.replace(",", ".")) || 0,
+      qty: Number(String(pricing.qty).replace(",", ".")) || 0,
       unit: pricing.unit,
-      unitPrice: Number(pricing.unitPrice.replace(",", ".")) || 0,
+      unitPrice: Number(String(pricing.unitPrice).replace(",", ".")) || 0,
       promo: pricing.promo,
-      currency: listCurrencyCode,
     });
-  }, [pricing, listCurrencyCode]);
+  }, [pricing]);
 
-  useEffect(() => {
-    navigation.setOptions({ title: "Editar producto" });
-  }, [navigation]);
+  const isUnitInvalid =
+    pricing.unit === "u" &&
+    !Number.isInteger(Number(String(pricing.qty).replace(",", ".")));
 
-  /* ---------------------------
-     Guardar
-  ----------------------------*/
   const handleSave = () => {
-    if (!name.trim()) {
-      safeAlert("Nombre vacío", "El producto debe tener un nombre");
+    const validation = validatePricing(pricing);
+
+    if (!validation.valid) {
+      safeAlert("Error", Object.values(validation.errors)[0]);
       return;
     }
 
     updateItem(listId, itemId, {
-      name: name.trim(),
-      barcode: barcode.trim(),
+      name,
+      barcode,
       priceInfo,
     });
 
     navigation.goBack();
   };
 
-  /* ---------------------------
-     Eliminar
-  ----------------------------*/
-  const handleDelete = () => {
-    safeAlert(
-      "Eliminar producto",
-      `¿Seguro que quieres eliminar "${item.name}"?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: () => {
-            deleteItem(listId, itemId);
-            navigation.goBack();
-          },
-        },
-      ],
-    );
-  };
-
-  /* ---------------------------
-     Buscar con motor configurado
-  ----------------------------*/
-  const handleSearch = async () => {
-    const code = barcode.trim();
-    if (!code) {
-      safeAlert(
-        "Código vacío",
-        "Introduce o escanea un código de barras primero",
-      );
-      return;
-    }
-
-    try {
-      const settings = await getSearchSettings();
-      const engineKey = settings?.generalEngine || "google";
-      const engine = SEARCH_ENGINES[engineKey] || SEARCH_ENGINES.google;
-
-      Linking.openURL(engine.buildUrl(code));
-    } catch (e) {
-      safeAlert("Error", "No se pudo abrir el buscador");
-    }
-  };
-
-  const summaryCurrency = priceInfo.currency ?? DEFAULT_CURRENCY.code;
-  const isUnitInvalid = unit === "u" && hasDecimals(qty);
-  function hasDecimals(value) {
-    const n = Number(String(value).replace(",", "."));
-    return !Number.isInteger(n);
-  }
-  /* ---------------------------
-     Render
-  ----------------------------*/
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }}>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.content}>
           <CardNombreBarcode
@@ -451,37 +386,57 @@ export default function ItemDetailScreen() {
             barcodeItem={barcode}
             onChangeName={setName}
             onChangeBarcode={setBarcode}
-            onScanner={() => setShowScanner(true)}
-            onSearch={handleSearch}
+            onScanner={() => {
+              Keyboard.dismiss();
+              setShowScanner(true);
+            }}
+            onSearch={() => {}}
           />
           <Contenedor
             pricing={pricing}
             onChange={updatePricing}
             currencySymbol={listCurrencySymbol}
           />
+
           <Summary
             qty={pricing.qty}
             unitPrice={pricing.unitPrice}
             unit={pricing.unit}
-            currencySymbol={listCurrencySymbol}
             base={priceInfo.subtotal}
             savings={priceInfo.savings}
             total={priceInfo.total}
           />
-          {/* ACCIONES */}
-          <View style={styles.actions}>
-            <Pressable style={styles.saveBtn} onPress={handleSave}>
-              <Ionicons name="save" size={18} color="#fff" />
-              <Text style={styles.saveText}>Guardar</Text>
-            </Pressable>
-
-            <Pressable style={styles.deleteBtn} onPress={handleDelete}>
-              <Ionicons name="trash" size={18} color="#fff" />
-              <Text style={styles.deleteText}>Eliminar</Text>
-            </Pressable>
-          </View>
         </ScrollView>
+        <View style={styles.footer}>
+          <Pressable style={styles.saveBtn} onPress={handleSave}>
+            <Ionicons name="save-outline" size={18} color="#fff" />
+            <Text style={styles.saveText}>Guardar</Text>
+          </Pressable>
 
+          <Pressable
+            style={styles.deleteBtn}
+            onPress={() => {
+              safeAlert(
+                "Eliminar producto",
+                "¿Seguro que quieres eliminar este producto?",
+                [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Eliminar",
+                    style: "destructive",
+                    onPress: () => {
+                      updateItem(listId, itemId, null); // o removeItem si tienes función
+                      navigation.goBack();
+                    },
+                  },
+                ],
+              );
+            }}
+          >
+            <Ionicons name="trash-outline" size={18} color="#fff" />
+            <Text style={styles.deleteText}>Eliminar</Text>
+          </Pressable>
+        </View>
         {showScanner && (
           <View style={styles.scannerOverlay}>
             <BarcodeScannerEAN13
@@ -490,19 +445,12 @@ export default function ItemDetailScreen() {
                 setShowScanner(false);
               }}
             />
-            <Pressable
-              style={styles.closeScannerBtn}
-              onPress={() => setShowScanner(false)}
-            >
-              <Ionicons name="close" size={28} color="#fff" />
-            </Pressable>
           </View>
         )}
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -800,7 +748,14 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 8,
   },
-
+  footer: {
+    flexDirection: "row",
+    gap: 10,
+    padding: 12,
+    borderTopWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#fff",
+  },
   saveBtn: {
     flex: 1,
     flexDirection: "row",

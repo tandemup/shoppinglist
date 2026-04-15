@@ -15,6 +15,7 @@ export const PROMOTIONS = {
     id: "none",
     label: "Sin oferta",
     type: "none",
+    hint: "sin promoción",
   },
 
   "2x1": {
@@ -23,6 +24,7 @@ export const PROMOTIONS = {
     type: "multi",
     buy: 2,
     pay: 1,
+    hint: "Lleve 2, pague 1",
   },
 
   "3x2": {
@@ -31,6 +33,7 @@ export const PROMOTIONS = {
     type: "multi",
     buy: 3,
     pay: 2,
+    hint: "Lleve 3, pague 2",
   },
 
   discount5: {
@@ -38,6 +41,7 @@ export const PROMOTIONS = {
     label: "-5€",
     type: "discount",
     value: 5,
+    hint: "Descuento directo de 5€",
   },
 
   percent10: {
@@ -45,6 +49,7 @@ export const PROMOTIONS = {
     label: "-10%",
     type: "percent",
     value: 10,
+    hint: "Descuento 10%",
   },
 };
 
