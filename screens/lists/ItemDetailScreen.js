@@ -29,7 +29,7 @@ import {
   validatePromotion,
 } from "../../utils/pricing/PricingEngine";
 import { isSamePromotion } from "../../utils/pricing/isSamePromotion";
-
+import { validatePromotionUnit } from "../../utils/pricing";
 import { formatCurrency } from "../../utils/store/prices";
 import { formatUnit } from "../../utils/pricing/unitFormat";
 import { safeAlert } from "../../utils/core/safeAlert";
@@ -88,6 +88,7 @@ function Unidades({
   onChangeQty,
   onChangePrice,
   onChangeUnit,
+  showError,
 }) {
   return (
     <View style={styles.card00}>
@@ -126,12 +127,17 @@ function Unidades({
           <View style={styles.inlineField}>
             <Text style={styles.label}>Cantidad ({formatUnit(unit)})</Text>
             <TextInput
-              inputMode="decimal"
+              keyboardType={unit === "u" ? "number-pad" : "decimal-pad"}
+              inputMode={unit === "u" ? "numeric" : "decimal"}
               style={styles.inputNum}
-              keyboardType="decimal-pad"
               value={qty}
               onChangeText={onChangeQty}
             />
+            {showError && (
+              <Text style={styles.inputError}>
+                ⚠️ Solo enteros para unidades (u)
+              </Text>
+            )}
           </View>
 
           <View style={styles.inlineField}>
@@ -152,7 +158,7 @@ function Unidades({
   );
 }
 
-function Ofertas({ quantity, unitPrice, selectedPromo, onSelect }) {
+function Ofertas({ quantity, unitPrice, selectedPromo, onSelect, unit }) {
   const qty = Number(String(quantity).replace(",", ".")) || 0;
   const price = Number(String(unitPrice).replace(",", ".")) || 0;
 
@@ -185,41 +191,49 @@ function Ofertas({ quantity, unitPrice, selectedPromo, onSelect }) {
 
       {/* CHIPS */}
       <View style={styles.promoWrap}>
-        {Object.values(PROMOTIONS).map((option) => {
-          const promo = normalizePromotion(option.id);
+        {Object.values(PROMOTIONS)
+          .filter((option) => {
+            const id = option.id;
 
-          const validation = validatePromotion(promo, qty, price);
-          const disabled = !validation.valid;
+            const isMulti = id === "2x1" || id === "3x2";
 
-          const selected = selectedPromoSafe === option.id;
+            return !(isMulti && unit !== "u");
+          })
+          .map((option) => {
+            const promo = normalizePromotion(option.id);
 
-          return (
-            <Pressable
-              key={option.id}
-              onPress={() => {
-                if (disabled) return;
-                onSelect(option.id);
-              }}
-              disabled={disabled}
-              style={({ pressed }) => [
-                styles.promoChip,
-                selected && styles.promoChipSelected,
-                disabled && styles.promoChipDisabled,
-                pressed && !disabled && { opacity: 0.8 },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.promoChipText,
-                  selected && styles.promoChipTextSelected,
-                  disabled && styles.promoChipTextDisabled,
+            const validation = validatePromotion(promo, qty, price);
+            const disabled = !validation.valid;
+
+            const selected = selectedPromoSafe === option.id;
+
+            return (
+              <Pressable
+                key={option.id}
+                onPress={() => {
+                  if (disabled) return;
+                  onSelect(option.id);
+                }}
+                disabled={disabled}
+                style={({ pressed }) => [
+                  styles.promoChip,
+                  selected && styles.promoChipSelected,
+                  disabled && styles.promoChipDisabled,
+                  pressed && !disabled && { opacity: 0.8 },
                 ]}
               >
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.promoChipText,
+                    selected && styles.promoChipTextSelected,
+                    disabled && styles.promoChipTextDisabled,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
       </View>
 
       {/* ⚠️ VALIDACIÓN */}
@@ -234,7 +248,7 @@ function Ofertas({ quantity, unitPrice, selectedPromo, onSelect }) {
   );
 }
 
-function Contenedor({ pricing, onChange, currencySymbol }) {
+function Contenedor({ pricing, onChange, currencySymbol, isUnitInvalid }) {
   return (
     <View style={styles.cardContenedor}>
       <Unidades
@@ -242,9 +256,31 @@ function Contenedor({ pricing, onChange, currencySymbol }) {
         price={pricing.unitPrice}
         unit={pricing.unit}
         currencySymbol={currencySymbol}
-        onChangeQty={(v) => onChange({ qty: v })}
+        onChangeQty={(v) => {
+          if (pricing.unit === "u") {
+            const cleaned = v.replace(/[^0-9]/g, "");
+            onChange({ qty: cleaned });
+          } else {
+            onChange({ qty: v });
+          }
+        }}
         onChangePrice={(v) => onChange({ unitPrice: v })}
-        onChangeUnit={(v) => onChange({ unit: v })}
+        onChangeUnit={(v) => {
+          if (v !== "u" && pricing.promo !== "none") {
+            const promo = normalizePromotion(pricing.promo);
+
+            if (promo.type === "multi") {
+              onChange({
+                unit: v,
+                promo: "none",
+              });
+              return;
+            }
+          }
+
+          onChange({ unit: v });
+        }}
+        showError={isUnitInvalid}
       />
 
       <Ofertas
@@ -252,6 +288,7 @@ function Contenedor({ pricing, onChange, currencySymbol }) {
         unitPrice={pricing.unitPrice}
         selectedPromo={pricing.promo}
         onSelect={(v) => onChange({ promo: v })}
+        unit={pricing.unit}
       />
     </View>
   );
@@ -322,13 +359,6 @@ export default function ItemDetailScreen() {
   const [name, setName] = useState(item.name ?? "");
   const [barcode, setBarcode] = useState(item.barcode ?? "");
 
-  const [qty, setQty] = useState(String(item.priceInfo?.qty ?? "1"));
-  const [unitPrice, setUnitPrice] = useState(
-    String(item.priceInfo?.unitPrice ?? "0"),
-  );
-  const [unit, setUnit] = useState(item.priceInfo?.unit ?? "u");
-  const [promo, setPromo] = useState(item.priceInfo?.promo ?? "none");
-
   const [pricing, setPricing] = useState({
     qty: String(item.priceInfo?.qty ?? "1"),
     unitPrice: String(item.priceInfo?.unitPrice ?? "0"),
@@ -375,7 +405,21 @@ export default function ItemDetailScreen() {
       safeAlert("Nombre vacío", "El producto debe tener un nombre");
       return;
     }
-
+    if (isUnitInvalid) {
+      safeAlert(
+        "Cantidad inválida",
+        "Para unidades (u) la cantidad debe ser un número entero",
+      );
+      return;
+    }
+    const promoValidation = validatePromotionUnit(
+      normalizePromotion(pricing.promo),
+      pricing.unit,
+    );
+    if (!promoValidation.valid) {
+      safeAlert("Oferta inválida", promoValidation.message);
+      return;
+    }
     updateItem(listId, itemId, {
       name: name.trim(),
       barcode: barcode.trim(),
@@ -431,11 +475,14 @@ export default function ItemDetailScreen() {
   };
 
   const summaryCurrency = priceInfo.currency ?? DEFAULT_CURRENCY.code;
-  const isUnitInvalid = unit === "u" && hasDecimals(qty);
+  const isUnitInvalid = pricing.unit === "u" && hasDecimals(pricing.qty);
+
   function hasDecimals(value) {
     const n = Number(String(value).replace(",", "."));
+    if (Number.isNaN(n)) return false;
     return !Number.isInteger(n);
   }
+
   /* ---------------------------
      Render
   ----------------------------*/
@@ -458,6 +505,7 @@ export default function ItemDetailScreen() {
             pricing={pricing}
             onChange={updatePricing}
             currencySymbol={listCurrencySymbol}
+            isUnitInvalid={isUnitInvalid}
           />
           <Summary
             qty={pricing.qty}

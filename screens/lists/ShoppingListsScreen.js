@@ -1,38 +1,26 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  TextInput,
   Pressable,
   Platform,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Entypo from "@expo/vector-icons/Entypo";
 import { useNavigation } from "@react-navigation/native";
 
-//import getDaysSinceJanuary1 from "../utils/helpers/newListName";
-import validarNombreListaEnTiempoReal from "../../utils/validation";
-import { normalizarNombre } from "../../utils/normalize";
 import { safeAlert } from "../../utils/core/safeAlert";
-
 import { useLists } from "../../context/ListsContext";
 import { ROUTES } from "../../navigation/ROUTES";
 import { DEFAULT_CURRENCY } from "../../constants/currency";
 import CurrencyBadge from "../../components/CurrencyBadge";
 
-/* -------------------------------------------------
-   Screen
--------------------------------------------------- */
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
 
-  /* =====================================================
-     Estado global (LISTAS)
-  ===================================================== */
   const {
     activeLists = [],
     archivedLists = [],
@@ -41,16 +29,9 @@ export default function ShoppingListsScreen() {
     archiveList,
   } = useLists();
 
-  const [name, setName] = useState("");
-  const [contextMenu, setContextMenu] = useState(null);
-  const [nameError, setNameError] = useState(null);
-  const [isNameValid, setIsNameValid] = useState(false);
-
+  const [contextMenu, setContextMenu] = React.useState(null);
   const overlayRef = useRef(null);
 
-  /* =====================================================
-     Header
-  ===================================================== */
   useEffect(() => {
     navigation.setOptions({
       title: "Shopping Lists",
@@ -59,31 +40,40 @@ export default function ShoppingListsScreen() {
     });
   }, [navigation]);
 
-  /* =====================================================
-     Crear nueva lista
-  ===================================================== */
-  const handleAddList = () => {
-    if (!isNameValid) return;
+  const buildTodayListName = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
 
-    const nombreNormalizado = normalizarNombre(name, "-");
-    createList(nombreNormalizado, DEFAULT_CURRENCY);
+    const baseName = `${yyyy}-${mm}-${dd}`;
 
-    setName("");
-    setNameError(null);
-    setIsNameValid(false);
+    const allNames = [...activeLists, ...archivedLists].map((list) =>
+      String(list.name || "").trim(),
+    );
+
+    if (!allNames.includes(baseName)) {
+      return baseName;
+    }
+
+    let suffix = 2;
+    while (allNames.includes(`${baseName}-${suffix}`)) {
+      suffix += 1;
+    }
+
+    return `${baseName}-${suffix}`;
   };
 
-  /* =====================================================
-     Abrir lista
-  ===================================================== */
+  const handleAddList = () => {
+    const listName = buildTodayListName();
+    createList(listName, DEFAULT_CURRENCY);
+  };
+
   const handleOpenList = (listId) => {
     if (!activeLists.find((l) => l.id === listId)) return;
     navigation.navigate(ROUTES.SHOPPING_LIST, { listId });
   };
 
-  /* =====================================================
-     Menú contextual
-  ===================================================== */
   const openContextMenu = (list, event) => {
     if (Platform.OS === "web") {
       if (!event?.currentTarget) return;
@@ -100,6 +90,10 @@ export default function ShoppingListsScreen() {
         "Opciones de la lista",
         `¿Qué deseas hacer con "${list.name}"?`,
         [
+          {
+            text: "Editar",
+            onPress: () => {},
+          },
           {
             text: "Archivar",
             onPress: () => {
@@ -121,9 +115,6 @@ export default function ShoppingListsScreen() {
     }
   };
 
-  /* =====================================================
-     Render item
-  ===================================================== */
   const renderItem = ({ item }) => {
     const currency = item.currency ?? DEFAULT_CURRENCY;
 
@@ -149,9 +140,6 @@ export default function ShoppingListsScreen() {
     );
   };
 
-  /* =====================================================
-     Render
-  ===================================================== */
   const sortedActiveLists = [...activeLists].sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
@@ -160,56 +148,13 @@ export default function ShoppingListsScreen() {
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Mis Listas</Text>
 
-      {/* -------- Nueva lista -------- */}
-      <View style={{ marginBottom: 20 }}>
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            placeholder="Nueva lista..."
-            placeholderTextColor="#999"
-            value={name}
-            onChangeText={(text) => {
-              setName(text);
-
-              const resultado = validarNombreListaEnTiempoReal(
-                text,
-                activeLists,
-                archivedLists,
-              );
-
-              setIsNameValid(resultado.valido);
-              setNameError(resultado.mensaje);
-            }}
-          />
-
-          <Pressable
-            style={[styles.addButton, { opacity: isNameValid ? 1 : 0.4 }]}
-            disabled={!isNameValid}
-            onPress={handleAddList}
-          >
-            <Entypo name="add-to-list" size={24} color="green" />
-          </Pressable>
-        </View>
-
-        {/* ---- Label de validación siempre visible ---- */}
-        {name.trim().length > 0 && (
-          <Text
-            style={{
-              marginTop: 3,
-              marginLeft: 4,
-              fontSize: 14,
-              color: isNameValid ? "#16A34A" : "#DC2626",
-              fontWeight: "600",
-            }}
-          >
-            {isNameValid
-              ? "✔ El nombre está disponible"
-              : nameError || "✖ El nombre ya existe"}
-          </Text>
-        )}
+      <View style={styles.createRow}>
+        <Pressable style={styles.createButton} onPress={handleAddList}>
+          <Ionicons name="add-circle-outline" size={22} color="#fff" />
+          <Text style={styles.createButtonText}>Nueva lista de hoy</Text>
+        </Pressable>
       </View>
 
-      {/* -------- Listado -------- */}
       <FlatList
         data={sortedActiveLists}
         keyExtractor={(item) => item.id}
@@ -220,7 +165,6 @@ export default function ShoppingListsScreen() {
         }
       />
 
-      {/* -------- Menú contextual Web -------- */}
       {contextMenu && Platform.OS === "web" && (
         <Pressable
           ref={overlayRef}
@@ -277,9 +221,6 @@ export default function ShoppingListsScreen() {
   );
 }
 
-/* -------------------------------------------------
-   Styles
--------------------------------------------------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -295,32 +236,25 @@ const styles = StyleSheet.create({
     color: "#000",
   },
 
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  createRow: {
     marginBottom: 20,
   },
 
-  input: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  createButton: {
+    minHeight: 52,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    fontSize: 16,
-  },
-
-  addButton: {
-    marginLeft: 12,
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "green",
+    backgroundColor: "#16a34a",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+  },
+
+  createButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
 
   card: {

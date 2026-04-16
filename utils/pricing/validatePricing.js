@@ -9,38 +9,42 @@ function hasDecimals(value) {
   return !Number.isInteger(n);
 }
 
-export function validatePricing(pricing) {
-  const errors = {};
+export function validatePricing({ qty, unit, unitPrice, promo }) {
+  const errors = [];
 
-  const qty = toNumber(pricing.qty);
-  const price = toNumber(pricing.unitPrice);
-  const unit = pricing.unit;
-  const promoId = pricing.promo ?? "none";
+  const q = Number(String(qty).replace(",", "."));
+  const price = Number(String(unitPrice).replace(",", "."));
 
-  // 🧩 cantidad
-  if (!qty || qty <= 0) {
-    errors.qty = "La cantidad debe ser mayor que 0";
+  const unitPromoValidation = validatePromotionUnit(promo, unit);
+
+  if (!unitPromoValidation.valid) {
+    errors.push(unitPromoValidation.message);
   }
 
-  if (unit === "u" && hasDecimals(pricing.qty)) {
-    errors.qty = "La unidad 'pieza' no admite decimales";
+  // 1. Cantidad válida
+  if (!q || q <= 0) {
+    errors.push("Cantidad debe ser mayor que 0");
   }
 
-  // 💰 precio
-  if (price < 0) {
-    errors.price = "El precio no puede ser negativo";
+  // 2. Enteros para unidades
+  if (unit === "u" && !Number.isInteger(q)) {
+    errors.push("Solo enteros para unidades (u)");
   }
 
-  // 🎯 promoción
-  const promo = normalizePromotion(promoId);
-  const promoValidation = validatePromotion(promo, qty, price);
+  // 3. Precio válido
+  if (!price || price <= 0) {
+    errors.push("Precio unitario inválido");
+  }
+
+  // 4. Promoción
+  const promoValidation = validatePromotion(promo, q, price);
 
   if (!promoValidation.valid) {
-    errors.promo = promoValidation.message || "Promoción no válida";
+    errors.push(promoValidation.message || "Oferta no válida");
   }
 
   return {
-    valid: Object.keys(errors).length === 0,
+    valid: errors.length === 0,
     errors,
   };
 }
