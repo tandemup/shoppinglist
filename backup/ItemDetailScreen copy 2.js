@@ -23,7 +23,7 @@ import { validatePricing } from "../utils/pricing/validatePricing";
 import { getSearchSettings } from "../src/storage/settingsStorage";
 import { DEFAULT_CURRENCY } from "../constants/currency";
 import { SEARCH_ENGINES } from "../constants/searchEngines";
-import BarcodeScannerEAN13 from "../components/BarcodeScannerEAN13";
+import BarcodeScannerEAN13 from "../components/features/scanner/BarcodeScannerEAN13";
 import { useLists } from "../context/ListsContext";
 
 import {

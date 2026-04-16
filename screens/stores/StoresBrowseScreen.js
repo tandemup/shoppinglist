@@ -8,7 +8,7 @@ import { useLocation } from "../../context/LocationContext";
 import { distanceMetersBetween } from "../../utils/math/distance";
 import { formatDistance } from "../../utils/math/formatDistance";
 
-import SearchBar from "../../components/SearchBar";
+import SearchBar from "../../components/features/search/SearchBar";
 import { ROUTES } from "../../navigation/ROUTES";
 
 /* -------------------------------------------------

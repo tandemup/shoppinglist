@@ -9,7 +9,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { searchItemsAcrossLists } from "../utils/searchHelpers";
-import { getScannedHistory } from "../services/scannerHistory";
+import { getScannedHistory } from "../../../services/scannerHistory";
 
 export default function SmartSearchBar({ currentList, onSelectHistoryItem }) {
   const [query, setQuery] = useState("");

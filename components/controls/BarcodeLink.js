@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import { Linking, Pressable, Text } from "react-native";
-import { settingsStorage } from "../src/storage";
-import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../constants/searchEngines";
+import { settingsStorage } from "../../src/storage";
+import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
 
 export default function BarcodeLink({ barcode, label, iconColor = "#2563eb" }) {
   const handlePress = useCallback(

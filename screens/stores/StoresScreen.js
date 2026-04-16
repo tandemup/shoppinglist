@@ -4,7 +4,7 @@ import { View, Text, FlatList, StyleSheet, TextInput } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
 import { useStores } from "../../context/StoresContext";
-import StoreCard from "../../components/StoreCard";
+import StoreCard from "../../components/features/stores/StoreCard";
 import { ROUTES } from "../../navigation/ROUTES";
 
 export default function StoresScreen() {

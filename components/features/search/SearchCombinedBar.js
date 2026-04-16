@@ -8,9 +8,9 @@ import {
   StyleSheet,
 } from "react-native";
 
-import { useStores } from "../context/StoresContext";
-import { useLists } from "../context/ListsContext";
-import { normalizeProductName } from "../utils/normalize";
+import { useStores } from "../../../context/StoresContext";
+import { useLists } from "../../../context/ListsContext";
+import { normalizeProductName } from "../../../utils/normalize";
 
 /* -------------------------------------------------
    Badge

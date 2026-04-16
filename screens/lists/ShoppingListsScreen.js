@@ -16,7 +16,7 @@ import { safeAlert } from "../../utils/core/safeAlert";
 import { useLists } from "../../context/ListsContext";
 import { ROUTES } from "../../navigation/ROUTES";
 import { DEFAULT_CURRENCY } from "../../constants/currency";
-import CurrencyBadge from "../../components/CurrencyBadge";
+import CurrencyBadge from "../../components/ui/CurrencyBadge";
 
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
@@ -146,12 +146,11 @@ export default function ShoppingListsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Mis Listas</Text>
+      <View style={styles.containerRow}>
+        <Text style={styles.title}>Mis Listas</Text>
 
-      <View style={styles.createRow}>
-        <Pressable style={styles.createButton} onPress={handleAddList}>
-          <Ionicons name="add-circle-outline" size={22} color="#fff" />
-          <Text style={styles.createButtonText}>Nueva lista de hoy</Text>
+        <Pressable style={styles.addButton} onPress={handleAddList}>
+          <Text style={styles.addText}>+</Text>
         </Pressable>
       </View>
 
@@ -228,14 +227,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
   },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 16,
-    color: "#000",
+  containerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
   },
 
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#374151",
+  },
+
+  addButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  addText: {
+    fontSize: 28,
+    fontWeight: "500",
+    color: "#16a34a",
+    lineHeight: 28,
+  },
   createRow: {
     marginBottom: 20,
   },
@@ -331,5 +345,14 @@ const styles = StyleSheet.create({
   menuText: {
     fontSize: 15,
     color: "#111",
+  },
+  button: {
+    flexDirection: "row",
+    gap: 6,
+    backgroundColor: "#22C55E",
+    paddingVertical: 14,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import ScannerControls from "./ScannerControls";
-import { EAN_ZOOM, getZoomValue } from "../constants/cameraZoom";
+import { EAN_ZOOM, getZoomValue } from "../../../constants/cameraZoom";
 
 const BARCODE_TYPES = ["ean13", "ean8", "upc_a", "upc_e"];
 

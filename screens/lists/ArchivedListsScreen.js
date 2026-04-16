@@ -8,7 +8,7 @@ import {
   FlatList,
   Linking,
 } from "react-native";
-import SearchBar from "../../components/SearchBar";
+import SearchBar from "../../components/features/search/SearchBar";
 import { Ionicons } from "@expo/vector-icons";
 
 import { ROUTES } from "../../navigation/ROUTES";

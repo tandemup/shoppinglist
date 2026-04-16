@@ -14,7 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 
 import { safeAlert } from "../../utils/core/safeAlert";
-import BarcodeLink from "../../components/BarcodeLink";
+import BarcodeLink from "../../components/controls/BarcodeLink";
 import {
   getScannedHistory,
   removeScannedItem,

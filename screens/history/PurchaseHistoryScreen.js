@@ -15,8 +15,8 @@ import { useNavigation } from "@react-navigation/native";
 import { useLists } from "../../context/ListsContext";
 import { useStores } from "../../context/StoresContext";
 import { ROUTES } from "../../navigation/ROUTES";
-import StoreFilterBadges from "../../components/StoreFilterBadges";
-import BarcodeLink from "../../components/BarcodeLink";
+import StoreFilterBadges from "../../components/features/stores/StoreFilterBadges";
+import BarcodeLink from "../../components/controls/BarcodeLink";
 
 import {
   queryProducts,

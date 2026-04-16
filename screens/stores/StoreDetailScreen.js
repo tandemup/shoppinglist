@@ -10,7 +10,7 @@ import {
   openGoogleMapsSearch,
 } from "../../utils/maps/openGoogleMaps";
 
-import StoreMapPreview from "../../components/StoreMapPreview";
+import StoreMapPreview from "../../components/features/maps/StoreMapPreview";
 
 export default function StoreDetailScreen() {
   const route = useRoute();

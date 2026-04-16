@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 
-import ScannerControls from "../../components/ScannerControls";
+import ScannerControls from "../../components/features/scanner/ScannerControls";
 import { getSearchSettings } from "../../src/storage/settingsStorage";
 import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
 import { addScannedItem } from "../../services/scannerHistory";

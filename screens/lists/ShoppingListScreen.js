@@ -13,11 +13,11 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 import { useLists } from "../../context/ListsContext";
 import { useStores } from "../../context/StoresContext";
 
-import StoreSelector from "../../components/StoreSelector";
-import ItemRow from "../../components/ItemRow";
-import SearchCombinedBar from "../../components/SearchCombinedBar";
-import CheckoutBar from "../../components/CheckoutBar";
-import CurrencyBadge from "../../components/CurrencyBadge";
+import StoreSelector from "../../components/features/stores/StoreSelector";
+import ItemRow from "../../components/features/items/ItemRow";
+import SearchCombinedBar from "../../components/features/search/SearchCombinedBar";
+import CheckoutBar from "../../components/features/checkout/CheckoutBar";
+import CurrencyBadge from "../../components/ui/CurrencyBadge";
 import { ROUTES } from "../../navigation/ROUTES";
 import { safeAlert } from "../../utils/core/safeAlert";
 
