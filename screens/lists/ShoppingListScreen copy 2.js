@@ -136,7 +136,7 @@ export default function ShoppingListScreen() {
         <CurrencyBadge currency={list.currency} size="sm" />
       </View>
 
-      <View style={styles.storeSelectorWrapper}>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
         <StoreSelector
           store={assignedStore}
           onPress={() =>
@@ -145,14 +145,21 @@ export default function ShoppingListScreen() {
             })
           }
           onInfoPress={(store) =>
-            navigation.navigate(ROUTES.STORES_TAB, {
-              screen: ROUTES.STORE_DETAIL,
-              params: { storeId: store.id },
+            navigation.navigate(ROUTES.STORE_INFO, {
+              storeId: store.id,
             })
           }
         />
+        {assignedStore && (
+          <Ionicons
+            name="information-circle-outline"
+            size={22}
+            onPress={() =>
+              navigation.navigate(ROUTES.STORE_INFO, { storeId: store.id })
+            }
+          />
+        )}
       </View>
-
       <SearchCombinedBar
         currentList={list}
         onCreateNew={handleCreateNew}
@@ -201,8 +208,5 @@ const styles = StyleSheet.create({
     color: "#111",
     flexShrink: 1,
     marginRight: 12,
-  },
-  storeSelectorWrapper: {
-    marginBottom: 8,
   },
 });

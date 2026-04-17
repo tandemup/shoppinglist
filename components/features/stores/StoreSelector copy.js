@@ -9,7 +9,7 @@ export default function StoreSelector({
   disabled = false,
 }) {
   const handleInfo = (e) => {
-    e?.stopPropagation?.();
+    e?.stopPropagation?.(); // evita disparar el onPress principal
     if (store && onInfoPress) {
       onInfoPress(store);
     }
@@ -17,7 +17,7 @@ export default function StoreSelector({
 
   const content = (
     <>
-      {/* 🏬 icono tienda → abre info */}
+      {/* 🏬 Icono tienda → abre info */}
       <TouchableOpacity onPress={handleInfo} disabled={!store} hitSlop={10}>
         <Ionicons
           name="storefront"
@@ -26,6 +26,7 @@ export default function StoreSelector({
         />
       </TouchableOpacity>
 
+      {/* 📝 Texto */}
       <View style={styles.middleColumn}>
         <Text style={styles.label}>Tienda seleccionada</Text>
 
@@ -33,13 +34,33 @@ export default function StoreSelector({
           {store?.name || "Seleccionar tienda"}
         </Text>
 
-        {/* 🔥 mantiene altura constante */}
+        {/* 🔒 reservamos espacio siempre */}
         <Text style={styles.address} numberOfLines={1}>
           {store?.address || " "}
         </Text>
       </View>
 
-      <Ionicons name="chevron-forward" size={20} color="#777" />
+      {/* 👉 acciones derecha */}
+      <View style={styles.rightActions}>
+        {/* ℹ️ opcional (redundante pero claro UX) */}
+        {store && !disabled && (
+          <TouchableOpacity
+            onPress={handleInfo}
+            hitSlop={10}
+            style={{ marginRight: 8 }}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color="#007bff"
+            />
+          </TouchableOpacity>
+        )}
+
+        {!disabled && (
+          <Ionicons name="chevron-forward" size={20} color="#777" />
+        )}
+      </View>
     </>
   );
 
@@ -49,7 +70,10 @@ export default function StoreSelector({
 
   return (
     <TouchableOpacity
-      style={[styles.box, store && { borderColor: "#007bff" }]}
+      style={[
+        styles.box,
+        store && { borderColor: "#007bff" }, // estado activo
+      ]}
       onPress={onPress}
       onLongPress={handleInfo} // 🔥 longpress → info
       activeOpacity={0.7}
@@ -59,14 +83,16 @@ export default function StoreSelector({
   );
 }
 
+/* ------------------------------------------------- */
+
 const styles = StyleSheet.create({
   box: {
     flexDirection: "row",
-    alignItems: "center", // 🔥 clave
+    alignItems: "center",
     padding: 14,
     marginHorizontal: 16,
     marginTop: 12,
-    minHeight: 64, // 🔥 fija altura
+    minHeight: 64,
 
     backgroundColor: "#fff",
     borderRadius: 14,
@@ -93,6 +119,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     color: "#9ca3af",
+    marginBottom: 2,
   },
 
   name: {
@@ -104,5 +131,12 @@ const styles = StyleSheet.create({
   address: {
     fontSize: 12,
     color: "#6b7280",
+    marginTop: 2,
+  },
+
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
   },
 });
