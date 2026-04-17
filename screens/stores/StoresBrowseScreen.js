@@ -82,7 +82,6 @@ export default function StoresBrowseScreen() {
     });
   }, [orderedStores, query]);
 
-  console.log(filteredStores.map((item) => item.id));
   /* ---------------------------------------------
      Navegación
   ---------------------------------------------- */

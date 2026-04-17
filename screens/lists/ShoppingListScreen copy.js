@@ -12,7 +12,6 @@ import { useRoute, useNavigation } from "@react-navigation/native";
 
 import { useLists } from "../../context/ListsContext";
 import { useStores } from "../../context/StoresContext";
-import { Ionicons } from "@expo/vector-icons";
 
 import StoreSelector from "../../components/features/stores/StoreSelector";
 import ItemRow from "../../components/features/items/ItemRow";
@@ -136,30 +135,15 @@ export default function ShoppingListScreen() {
         <CurrencyBadge currency={list.currency} size="sm" />
       </View>
 
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <StoreSelector
-          store={assignedStore}
-          onPress={() =>
-            navigation.navigate(ROUTES.STORE_SELECT, {
-              selectForListId: listId,
-            })
-          }
-          onInfoPress={(store) =>
-            navigation.navigate(ROUTES.STORE_INFO, {
-              storeId: store.id,
-            })
-          }
-        />
-        {assignedStore && (
-          <Ionicons
-            name="information-circle-outline"
-            size={22}
-            onPress={() =>
-              navigation.navigate(ROUTES.STORE_INFO, { storeId: store.id })
-            }
-          />
-        )}
-      </View>
+      <StoreSelector
+        store={assignedStore}
+        onPress={() =>
+          navigation.navigate(ROUTES.STORE_SELECT, {
+            selectForListId: listId,
+          })
+        }
+      />
+
       <SearchCombinedBar
         currentList={list}
         onCreateNew={handleCreateNew}

@@ -2,37 +2,65 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function StoreSelector({ store, onPress, disabled = false }) {
+export default function StoreSelector({
+  store,
+  onPress,
+  onInfoPress,
+  disabled = false,
+}) {
+  const handleInfo = (e) => {
+    e?.stopPropagation?.(); // evita disparar el onPress principal
+    if (store && onInfoPress) {
+      onInfoPress(store);
+    }
+  };
+
   const content = (
     <>
-      <Ionicons
-        name="storefront"
-        size={20}
-        color={disabled ? "#999" : store ? "#007bff" : "#9ca3af"}
-      />
+      {/* 🏬 Icono tienda → abre info */}
+      <TouchableOpacity onPress={handleInfo} disabled={!store} hitSlop={10}>
+        <Ionicons
+          name="storefront"
+          size={20}
+          color={disabled ? "#999" : store ? "#007bff" : "#9ca3af"}
+        />
+      </TouchableOpacity>
+
+      {/* 📝 Texto */}
       <View style={styles.middleColumn}>
         <Text style={styles.label}>Tienda seleccionada</Text>
 
-        {store ? (
-          <>
-            <Text style={[styles.name, disabled && styles.disabledText]}>
-              {store.name}
-            </Text>
+        <Text style={styles.name} numberOfLines={1}>
+          {store?.name || "Seleccionar tienda"}
+        </Text>
 
-            {!!store.address && (
-              <Text style={[styles.address, disabled && styles.disabledText]}>
-                {store.address}
-              </Text>
-            )}
-          </>
-        ) : (
-          <Text style={[styles.placeholder, disabled && styles.disabledText]}>
-            Seleccionar tienda
-          </Text>
-        )}
+        {/* 🔒 reservamos espacio siempre */}
+        <Text style={styles.address} numberOfLines={1}>
+          {store?.address || " "}
+        </Text>
       </View>
 
-      {!disabled && <Ionicons name="chevron-forward" size={20} color="#777" />}
+      {/* 👉 acciones derecha */}
+      <View style={styles.rightActions}>
+        {/* ℹ️ opcional (redundante pero claro UX) */}
+        {store && !disabled && (
+          <TouchableOpacity
+            onPress={handleInfo}
+            hitSlop={10}
+            style={{ marginRight: 8 }}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color="#007bff"
+            />
+          </TouchableOpacity>
+        )}
+
+        {!disabled && (
+          <Ionicons name="chevron-forward" size={20} color="#777" />
+        )}
+      </View>
     </>
   );
 
@@ -41,51 +69,46 @@ export default function StoreSelector({ store, onPress, disabled = false }) {
   }
 
   return (
-    <TouchableOpacity style={styles.box} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[
+        styles.box,
+        store && { borderColor: "#007bff" }, // estado activo
+      ]}
+      onPress={onPress}
+      onLongPress={handleInfo} // 🔥 longpress → info
+      activeOpacity={0.7}
+    >
       {content}
     </TouchableOpacity>
   );
 }
 
-/* -------------------------------------------------
-   Styles
--------------------------------------------------- */
+/* ------------------------------------------------- */
+
 const styles = StyleSheet.create({
-  card: {
+  box: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 12,
+    minHeight: 64,
+
     backgroundColor: "#fff",
     borderRadius: 14,
     borderWidth: 1,
     borderColor: "#e5e7eb",
-    marginHorizontal: 16,
-    marginTop: 12,
 
-    // sombra iOS
     shadowColor: "#000",
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
-
-    // sombra Android
     elevation: 2,
-  },
-
-  box: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: 16,
-    margin: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#ddd",
   },
 
   disabledBox: {
     backgroundColor: "#f9fafb",
-    borderColor: "#e5e7eb",
+    borderColor: "#eee",
   },
 
   middleColumn: {
@@ -94,29 +117,26 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 12,
-    color: "#777",
+    fontSize: 11,
+    color: "#9ca3af",
     marginBottom: 2,
   },
 
   name: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#222",
+    color: "#111",
   },
 
   address: {
-    fontSize: 13,
-    color: "#555",
+    fontSize: 12,
+    color: "#6b7280",
     marginTop: 2,
   },
 
-  placeholder: {
-    fontSize: 16,
-    color: "#999",
-  },
-
-  disabledText: {
-    color: "#9ca3af",
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
   },
 });
