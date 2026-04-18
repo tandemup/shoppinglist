@@ -1,64 +1,90 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
   Text,
   Pressable,
   StyleSheet,
   Platform,
   Animated,
-  UIManager,
-  findNodeHandle,
   Modal,
 } from "react-native";
+import { safeAlert } from "../../utils/core/safeAlert";
 
 export default function ContextMenu({
   visible,
   anchorRef,
+  title = "Opciones",
+  message = "",
   items = [],
   onClose,
 }) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(-10)).current;
-
+  const translateY = useRef(new Animated.Value(-8)).current;
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    if (visible && anchorRef?.current) {
-      if (Platform.OS === "web") {
-        const rect = anchorRef.current.getBoundingClientRect();
-        setPosition({
-          x: rect.right - 180,
-          y: rect.bottom + 6,
-        });
-      } else {
-        const node = findNodeHandle(anchorRef.current);
+    if (!visible) return;
 
-        if (node) {
-          UIManager.measureInWindow(node, (x, y, width, height) => {
-            setPosition({
-              x: x + width - 180,
-              y: y + height + 6,
-            });
-          });
-        }
+    // ---------- MOBILE (iOS / Android) ----------
+    if (Platform.OS !== "web") {
+      const alertButtons = [
+        ...items.map((item) => ({
+          text: item.label,
+          style: item.destructive ? "destructive" : "default",
+          onPress: item.onPress,
+        })),
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+      ];
+
+      safeAlert(title, message, alertButtons);
+
+      // cerrar estado después de abrir alert
+      setTimeout(() => {
+        onClose?.();
+      }, 0);
+
+      return;
+    }
+
+    // ---------- WEB ----------
+    if (anchorRef?.current?.getBoundingClientRect) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      const menuWidth = 180;
+      const viewportWidth = window.innerWidth;
+
+      let x = rect.right - menuWidth;
+
+      if (x < 8) x = 8;
+      if (x + menuWidth > viewportWidth - 8) {
+        x = viewportWidth - menuWidth - 8;
       }
 
-      Animated.parallel([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateY, {
-          toValue: 0,
-          duration: 150,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      setPosition({
+        x,
+        y: rect.bottom + 6,
+      });
     }
+
+    opacity.setValue(0);
+    translateY.setValue(-8);
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [visible]);
 
-  if (!visible) return null;
+  if (!visible || Platform.OS !== "web") return null;
 
   return (
     <Modal transparent visible={visible} animationType="none">
@@ -76,15 +102,18 @@ export default function ContextMenu({
         >
           {items.map((item, idx) => (
             <Pressable
-              key={idx}
+              key={`${item.label}-${idx}`}
               style={styles.item}
               onPress={() => {
-                onClose();
+                onClose?.();
                 item.onPress?.();
               }}
             >
               <Text
-                style={[styles.text, item.destructive && { color: "#dc2626" }]}
+                style={[
+                  styles.text,
+                  item.destructive && styles.destructiveText,
+                ]}
               >
                 {item.label}
               </Text>
@@ -107,12 +136,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 10,
     paddingVertical: 6,
-
-    elevation: 10,
     shadowColor: "#000",
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.18,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
 
     ...(Platform.OS === "web" && {
       boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
@@ -125,5 +153,8 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 15,
     color: "#111",
+  },
+  destructiveText: {
+    color: "#dc2626",
   },
 });

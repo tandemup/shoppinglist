@@ -151,10 +151,13 @@ export default function ShoppingListsScreen() {
           data={sortedActiveLists}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          ListHeaderComponent={
+            <Text style={styles.listHeader}>Mis listas</Text>
+          }
           ListEmptyComponent={
             <Text style={styles.emptyText}>No tienes listas activas 😊</Text>
           }
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
         />
         {/* CONTEXT MENU */}
         <ContextMenu
@@ -269,7 +272,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
   },
-
+  listHeader: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#374151",
+    marginTop: 20,
+    marginBottom: 12,
+  },
   emptyText: {
     marginTop: 40,
     textAlign: "center",
