@@ -12,7 +12,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 
@@ -482,6 +485,7 @@ export default function ItemDetailScreen() {
     if (Number.isNaN(n)) return false;
     return !Number.isInteger(n);
   }
+  const insets = useSafeAreaInsets();
 
   /* ---------------------------
      Render
@@ -491,61 +495,73 @@ export default function ItemDetailScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <CardNombreBarcode
-            nameItem={name}
-            barcodeItem={barcode}
-            onChangeName={setName}
-            onChangeBarcode={setBarcode}
-            onScanner={() => setShowScanner(true)}
-            onSearch={handleSearch}
-          />
-          <Contenedor
-            pricing={pricing}
-            onChange={updatePricing}
-            currencySymbol={listCurrencySymbol}
-            isUnitInvalid={isUnitInvalid}
-          />
-          <Summary
-            qty={pricing.qty}
-            unitPrice={pricing.unitPrice}
-            unit={pricing.unit}
-            currencySymbol={listCurrencySymbol}
-            base={priceInfo.subtotal}
-            savings={priceInfo.savings}
-            total={priceInfo.total}
-          />
-          {/* ACCIONES */}
-          <View style={styles.actions}>
-            <Pressable style={styles.saveBtn} onPress={handleSave}>
-              <Ionicons name="save" size={18} color="#fff" />
-              <Text style={styles.saveText}>Guardar</Text>
-            </Pressable>
-
-            <Pressable style={styles.deleteBtn} onPress={handleDelete}>
-              <Ionicons name="trash" size={18} color="#fff" />
-              <Text style={styles.deleteText}>Eliminar</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-
-        {showScanner && (
-          <View style={styles.scannerOverlay}>
-            <BarcodeScannerEAN13
-              onDetected={(code) => {
-                setBarcode(code);
-                setShowScanner(false);
-              }}
+      <SafeAreaView style={styles.container} edges={["left", "right"]}>
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+          >
+            <CardNombreBarcode
+              nameItem={name}
+              barcodeItem={barcode}
+              onChangeName={setName}
+              onChangeBarcode={setBarcode}
+              onScanner={() => setShowScanner(true)}
+              onSearch={handleSearch}
             />
-            <Pressable
-              style={styles.closeScannerBtn}
-              onPress={() => setShowScanner(false)}
+            <Contenedor
+              pricing={pricing}
+              onChange={updatePricing}
+              currencySymbol={listCurrencySymbol}
+              isUnitInvalid={isUnitInvalid}
+            />
+            <Summary
+              qty={pricing.qty}
+              unitPrice={pricing.unitPrice}
+              unit={pricing.unit}
+              currencySymbol={listCurrencySymbol}
+              base={priceInfo.subtotal}
+              savings={priceInfo.savings}
+              total={priceInfo.total}
+            />
+
+            {/* ACCIONES */}
+            <View
+              style={[
+                styles.actions,
+                {
+                  paddingBottom: 8,
+                },
+              ]}
             >
-              <Ionicons name="close" size={28} color="#fff" />
-            </Pressable>
-          </View>
-        )}
+              <Pressable style={styles.saveBtn} onPress={handleSave}>
+                <Ionicons name="save" size={18} color="#fff" />
+                <Text style={styles.saveText}>Guardar</Text>
+              </Pressable>
+
+              <Pressable style={styles.deleteBtn} onPress={handleDelete}>
+                <Ionicons name="trash" size={18} color="#fff" />
+                <Text style={styles.deleteText}>Eliminar</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+          {showScanner && (
+            <View style={styles.scannerOverlay}>
+              <BarcodeScannerEAN13
+                onDetected={(code) => {
+                  setBarcode(code);
+                  setShowScanner(false);
+                }}
+              />
+              <Pressable
+                style={styles.closeScannerBtn}
+                onPress={() => setShowScanner(false)}
+              >
+                <Ionicons name="close" size={28} color="#fff" />
+              </Pressable>
+            </View>
+          )}
+        </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -559,8 +575,9 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 16,
-    gap: 10,
-    paddingBottom: 28,
+    paddingBottom: 12,
+    gap: 16,
+    flexGrow: 1,
   },
 
   card0: {
@@ -846,9 +863,12 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 8,
+    padding: 16, // 👈 clave
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f2f2f7",
   },
-
   saveBtn: {
     flex: 1,
     flexDirection: "row",

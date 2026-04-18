@@ -1,36 +1,51 @@
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  TextInput,
   FlatList,
   Pressable,
-  Platform,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-import { safeAlert } from "../../utils/core/safeAlert";
 import { useLists } from "../../context/ListsContext";
 import { ROUTES } from "../../navigation/ROUTES";
 import { DEFAULT_CURRENCY } from "../../constants/currency";
 import CurrencyBadge from "../../components/ui/CurrencyBadge";
+import ContextMenu from "../../components/ui/ContextMenu";
 
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   const {
     activeLists = [],
     archivedLists = [],
     createList,
     deleteList,
+    updateList,
     archiveList,
   } = useLists();
 
-  const [contextMenu, setContextMenu] = React.useState(null);
-  const overlayRef = useRef(null);
+  const [editingList, setEditingList] = useState(null);
+  const [editName, setEditName] = useState("");
+
+  const iconRefs = useRef({});
+
+  const [menuState, setMenuState] = useState({
+    visible: false,
+    list: null,
+    anchorKey: null,
+  });
 
   useEffect(() => {
     navigation.setOptions({
@@ -40,80 +55,57 @@ export default function ShoppingListsScreen() {
     });
   }, [navigation]);
 
+  // ---------- helpers ----------
+
   const buildTodayListName = () => {
     const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
+    const baseName = today.toISOString().slice(0, 10);
 
-    const baseName = `${yyyy}-${mm}-${dd}`;
-
-    const allNames = [...activeLists, ...archivedLists].map((list) =>
-      String(list.name || "").trim(),
+    const allNames = [...activeLists, ...archivedLists].map((l) =>
+      String(l.name || "").trim(),
     );
 
-    if (!allNames.includes(baseName)) {
-      return baseName;
-    }
+    if (!allNames.includes(baseName)) return baseName;
 
-    let suffix = 2;
-    while (allNames.includes(`${baseName}-${suffix}`)) {
-      suffix += 1;
-    }
-
-    return `${baseName}-${suffix}`;
+    let i = 2;
+    while (allNames.includes(`${baseName}-${i}`)) i++;
+    return `${baseName}-${i}`;
   };
 
+  // ---------- actions ----------
+
   const handleAddList = () => {
-    const listName = buildTodayListName();
-    createList(listName, DEFAULT_CURRENCY);
+    const name = buildTodayListName();
+    createList(name, DEFAULT_CURRENCY);
+  };
+
+  const openEditName = (list) => {
+    setEditingList(list);
+    setEditName(list.name || "");
+  };
+
+  const handleConfirmRename = () => {
+    const name = editName.trim();
+    if (!name || !editingList) return;
+
+    updateList(editingList.id, { name });
+    setEditingList(null);
+    setEditName("");
   };
 
   const handleOpenList = (listId) => {
-    if (!activeLists.find((l) => l.id === listId)) return;
     navigation.navigate(ROUTES.SHOPPING_LIST, { listId });
   };
 
-  const openContextMenu = (list, event) => {
-    if (Platform.OS === "web") {
-      if (!event?.currentTarget) return;
-
-      const rect = event.currentTarget.getBoundingClientRect();
-
-      setContextMenu({
-        list,
-        x: rect.right - 160,
-        y: rect.bottom + 6,
-      });
-    } else {
-      safeAlert(
-        "Opciones de la lista",
-        `¿Qué deseas hacer con "${list.name}"?`,
-        [
-          {
-            text: "Editar",
-            onPress: () => {},
-          },
-          {
-            text: "Archivar",
-            onPress: () => {
-              archiveList(list.id);
-              navigation.navigate(ROUTES.ARCHIVED_LISTS);
-            },
-          },
-          {
-            text: "Eliminar",
-            style: "destructive",
-            onPress: () => deleteList(list.id),
-          },
-          {
-            text: "Cancelar",
-            style: "cancel",
-          },
-        ],
-      );
-    }
+  const openContextMenu = (list, key) => {
+    setMenuState({
+      visible: true,
+      list,
+      anchorKey: key,
+    });
   };
+
+  // ---------- render item ----------
 
   const renderItem = ({ item }) => {
     const currency = item.currency ?? DEFAULT_CURRENCY;
@@ -126,7 +118,11 @@ export default function ShoppingListsScreen() {
             <CurrencyBadge currency={currency} size="sm" />
           </View>
 
-          <Pressable onPress={(e) => openContextMenu(item, e)} hitSlop={8}>
+          <Pressable
+            ref={(ref) => (iconRefs.current[item.id] = ref)}
+            onPress={() => openContextMenu(item, item.id)}
+            hitSlop={8}
+          >
             <Ionicons name="ellipsis-vertical" size={20} color="#555" />
           </Pressable>
         </View>
@@ -145,78 +141,89 @@ export default function ShoppingListsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.containerRow}>
-        <Text style={styles.title}>Mis Listas</Text>
-
-        <Pressable style={styles.addButton} onPress={handleAddList}>
-          <Text style={styles.addText}>+</Text>
-        </Pressable>
-      </View>
-
-      <FlatList
-        data={sortedActiveLists}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No tienes listas activas 😊</Text>
-        }
-      />
-
-      {contextMenu && Platform.OS === "web" && (
-        <Pressable
-          ref={overlayRef}
-          style={styles.overlay}
-          onPress={() => {
-            overlayRef.current?.blur?.();
-            setContextMenu(null);
+    <>
+      <StatusBar style="dark" />
+      <SafeAreaView
+        edges={["left", "right", "bottom"]}
+        style={styles.container}
+      >
+        <FlatList
+          data={sortedActiveLists}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>No tienes listas activas 😊</Text>
+          }
+          contentContainerStyle={{ paddingBottom: 100 }}
+        />
+        {/* CONTEXT MENU */}
+        <ContextMenu
+          visible={menuState.visible}
+          anchorRef={{
+            current: iconRefs.current[menuState.anchorKey],
           }}
-        >
-          <View
-            style={[
-              styles.contextMenu,
-              { top: contextMenu.y, left: contextMenu.x },
-            ]}
-          >
-            <Pressable
-              style={styles.menuItem}
-              onPress={() => {
-                overlayRef.current?.blur?.();
-                archiveList(contextMenu.list.id);
-                setContextMenu(null);
+          onClose={() =>
+            setMenuState({ visible: false, list: null, anchorKey: null })
+          }
+          items={[
+            {
+              label: "Editar nombre",
+              onPress: () => openEditName(menuState.list),
+            },
+            {
+              label: "Archivar",
+              onPress: () => {
+                archiveList(menuState.list.id);
                 navigation.navigate(ROUTES.ARCHIVED_LISTS);
-              }}
-            >
-              <Text style={styles.menuText}>Archivar</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.menuItem}
-              onPress={() => {
-                overlayRef.current?.blur?.();
-                deleteList(contextMenu.list.id);
-                setContextMenu(null);
-              }}
-            >
-              <Text style={[styles.menuText, { color: "#dc2626" }]}>
-                Eliminar
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.menuItem}
-              onPress={() => {
-                overlayRef.current?.blur?.();
-                setContextMenu(null);
-              }}
-            >
-              <Text style={styles.menuText}>Cancelar</Text>
-            </Pressable>
-          </View>
+              },
+            },
+            {
+              label: "Eliminar",
+              destructive: true,
+              onPress: () => deleteList(menuState.list.id),
+            },
+          ]}
+        />
+        {/* FAB */}
+        <Pressable
+          style={[styles.fab, { bottom: Math.max(16, insets.bottom + 8) }]}
+          onPress={handleAddList}
+        >
+          <Ionicons name="add" size={26} color="#fff" />
         </Pressable>
-      )}
-    </SafeAreaView>
+        {/* EDIT MODAL */}
+        {editingList && (
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Editar nombre</Text>
+
+              <TextInput
+                style={styles.modalInput}
+                value={editName}
+                onChangeText={setEditName}
+                autoFocus
+              />
+
+              <View style={styles.modalActions}>
+                <Pressable
+                  onPress={() => setEditingList(null)}
+                  style={styles.modalCancel}
+                >
+                  <Text>Cancelar</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleConfirmRename}
+                  style={styles.modalConfirm}
+                >
+                  <Text style={{ color: "#fff" }}>Guardar</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        )}
+      </SafeAreaView>
+    </>
   );
 }
 
@@ -225,50 +232,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FAFAFA",
     paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  containerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#374151",
-  },
-
-  addButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  addText: {
-    fontSize: 28,
-    fontWeight: "500",
-    color: "#16a34a",
-    lineHeight: 28,
-  },
-  createRow: {
-    marginBottom: 20,
-  },
-
-  createButton: {
-    minHeight: 52,
-    borderRadius: 12,
-    backgroundColor: "#16a34a",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-  },
-
-  createButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
   },
 
   card: {
@@ -284,20 +247,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
   },
 
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    flexShrink: 1,
   },
 
   name: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#000",
   },
 
   date: {
@@ -306,7 +266,6 @@ const styles = StyleSheet.create({
   },
 
   count: {
-    marginTop: 4,
     fontSize: 13,
     color: "#6B7280",
   },
@@ -315,44 +274,65 @@ const styles = StyleSheet.create({
     marginTop: 40,
     textAlign: "center",
     color: "#888",
-    fontSize: 14,
   },
 
-  overlay: {
+  fab: {
+    position: "absolute",
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#16a34a",
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 6,
+  },
+
+  modalOverlay: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 100,
-  },
-
-  contextMenu: {
-    position: "fixed",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    minWidth: 160,
-    paddingVertical: 6,
-    zIndex: 1000,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-  },
-
-  menuItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-
-  menuText: {
-    fontSize: 15,
-    color: "#111",
-  },
-  button: {
-    flexDirection: "row",
-    gap: 6,
-    backgroundColor: "#22C55E",
-    paddingVertical: 14,
-    borderRadius: 10,
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  modalCard: {
+    width: "85%",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+  },
+
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+
+  modalCancel: {
+    padding: 10,
+  },
+
+  modalConfirm: {
+    backgroundColor: "#16a34a",
+    padding: 10,
+    borderRadius: 8,
   },
 });

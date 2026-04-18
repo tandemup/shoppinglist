@@ -1,26 +1,34 @@
 import React, { useCallback } from "react";
 import { Linking, Pressable, Text } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { showOptions } from "../../utils/ui/primitives/ActionSheet";
+
 import { settingsStorage } from "../../src/storage";
 import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
 
 export default function BarcodeLink({ barcode, label, iconColor = "#2563eb" }) {
-  const handlePress = useCallback(
-    async (e) => {
-      e.stopPropagation();
+  const openSearch = (query) => {
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    Linking.openURL(url);
+  };
+  const handlePress = useCallback(() => {
+    if (!barcode) return;
 
-      try {
-        const selectedKey = await settingsStorage.getSearchEngine();
-        const engine =
-          SEARCH_ENGINES[selectedKey] || SEARCH_ENGINES[DEFAULT_ENGINE];
-
-        const url = engine.buildUrl(barcode);
-        await Linking.openURL(url);
-      } catch (error) {
-        console.warn("Error opening barcode link", error);
-      }
-    },
-    [barcode],
-  );
+    showOptions("Código de barras", [
+      {
+        text: "Copiar",
+        onPress: () => Clipboard.setStringAsync(barcode),
+      },
+      {
+        text: "Buscar",
+        onPress: () => openSearch(barcode),
+      },
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+    ]);
+  }, [barcode]);
 
   if (!barcode) return null;
 

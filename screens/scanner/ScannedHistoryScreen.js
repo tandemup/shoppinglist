@@ -5,7 +5,7 @@ import {
   TextInput,
   FlatList,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
 } from "react-native";
 import { ROUTES } from "../../navigation/ROUTES";
 import { Image } from "expo-image";
@@ -95,11 +95,10 @@ export default function ScannedHistoryScreen({ navigation }) {
 
   const renderItem = ({ item }) => (
     <View style={[styles.card, item.isBook && styles.cardBook]}>
-      <TouchableOpacity
+      <Pressable
         style={styles.mainPressable}
         onPress={() => openItem(item)}
         onLongPress={() => handleDelete(item)}
-        activeOpacity={0.85}
       >
         <View style={styles.imageWrapper}>
           {getItemImage(item) ? (
@@ -134,7 +133,7 @@ export default function ScannedHistoryScreen({ navigation }) {
         <View style={styles.actionsCol}>
           <Ionicons name="chevron-forward" size={26} color="#888" />
         </View>
-      </TouchableOpacity>
+      </Pressable>
 
       {item.barcode ? (
         <View style={styles.barcodeRow}>
