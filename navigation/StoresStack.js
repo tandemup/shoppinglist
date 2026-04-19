@@ -13,20 +13,23 @@ const Stack = createNativeStackNavigator();
 
 export default function StoresStack() {
   return (
-    <Stack.Navigator>
-      {/* ─────────────────────────────── */}
-      {/* HOME */}
-      {/* ─────────────────────────────── */}
+    <Stack.Navigator
+      screenOptions={{
+        headerBackTitle: "",
+        headerBackTitleVisible: false,
+      }}
+    >
       <Stack.Screen
         name={ROUTES.STORES_HOME}
         component={StoresHomeScreen}
         options={{ title: "Tiendas" }}
       />
 
-      {/* ─────────────────────────────── */}
-      {/* LISTADOS */}
-      {/* ─────────────────────────────── */}
-      <Stack.Screen name={ROUTES.STORE_SELECT} component={StoreSelectScreen} />
+      <Stack.Screen
+        name={ROUTES.STORE_SELECT}
+        component={StoreSelectScreen}
+        options={{ title: "Seleccionar tienda" }}
+      />
 
       <Stack.Screen
         name={ROUTES.STORES_BROWSE}
@@ -46,9 +49,6 @@ export default function StoresStack() {
         options={{ title: "Tiendas favoritas" }}
       />
 
-      {/* ─────────────────────────────── */}
-      {/* DETALLE / INFO */}
-      {/* ─────────────────────────────── */}
       <Stack.Screen
         name={ROUTES.STORE_DETAIL}
         component={StoreDetailScreen}

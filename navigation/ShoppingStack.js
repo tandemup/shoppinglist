@@ -1,5 +1,6 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { HeaderBackButton } from "@react-navigation/elements";
 import { ROUTES } from "./ROUTES";
 
 import ShoppingListsScreen from "../screens/lists/ShoppingListsScreen";
@@ -25,43 +26,45 @@ export default function ShoppingStack() {
       screenOptions={{
         headerTitleAlign: "center",
         headerTitleStyle: { fontSize: 20, fontWeight: "700" },
-        headerBackTitle: "",
+        headerLeft: (props) => (
+          <HeaderBackButton {...props} labelVisible={false} />
+        ),
       }}
     >
       <Stack.Screen
         name={ROUTES.SHOPPING_LISTS}
         component={ShoppingListsScreen}
-        options={{ title: "Shopping Lists", headerBackTitle: "" }}
+        options={{ title: "Shopping Lists" }}
       />
 
       <Stack.Screen
         name={ROUTES.SHOPPING_LIST}
         component={ShoppingListScreen}
-        options={{ title: "Shopping List", headerBackTitle: "" }}
+        options={{ title: "Shopping List" }}
       />
 
       <Stack.Screen
         name={ROUTES.ITEM_DETAIL}
         component={ItemDetailScreen}
-        options={{ title: "Editar producto", headerBackTitle: "" }}
+        options={{ title: "Editar producto" }}
       />
 
       <Stack.Screen
         name={ROUTES.STORES_HOME}
         component={StoresScreen}
-        options={{ title: "Tiendas", headerBackTitle: "" }}
+        options={{ title: "Tiendas" }}
       />
 
       <Stack.Screen
         name={ROUTES.STORE_SELECT}
         component={StoreSelectScreen}
-        options={{ title: "Seleccionar tienda", headerBackTitle: "" }}
+        options={{ title: "Seleccionar tienda" }}
       />
 
       <Stack.Screen
         name={ROUTES.STORE_MAP}
         component={StoreMapScreen}
-        options={{ title: "Mapa de tiendas", headerBackTitle: "" }}
+        options={{ title: "Mapa de tiendas" }}
       />
 
       <Stack.Screen

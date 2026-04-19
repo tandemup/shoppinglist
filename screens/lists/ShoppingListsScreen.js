@@ -142,13 +142,12 @@ export default function ShoppingListsScreen() {
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
 
+  //paddingTop: insets.top
+  //<StatusBar style="dark" />
+
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      <SafeAreaView
-        edges={["left", "right", "bottom"]}
-        style={styles.container}
-      >
+    <View style={styles.screen}>
+      <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
         <FlatList
           data={sortedActiveLists}
           keyExtractor={(item) => item.id}
@@ -259,12 +258,24 @@ export default function ShoppingListsScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#FAFAFA",
+  },
+  safeArea: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
   container: {
     flex: 1,
     backgroundColor: "#FAFAFA",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
   },
-
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 32,
+  },
   card: {
     backgroundColor: "#fff",
     padding: 16,

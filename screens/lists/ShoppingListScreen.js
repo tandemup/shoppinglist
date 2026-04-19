@@ -177,7 +177,8 @@ export default function ShoppingListScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 32,
   },
   center: {
