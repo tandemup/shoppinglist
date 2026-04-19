@@ -426,9 +426,9 @@ export default function ItemDetailScreen() {
     updateItem(listId, itemId, {
       name: name.trim(),
       barcode: barcode.trim(),
+      unit: pricing.unit, // 👈 CLAVE
       priceInfo,
     });
-
     navigation.goBack();
   };
 

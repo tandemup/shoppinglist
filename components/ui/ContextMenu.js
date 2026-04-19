@@ -3,69 +3,50 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  Platform,
   Animated,
   Modal,
+  useWindowDimensions,
 } from "react-native";
-import { safeAlert } from "../../utils/core/safeAlert";
 
 export default function ContextMenu({
   visible,
   anchorRef,
-  title = "Opciones",
-  message = "",
   items = [],
   onClose,
 }) {
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(-8)).current;
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+
+  const [position, setPosition] = useState({ x: 8, y: 8 });
 
   useEffect(() => {
     if (!visible) return;
 
-    // ---------- MOBILE (iOS / Android) ----------
-    if (Platform.OS !== "web") {
-      const alertButtons = [
-        ...items.map((item) => ({
-          text: item.label,
-          style: item.destructive ? "destructive" : "default",
-          onPress: item.onPress,
-        })),
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-      ];
+    const measureAnchor = () => {
+      if (!anchorRef?.current?.measureInWindow) return;
 
-      safeAlert(title, message, alertButtons);
+      anchorRef.current.measureInWindow((x, y, width, height) => {
+        const menuWidth = 180;
+        const estimatedMenuHeight = Math.max(48, items.length * 44 + 12);
 
-      // cerrar estado después de abrir alert
-      setTimeout(() => {
-        onClose?.();
-      }, 0);
+        let nextX = x + width - menuWidth;
+        let nextY = y + height + 6;
 
-      return;
-    }
+        if (nextX < 8) nextX = 8;
+        if (nextX + menuWidth > windowWidth - 8) {
+          nextX = Math.max(8, windowWidth - menuWidth - 8);
+        }
 
-    // ---------- WEB ----------
-    if (anchorRef?.current?.getBoundingClientRect) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      const menuWidth = 180;
-      const viewportWidth = window.innerWidth;
+        if (nextY + estimatedMenuHeight > windowHeight - 8) {
+          nextY = Math.max(8, y - estimatedMenuHeight - 6);
+        }
 
-      let x = rect.right - menuWidth;
-
-      if (x < 8) x = 8;
-      if (x + menuWidth > viewportWidth - 8) {
-        x = viewportWidth - menuWidth - 8;
-      }
-
-      setPosition({
-        x,
-        y: rect.bottom + 6,
+        setPosition({ x: nextX, y: nextY });
       });
-    }
+    };
+
+    measureAnchor();
 
     opacity.setValue(0);
     translateY.setValue(-8);
@@ -82,13 +63,27 @@ export default function ContextMenu({
         useNativeDriver: true,
       }),
     ]).start();
-  }, [visible]);
+  }, [
+    visible,
+    anchorRef,
+    items.length,
+    opacity,
+    translateY,
+    windowWidth,
+    windowHeight,
+  ]);
 
-  if (!visible || Platform.OS !== "web") return null;
+  if (!visible) return null;
 
   return (
-    <Modal transparent visible={visible} animationType="none">
+    <Modal
+      transparent
+      visible={visible}
+      animationType="none"
+      onRequestClose={onClose}
+    >
       <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <Animated.View
           style={[
             styles.menu,
@@ -103,10 +98,16 @@ export default function ContextMenu({
           {items.map((item, idx) => (
             <Pressable
               key={`${item.label}-${idx}`}
-              style={styles.item}
+              style={({ pressed }) => [
+                styles.item,
+                pressed && styles.itemPressed,
+              ]}
+              android_ripple={{ color: "#e5e7eb" }}
               onPress={() => {
                 onClose?.();
-                item.onPress?.();
+                requestAnimationFrame(() => {
+                  item.onPress?.();
+                });
               }}
             >
               <Text
@@ -141,14 +142,13 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 8,
-
-    ...(Platform.OS === "web" && {
-      boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-    }),
   },
   item: {
     paddingVertical: 10,
     paddingHorizontal: 14,
+  },
+  itemPressed: {
+    backgroundColor: "#f3f4f6",
   },
   text: {
     fontSize: 15,

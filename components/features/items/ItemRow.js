@@ -51,8 +51,9 @@ export default function ItemRow({ item, onToggle, onEdit }) {
           )}
         </View>
         <Text style={styles.meta} numberOfLines={1}>
-          {priceInfo.qty} ×{" "}
-          {formatCurrency(priceInfo.unitPrice, priceInfo.currency)}
+          {priceInfo.qty} {formatUnit(item.unit)} ×{" "}
+          {formatCurrency(priceInfo.unitPrice, priceInfo.currency)}/
+          {formatUnit(item.unit)}
         </Text>
       </View>
 

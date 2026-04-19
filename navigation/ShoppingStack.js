@@ -25,42 +25,43 @@ export default function ShoppingStack() {
       screenOptions={{
         headerTitleAlign: "center",
         headerTitleStyle: { fontSize: 20, fontWeight: "700" },
+        headerBackTitle: "",
       }}
     >
       <Stack.Screen
         name={ROUTES.SHOPPING_LISTS}
         component={ShoppingListsScreen}
-        options={{ title: "Shopping Lists" }}
+        options={{ title: "Shopping Lists", headerBackTitle: "" }}
       />
 
       <Stack.Screen
         name={ROUTES.SHOPPING_LIST}
         component={ShoppingListScreen}
-        options={{ title: "Shopping List" }}
+        options={{ title: "Shopping List", headerBackTitle: "" }}
       />
 
       <Stack.Screen
         name={ROUTES.ITEM_DETAIL}
         component={ItemDetailScreen}
-        options={{ title: "Editar producto" }}
+        options={{ title: "Editar producto", headerBackTitle: "" }}
       />
 
       <Stack.Screen
         name={ROUTES.STORES_HOME}
         component={StoresScreen}
-        options={{ title: "Tiendas" }}
+        options={{ title: "Tiendas", headerBackTitle: "" }}
       />
 
       <Stack.Screen
         name={ROUTES.STORE_SELECT}
         component={StoreSelectScreen}
-        options={{ title: "Seleccionar tienda" }}
+        options={{ title: "Seleccionar tienda", headerBackTitle: "" }}
       />
 
       <Stack.Screen
         name={ROUTES.STORE_MAP}
         component={StoreMapScreen}
-        options={{ title: "Mapa de tiendas" }}
+        options={{ title: "Mapa de tiendas", headerBackTitle: "" }}
       />
 
       <Stack.Screen

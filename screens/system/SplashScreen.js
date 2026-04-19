@@ -34,7 +34,7 @@ export default function SplashScreen({ navigation }) {
     <View style={styles.container}>
       <Animated.View style={{ alignItems: "center", opacity: fadeAnim }}>
         <Image source={splashIcon} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.title}>Shop</Text>
+        <Text style={styles.title}>Shopp</Text>
         <Text style={styles.subtitle}>Tu lista de compras inteligente</Text>
       </Animated.View>
 
