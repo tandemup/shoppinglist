@@ -261,7 +261,7 @@ export default function ArchivedListsScreen({ navigation }) {
   }, [search, sortedLists, getStoreById]);
 
   const openDetails = (list) => {
-    navigation.navigate(ROUTES.ARCHIVED_LIST_DETAIL, {
+    navigation.navigation(ROUTES.ARCHIVED_LIST_DETAIL, {
       listId: list.id,
     });
   };

@@ -12,20 +12,15 @@ export default function ArchivedStack() {
     <Stack.Navigator
       screenOptions={{
         headerTitleAlign: "center",
-        headerStyle: { backgroundColor: "#fff" },
         headerTitleStyle: { fontSize: 20, fontWeight: "700" },
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
-      <Stack.Screen
-        name="ArchivedLists"
-        component={ArchivedListsScreen}
-        options={{ title: "Archivadas" }}
-      />
+      <Stack.Screen name="ArchivedLists" component={ArchivedListsScreen} />
 
       <Stack.Screen
         name="ArchivedListDetail"
         component={ArchivedListDetailScreen}
-        options={{ title: "Detalle" }}
       />
     </Stack.Navigator>
   );

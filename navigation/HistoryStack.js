@@ -9,16 +9,20 @@ const Stack = createNativeStackNavigator();
 
 export default function HistoryStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerTitleAlign: "center",
+        headerTitleStyle: { fontSize: 20, fontWeight: "700" },
+        headerBackButtonDisplayMode: "minimal",
+      }}
+    >
       <Stack.Screen
         name={ROUTES.PURCHASE_HISTORY}
         component={PurchaseHistoryScreen}
-        options={{ title: "Historial" }}
       />
       <Stack.Screen
         name={ROUTES.PURCHASE_DETAIL}
         component={PurchaseDetailScreen}
-        options={{ title: "Detalle" }}
       />
     </Stack.Navigator>
   );

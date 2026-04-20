@@ -125,6 +125,7 @@ export default function ShoppingListScreen() {
       }
     />
   );
+  console.log("testing ", navigation.canGoBack());
 
   return (
     <KeyboardAvoidingView

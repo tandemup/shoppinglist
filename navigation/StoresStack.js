@@ -15,54 +15,33 @@ export default function StoresStack() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerBackTitle: "",
-        headerBackTitleVisible: false,
+        headerTitleAlign: "center",
+        headerTitleStyle: { fontSize: 20, fontWeight: "700" },
+        headerBackButtonDisplayMode: "minimal",
       }}
     >
-      <Stack.Screen
-        name={ROUTES.STORES_HOME}
-        component={StoresHomeScreen}
-        options={{ title: "Tiendas" }}
-      />
+      <Stack.Screen name={ROUTES.STORES_HOME} component={StoresHomeScreen} />
 
-      <Stack.Screen
-        name={ROUTES.STORE_SELECT}
-        component={StoreSelectScreen}
-        options={{ title: "Seleccionar tienda" }}
-      />
+      <Stack.Screen name={ROUTES.STORE_SELECT} component={StoreSelectScreen} />
 
       <Stack.Screen
         name={ROUTES.STORES_BROWSE}
         component={StoresBrowseScreen}
-        options={{ title: "Explorar tiendas" }}
       />
 
       <Stack.Screen
         name={ROUTES.STORES_NEARBY}
         component={StoresNearbyScreen}
-        options={{ title: "Tiendas cercanas" }}
       />
 
       <Stack.Screen
         name={ROUTES.STORES_FAVORITES}
         component={StoresFavoritesScreen}
-        options={{ title: "Tiendas favoritas" }}
       />
 
-      <Stack.Screen
-        name={ROUTES.STORE_DETAIL}
-        component={StoreDetailScreen}
-        options={{
-          title: "Detalle de tienda",
-          headerBackTitleVisible: false,
-        }}
-      />
+      <Stack.Screen name={ROUTES.STORE_DETAIL} component={StoreDetailScreen} />
 
-      <Stack.Screen
-        name={ROUTES.STORE_INFO}
-        component={StoreInfoScreen}
-        options={{ title: "Información" }}
-      />
+      <Stack.Screen name={ROUTES.STORE_INFO} component={StoreInfoScreen} />
     </Stack.Navigator>
   );
 }

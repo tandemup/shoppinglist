@@ -10,7 +10,13 @@ const Stack = createNativeStackNavigator();
 
 export default function MenuStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator
+      screenOptions={{
+        headerTitleAlign: "center",
+        headerTitleStyle: { fontSize: 20, fontWeight: "700" },
+        headerBackButtonDisplayMode: "minimal",
+      }}
+    >
       <Stack.Screen
         name={ROUTES.MENU}
         component={MenuScreen}

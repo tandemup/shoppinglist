@@ -10,7 +10,13 @@ const Stack = createNativeStackNavigator();
 
 export default function ScannerStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerTitleAlign: "center",
+        headerTitleStyle: { fontSize: 20, fontWeight: "700" },
+        headerBackButtonDisplayMode: "minimal",
+      }}
+    >
       <Stack.Screen
         name={ROUTES.SCANNER_TAB}
         component={ScannerSelectorScreen}

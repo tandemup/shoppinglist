@@ -8,25 +8,25 @@ import {
   Pressable,
   Modal,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
-
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
 import { useLists } from "../../context/ListsContext";
 import { ROUTES } from "../../navigation/ROUTES";
 import { DEFAULT_CURRENCY } from "../../constants/currency";
+
 import CurrencyBadge from "../../components/ui/CurrencyBadge";
 import ContextMenu from "../../components/ui/ContextMenu";
+import { QuickAction } from "../../components/ui/QuickAction";
 
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const listRef = useRef(null);
 
   const {
     activeLists = [],
@@ -41,7 +41,6 @@ export default function ShoppingListsScreen() {
   const [editName, setEditName] = useState("");
 
   const iconRefs = useRef({});
-
   const [menuState, setMenuState] = useState({
     visible: false,
     list: null,
@@ -61,6 +60,7 @@ export default function ShoppingListsScreen() {
   const buildTodayListName = () => {
     const today = new Date();
     const baseName = today.toISOString().slice(0, 10);
+
     const allNames = [...activeLists, ...archivedLists].map((l) =>
       String(l.name || "").trim(),
     );
@@ -79,6 +79,10 @@ export default function ShoppingListsScreen() {
     createList(name, DEFAULT_CURRENCY);
   };
 
+  const handleOpenList = (listId) => {
+    navigation.navigate(ROUTES.SHOPPING_LIST, { listId });
+  };
+
   const openEditName = (list) => {
     setEditingList(list);
     setEditName(list.name || "");
@@ -92,12 +96,6 @@ export default function ShoppingListsScreen() {
     setEditingList(null);
     setEditName("");
   };
-
-  const handleOpenList = (listId) => {
-    navigation.navigate(ROUTES.SHOPPING_LIST, { listId });
-  };
-
-  const handleCancel = () => {};
 
   const openContextMenu = (list, key) => {
     setMenuState({
@@ -142,24 +140,65 @@ export default function ShoppingListsScreen() {
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
 
-  //paddingTop: insets.top
-  //<StatusBar style="dark" />
+  // ---------- header ----------
+
+  const renderHeader = () => {
+    return (
+      <>
+        <Text style={styles.sectionTitle}>Accesos rápidos</Text>
+
+        <View style={styles.quickActions}>
+          <QuickAction
+            icon="list"
+            label="Mis Listas"
+            onPress={() =>
+              listRef.current?.scrollToOffset({ offset: 0, animated: true })
+            }
+          />
+          <QuickAction
+            icon="archive"
+            label="Archivadas"
+            onPress={() => navigation.navigate(ROUTES.ARCHIVED_LISTS)}
+          />
+          <QuickAction
+            icon="time"
+            label="Historial"
+            onPress={() => navigation.navigate(ROUTES.PURCHASE_HISTORY)}
+          />
+          <QuickAction
+            icon="barcode"
+            label="Escaneos"
+            onPress={() => navigation.navigate(ROUTES.SCANNED_HISTORY)}
+          />
+        </View>
+
+        <Text style={styles.listHeader}>Mis listas</Text>
+      </>
+    );
+  };
+
+  // ---------- render ----------
 
   return (
     <View style={styles.screen}>
       <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
         <FlatList
+          ref={listRef}
           data={sortedActiveLists}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          ListHeaderComponent={
-            <Text style={styles.listHeader}>Mis listas</Text>
-          }
+          ListHeaderComponent={renderHeader}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No tienes listas activas 😊</Text>
+            <>
+              <Text style={styles.emptyText}>No tienes listas activas 😊</Text>
+              <Text style={styles.emptyHint}>
+                Pulsa + para crear tu primera lista
+              </Text>
+            </>
           }
           contentContainerStyle={{ paddingBottom: 120 }}
         />
+
         {/* CONTEXT MENU */}
         <ContextMenu
           visible={menuState.visible}
@@ -193,9 +232,10 @@ export default function ShoppingListsScreen() {
               destructive: true,
               onPress: () => deleteList(menuState.list.id),
             },
-            { label: "Cancelar", onPress: () => handleCancel() },
+            { label: "Cancelar", onPress: () => {} },
           ]}
         />
+
         {/* FAB */}
         <Pressable
           style={({ pressed }) => [
@@ -205,11 +245,11 @@ export default function ShoppingListsScreen() {
               opacity: pressed ? 0.8 : 1,
             },
           ]}
-          android_ripple={{ color: "#15803d", borderless: true }}
           onPress={handleAddList}
         >
           <Ionicons name="add" size={26} color="#fff" />
         </Pressable>
+
         {/* EDIT MODAL */}
         <Modal transparent visible={!!editingList} animationType="fade">
           <Pressable
@@ -266,16 +306,31 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  container: {
-    flex: 1,
-    backgroundColor: "#FAFAFA",
-    paddingHorizontal: 16,
+
+  // 🔹 Quick actions
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+    color: "#374151",
   },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
+
+  quickActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 16,
   },
+
+  // 🔹 List
+  listHeader: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#374151",
+    marginBottom: 12,
+  },
+
   card: {
     backgroundColor: "#fff",
     padding: 16,
@@ -311,19 +366,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
   },
-  listHeader: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#374151",
-    marginTop: 20,
-    marginBottom: 12,
-  },
+
+  // 🔹 Empty
   emptyText: {
     marginTop: 40,
     textAlign: "center",
     color: "#888",
+    fontSize: 15,
   },
 
+  emptyHint: {
+    textAlign: "center",
+    color: "#9CA3AF",
+    marginTop: 6,
+  },
+
+  // 🔹 FAB
   fab: {
     position: "absolute",
     right: 20,
@@ -336,12 +394,9 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 
+  // 🔹 Modal
   modalOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "center",
     alignItems: "center",
