@@ -22,6 +22,10 @@ import SplashScreen from "./screens/system/SplashScreen";
    Navigation
 ------------------------------ */
 import MainTabs from "./navigation/MainTabs";
+/* -----------------------------
+   Alert host
+------------------------------ */
+import WebAlertHost from "./components/ui/alert/WebAlertHost";
 
 const RootStack = createNativeStackNavigator();
 
@@ -47,6 +51,7 @@ export default function App() {
                       {/* Tabs principales */}
                       <RootStack.Screen name="Main" component={MainTabs} />
                     </RootStack.Navigator>
+                    <WebAlertHost />
                   </NavigationContainer>
                 </ProductSuggestionsProvider>
               </ProductLearningProvider>

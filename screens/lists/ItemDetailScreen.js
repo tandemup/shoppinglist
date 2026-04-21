@@ -35,7 +35,7 @@ import { isSamePromotion } from "../../utils/pricing/isSamePromotion";
 import { validatePromotionUnit } from "../../utils/pricing";
 import { formatCurrency } from "../../utils/store/prices";
 import { formatUnit } from "../../utils/pricing/unitFormat";
-import { safeAlert } from "../../utils/core/safeAlert";
+import { safeAlert, safeConfirm } from "../../components/ui/alert/safeAlert";
 
 function CardNombreBarcode({
   nameItem,

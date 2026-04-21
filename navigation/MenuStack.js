@@ -17,21 +17,12 @@ export default function MenuStack() {
         headerBackButtonDisplayMode: "minimal",
       }}
     >
-      <Stack.Screen
-        name={ROUTES.MENU}
-        component={MenuScreen}
-        options={{ title: "Main Menu" }}
-      />
+      <Stack.Screen name={ROUTES.MENU} component={MenuScreen} />
       <Stack.Screen
         name={ROUTES.PRODUCT_LEARNING_DEBUG}
         component={ProductLearningDebugScreen}
-        options={{ title: "Debug · Aprendizaje" }}
       />
-      <Stack.Screen
-        name={ROUTES.PURCHASE_HISTORY}
-        component={HistoryStack}
-        options={{ title: "Historial" }}
-      />
+      <Stack.Screen name={ROUTES.PURCHASE_HISTORY} component={HistoryStack} />
     </Stack.Navigator>
   );
 }

@@ -18,7 +18,7 @@ import {
   removeScannedItem,
 } from "../../services/scannerHistory";
 
-import { safeAlert } from "../../utils/core/safeAlert";
+import { safeAlert } from "../../components/ui/alert/safeAlert";
 import { createThumbnail } from "../../utils/createThumbnail";
 
 export default function EditScannedItemScreen({ route, navigation }) {

@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 
-import { safeAlert } from "../../utils/core/safeAlert";
+import { safeAlert } from "../../components/ui/alert/safeAlert";
 import BarcodeLink from "../../components/controls/BarcodeLink";
 import {
   getScannedHistory,

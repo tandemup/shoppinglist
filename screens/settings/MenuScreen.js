@@ -11,7 +11,8 @@ import Fontisto from "@expo/vector-icons/Fontisto";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ROUTES } from "../../navigation/ROUTES";
-import { safeAlert } from "../../utils/core/safeAlert";
+
+import { safeAlert } from "../../components/ui/alert/safeAlert";
 
 import {
   clearAppStorage as clearStorage,

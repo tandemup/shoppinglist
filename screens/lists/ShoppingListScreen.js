@@ -20,7 +20,7 @@ import SearchCombinedBar from "../../components/features/search/SearchCombinedBa
 import CheckoutBar from "../../components/features/checkout/CheckoutBar";
 import CurrencyBadge from "../../components/ui/CurrencyBadge";
 import { ROUTES } from "../../navigation/ROUTES";
-import { safeAlert } from "../../utils/core/safeAlert";
+import { safeAlert, safeConfirm } from "../../components/ui/alert/safeAlert";
 
 export default function ShoppingListScreen() {
   const route = useRoute();
@@ -125,7 +125,6 @@ export default function ShoppingListScreen() {
       }
     />
   );
-  console.log("testing ", navigation.canGoBack());
 
   return (
     <KeyboardAvoidingView

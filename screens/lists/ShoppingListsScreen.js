@@ -8,24 +8,23 @@ import {
   Pressable,
   Modal,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
 import { useLists } from "../../context/ListsContext";
 import { ROUTES } from "../../navigation/ROUTES";
 import { DEFAULT_CURRENCY } from "../../constants/currency";
-
+import FabMenu from "../../components/ui/FabMenu";
 import CurrencyBadge from "../../components/ui/CurrencyBadge";
 import ContextMenu from "../../components/ui/ContextMenu";
-import { QuickAction } from "../../components/ui/QuickAction";
+
+import { safeAlert, safeConfirm } from "../../components/ui/alert/safeAlert";
+import MenuNavegacion1 from "../../components/ui/MenuNavegacion1";
+import MenuNavegacion2 from "../../components/ui/MenuNavegacion2";
 
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const listRef = useRef(null);
 
   const {
@@ -55,8 +54,6 @@ export default function ShoppingListsScreen() {
     });
   }, [navigation]);
 
-  // ---------- helpers ----------
-
   const buildTodayListName = () => {
     const today = new Date();
     const baseName = today.toISOString().slice(0, 10);
@@ -72,12 +69,37 @@ export default function ShoppingListsScreen() {
     return `${baseName}-${i}`;
   };
 
-  // ---------- actions ----------
-
   const handleAddList = () => {
     const name = buildTodayListName();
     createList(name, DEFAULT_CURRENCY);
   };
+
+  const fabActions = [
+    {
+      key: "new",
+      icon: "add",
+      label: "Nueva lista",
+      onPress: handleAddList,
+    },
+    {
+      key: "archived",
+      icon: "archive",
+      label: "Archivadas",
+      onPress: () => navigation.navigate(ROUTES.ARCHIVED_LISTS),
+    },
+    {
+      key: "purchases",
+      icon: "receipt",
+      label: "Compras",
+      onPress: () => navigation.navigate(ROUTES.PURCHASE_HISTORY),
+    },
+    {
+      key: "scanned",
+      icon: "barcode",
+      label: "Escaneos",
+      onPress: () => navigation.navigate(ROUTES.SCANNED_HISTORY),
+    },
+  ];
 
   const handleOpenList = (listId) => {
     navigation.navigate(ROUTES.SHOPPING_LIST, { listId });
@@ -104,8 +126,6 @@ export default function ShoppingListsScreen() {
       anchorKey: key,
     });
   };
-
-  // ---------- render item ----------
 
   const renderItem = ({ item }) => {
     const currency = item.currency ?? DEFAULT_CURRENCY;
@@ -140,54 +160,17 @@ export default function ShoppingListsScreen() {
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
 
-  // ---------- header ----------
-
-  const renderHeader = () => {
-    return (
-      <>
-        <Text style={styles.sectionTitle}>Accesos rápidos</Text>
-
-        <View style={styles.quickActions}>
-          <QuickAction
-            icon="list"
-            label="Mis Listas"
-            onPress={() =>
-              listRef.current?.scrollToOffset({ offset: 0, animated: true })
-            }
-          />
-          <QuickAction
-            icon="archive"
-            label="Archivadas"
-            onPress={() => navigation.navigate(ROUTES.ARCHIVED_LISTS)}
-          />
-          <QuickAction
-            icon="time"
-            label="Historial"
-            onPress={() => navigation.navigate(ROUTES.PURCHASE_HISTORY)}
-          />
-          <QuickAction
-            icon="barcode"
-            label="Escaneos"
-            onPress={() => navigation.navigate(ROUTES.SCANNED_HISTORY)}
-          />
-        </View>
-
-        <Text style={styles.listHeader}>Mis listas</Text>
-      </>
-    );
-  };
-
-  // ---------- render ----------
-
+  //  ListHeaderComponent={<MenuNavegacion2 />}
   return (
     <View style={styles.screen}>
       <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
+        <MenuNavegacion1 />
+
         <FlatList
           ref={listRef}
           data={sortedActiveLists}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          ListHeaderComponent={renderHeader}
           ListEmptyComponent={
             <>
               <Text style={styles.emptyText}>No tienes listas activas 😊</Text>
@@ -196,10 +179,13 @@ export default function ShoppingListsScreen() {
               </Text>
             </>
           }
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{
+            paddingTop: 12,
+            paddingHorizontal: 16,
+            paddingBottom: 120,
+          }}
         />
 
-        {/* CONTEXT MENU */}
         <ContextMenu
           visible={menuState.visible}
           anchorRef={{
@@ -236,25 +222,15 @@ export default function ShoppingListsScreen() {
           ]}
         />
 
-        {/* FAB */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.fab,
-            {
-              bottom: Math.max(16, insets.bottom + 8),
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
-          onPress={handleAddList}
-        >
-          <Ionicons name="add" size={26} color="#fff" />
-        </Pressable>
+        <FabMenu actions={fabActions} />
 
-        {/* EDIT MODAL */}
         <Modal transparent visible={!!editingList} animationType="fade">
           <Pressable
             style={styles.modalOverlay}
-            onPress={() => setEditingList(null)}
+            onPress={() => {
+              setEditingList(null);
+              setEditName("");
+            }}
           >
             <Pressable
               style={styles.modalCard}
@@ -272,7 +248,10 @@ export default function ShoppingListsScreen() {
 
               <View style={styles.modalActions}>
                 <Pressable
-                  onPress={() => setEditingList(null)}
+                  onPress={() => {
+                    setEditingList(null);
+                    setEditName("");
+                  }}
                   style={styles.modalCancel}
                 >
                   <Text>Cancelar</Text>
@@ -296,7 +275,6 @@ export default function ShoppingListsScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -304,7 +282,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: 16,
   },
 
   // 🔹 Quick actions
