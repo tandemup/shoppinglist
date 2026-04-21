@@ -42,13 +42,10 @@ export default function App() {
                     <StatusBar style="auto" />
 
                     <RootStack.Navigator screenOptions={{ headerShown: false }}>
-                      {/* Splash inicial */}
                       <RootStack.Screen
                         name="Splash"
                         component={SplashScreen}
                       />
-
-                      {/* Tabs principales */}
                       <RootStack.Screen name="Main" component={MainTabs} />
                     </RootStack.Navigator>
                     <WebAlertHost />

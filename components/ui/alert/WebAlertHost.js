@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Platform } from "react-native";
 import WebAlertModal from "./WebAlertModal";
-import { registerWebAlertListener } from "./safeAlert";
+import WebContextMenuModal from "./WebContextMenuModal";
+import { registerWebDialogListener } from "./safeAlert";
 
 export default function WebAlertHost() {
   const [dialog, setDialog] = useState(null);
@@ -9,7 +10,7 @@ export default function WebAlertHost() {
   useEffect(() => {
     if (Platform.OS !== "web") return;
 
-    const unsubscribe = registerWebAlertListener((payload) => {
+    const unsubscribe = registerWebDialogListener((payload) => {
       setDialog(payload);
     });
 
@@ -30,6 +31,18 @@ export default function WebAlertHost() {
       button?.onPress?.();
     });
   };
+
+  if (!dialog) return null;
+
+  if (dialog.type === "menu") {
+    return (
+      <WebContextMenuModal
+        dialog={dialog}
+        onClose={close}
+        onSelect={handleSelect}
+      />
+    );
+  }
 
   return (
     <WebAlertModal dialog={dialog} onClose={close} onSelect={handleSelect} />

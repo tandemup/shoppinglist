@@ -19,7 +19,12 @@ export default function WebAlertModal({ dialog, onSelect, onClose }) {
             <Text style={styles.message}>{dialog.message}</Text>
           )}
 
-          <View style={styles.actions}>
+          <View
+            style={[
+              styles.actions,
+              buttons.length === 1 && styles.actionsSingle,
+            ]}
+          >
             {buttons.map((b, i) => (
               <Pressable
                 key={b.key ?? b.text ?? String(i)}
@@ -63,6 +68,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 20,
     padding: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 12,
   },
 
   title: {
@@ -70,7 +80,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#111827",
     marginBottom: 14,
-    textAlign: "left",
   },
 
   message: {
@@ -84,6 +93,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 12,
+  },
+
+  actionsSingle: {
+    justifyContent: "flex-end",
   },
 
   actionButton: {
