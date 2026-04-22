@@ -18,7 +18,6 @@ import { useNavigation } from "@react-navigation/native";
 import { useLists } from "../../context/ListsContext";
 import { ROUTES } from "../../navigation/ROUTES";
 import { DEFAULT_CURRENCY } from "../../constants/currency";
-import FabMenu from "../../components/ui/FabMenu";
 import CurrencyBadge from "../../components/ui/CurrencyBadge";
 
 import {
@@ -27,17 +26,24 @@ import {
   safeConfirm,
 } from "../../components/ui/alert/safeAlert";
 
-function MenuNavegacion1() {
+function EditListNameModal() {}
+
+function MenuNavegacion1({ onCreateList }) {
   const navigation = useNavigation();
 
-  const Row = ({ icon, label, route }) => (
+  const Row = ({ icon, label, route, onPress }) => (
     <TouchableOpacity
       style={styles1.nav1Row}
-      onPress={() =>
+      onPress={() => {
+        if (onPress) {
+          onPress();
+          return;
+        }
+
         navigation.navigate(ROUTES.SHOPPING_TAB, {
           screen: route,
-        })
-      }
+        });
+      }}
       activeOpacity={0.8}
     >
       <Ionicons
@@ -55,6 +61,7 @@ function MenuNavegacion1() {
     <View style={styles1.nav1Wrapper}>
       <Text style={styles1.nav1Title}>Navegación</Text>
 
+      <Row icon="add-outline" label="Nueva lista" onPress={onCreateList} />
       <Row
         icon="list-outline"
         label="Mis listas"
@@ -78,15 +85,21 @@ function MenuNavegacion1() {
     </View>
   );
 }
-
 function MenuNavegacion2({
   archivedCount = 0,
   historyCount = 0,
   scannedCount = 0,
+  onCreateList,
 }) {
   const navigation = useNavigation();
 
   const actions = [
+    {
+      key: "new",
+      label: "Nueva lista",
+      icon: "add-outline",
+      onPress: onCreateList,
+    },
     {
       key: "lists",
       label: "Mis Listas",
@@ -128,9 +141,16 @@ function MenuNavegacion2({
         {actions.map((action) => (
           <Pressable
             key={action.key}
-            onPress={() =>
-              navigation.navigate(ROUTES.SHOPPING_TAB, { screen: action.route })
-            }
+            onPress={() => {
+              if (action.onPress) {
+                action.onPress();
+                return;
+              }
+
+              navigation.navigate(ROUTES.SHOPPING_TAB, {
+                screen: action.route,
+              });
+            }}
             style={({ pressed }) => [
               styles2.quickCard,
               pressed && styles2.quickCardPressed,
@@ -168,7 +188,7 @@ export default function ShoppingListsScreen() {
     archiveList,
   } = useLists();
 
-  const [editingList, setEditingList] = useState(null);
+  const [editingList, setEditingList] = useState(undefined);
   const [editName, setEditName] = useState("");
 
   useEffect(() => {
@@ -195,36 +215,9 @@ export default function ShoppingListsScreen() {
   };
 
   const handleAddList = () => {
-    const name = buildTodayListName();
-    createList(name, DEFAULT_CURRENCY);
+    setEditingList(null);
+    setEditName(buildTodayListName());
   };
-
-  const fabActions = [
-    {
-      key: "new",
-      icon: "add",
-      label: "Nueva lista",
-      onPress: handleAddList,
-    },
-    {
-      key: "archived",
-      icon: "archive",
-      label: "Archivadas",
-      onPress: () => navigation.navigate(ROUTES.ARCHIVED_LISTS),
-    },
-    {
-      key: "purchases",
-      icon: "receipt",
-      label: "Compras",
-      onPress: () => navigation.navigate(ROUTES.PURCHASE_HISTORY),
-    },
-    {
-      key: "scanned",
-      icon: "barcode",
-      label: "Escaneos",
-      onPress: () => navigation.navigate(ROUTES.SCANNED_HISTORY),
-    },
-  ];
 
   const handleOpenList = (listId) => {
     navigation.navigate(ROUTES.SHOPPING_LIST, { listId });
@@ -232,16 +225,25 @@ export default function ShoppingListsScreen() {
 
   const openEditName = (list) => {
     setEditingList(list);
-    setEditName(list.name || "");
+    setEditName(list?.name || "");
   };
 
-  const handleConfirmRename = () => {
-    const name = editName.trim();
-    if (!name || !editingList) return;
-
-    updateList(editingList.id, { name });
-    setEditingList(null);
+  const closeEditModal = () => {
+    setEditingList(undefined);
     setEditName("");
+  };
+
+  const handleConfirmEditName = () => {
+    const name = editName.trim();
+    if (!name) return;
+
+    if (editingList) {
+      updateList(editingList.id, { name });
+    } else {
+      createList(name, DEFAULT_CURRENCY);
+    }
+
+    closeEditModal();
   };
 
   const openListMenu = (list) => {
@@ -311,14 +313,27 @@ export default function ShoppingListsScreen() {
   const sortedActiveLists = [...activeLists].sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
-
+  /*
+        <MenuNavegacion1 onCreateList={handleAddList} />
+        <MenuNavegacion2
+          archivedCount={archivedLists.length}
+          historyCount={0}
+          scannedCount={0}
+          onCreateList={handleAddList}
+        />
+*/
   return (
     <View style={styles.screen}>
       <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
-        <MenuNavegacion2 />
-
+        <MenuNavegacion2
+          archivedCount={archivedLists.length}
+          historyCount={0}
+          scannedCount={0}
+          onCreateList={handleAddList}
+        />
         <FlatList
           ref={listRef}
+          style={styles.list}
           data={sortedActiveLists}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
@@ -335,57 +350,46 @@ export default function ShoppingListsScreen() {
               </Text>
             </>
           }
-          contentContainerStyle={{
-            paddingTop: 12,
-            paddingHorizontal: 16,
-            paddingBottom: 120,
-          }}
+          contentContainerStyle={styles.listContent}
         />
-
-        <FabMenu actions={fabActions} />
-
-        <Modal transparent visible={!!editingList} animationType="fade">
-          <Pressable
-            style={styles.modalOverlay}
-            onPress={() => {
-              setEditingList(null);
-              setEditName("");
-            }}
-          >
+        <Modal
+          transparent
+          visible={editingList !== undefined}
+          animationType="fade"
+        >
+          <Pressable style={styles.modalOverlay} onPress={closeEditModal}>
             <Pressable
               style={styles.modalCard}
               onPress={(e) => e.stopPropagation()}
             >
-              <Text style={styles.modalTitle}>Editar nombre</Text>
+              <Text style={styles.modalTitle}>
+                {editingList ? "Editar nombre" : "Nueva lista"}
+              </Text>
 
               <TextInput
                 style={styles.modalInput}
                 value={editName}
                 onChangeText={setEditName}
                 autoFocus
-                onSubmitEditing={handleConfirmRename}
+                onSubmitEditing={handleConfirmEditName}
               />
 
               <View style={styles.modalActions}>
-                <Pressable
-                  onPress={() => {
-                    setEditingList(null);
-                    setEditName("");
-                  }}
-                  style={styles.modalCancel}
-                >
+                <Pressable onPress={closeEditModal} style={styles.modalCancel}>
                   <Text>Cancelar</Text>
                 </Pressable>
 
                 <Pressable
-                  onPress={handleConfirmRename}
+                  onPress={handleConfirmEditName}
                   style={[
                     styles.modalConfirm,
                     !editName.trim() && { opacity: 0.5 },
                   ]}
                   disabled={!editName.trim()}
                 >
-                  <Text style={{ color: "#fff" }}>Guardar</Text>
+                  <Text style={{ color: "#fff" }}>
+                    {editingList ? "Guardar" : "Crear"}
+                  </Text>
                 </Pressable>
               </View>
             </Pressable>
@@ -508,6 +512,14 @@ const styles2 = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 120,
+  },
   screen: {
     flex: 1,
     backgroundColor: "#FAFAFA",

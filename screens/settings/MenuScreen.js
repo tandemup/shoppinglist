@@ -148,52 +148,6 @@ export default function MenuScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>Menú</Text>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Navegación</Text>
-
-          <Row
-            icon="list"
-            label="Mis listas"
-            onPress={() =>
-              navigation.navigate(ROUTES.SHOPPING_TAB, {
-                screen: ROUTES.SHOPPING_LISTS,
-              })
-            }
-          />
-
-          <Row
-            icon="archive"
-            label="Listas archivadas"
-            onPress={() =>
-              navigation.navigate(ROUTES.SHOPPING_TAB, {
-                screen: ROUTES.ARCHIVED_LISTS,
-              })
-            }
-          />
-
-          <Row
-            icon="receipt"
-            label="Historial de compras"
-            onPress={() =>
-              navigation.navigate(ROUTES.SHOPPING_TAB, {
-                screen: ROUTES.PURCHASE_HISTORY,
-              })
-            }
-          />
-
-          <Row
-            icon="barcode"
-            label="Historial de escaneos"
-            onPress={() =>
-              navigation.navigate(ROUTES.SHOPPING_TAB, {
-                screen: ROUTES.SCANNED_HISTORY,
-              })
-            }
-          />
-        </View>
-
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Motor de búsqueda general</Text>
           {Object.values(SEARCH_ENGINES).map((engine) => (

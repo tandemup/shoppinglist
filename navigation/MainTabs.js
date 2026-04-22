@@ -23,6 +23,7 @@ export default function MainTabs() {
         name={ROUTES.SHOPPING_TAB}
         component={ShoppingStack}
         options={{
+          title: "Shopping",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cart" color={color} size={size} />
           ),
@@ -52,6 +53,7 @@ export default function MainTabs() {
         name={ROUTES.SCANNER_TAB}
         component={ScannerStack}
         options={{
+          title: "Scanner",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="barcode" color={color} size={size} />
           ),
