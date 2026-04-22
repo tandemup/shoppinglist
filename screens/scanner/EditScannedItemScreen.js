@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   updateScannedEntry,
@@ -20,6 +21,7 @@ import {
 
 import { safeAlert } from "../../components/ui/alert/safeAlert";
 import { createThumbnail } from "../../utils/createThumbnail";
+import BarcodeLink from "../../components/controls/BarcodeLink";
 
 export default function EditScannedItemScreen({ route, navigation }) {
   const { item } = route.params;
@@ -47,7 +49,7 @@ export default function EditScannedItemScreen({ route, navigation }) {
   /* -------------------------------------------------
      Guardar cambios
   -------------------------------------------------- */
-  const save = async () => {
+  const hadleSave = async () => {
     if (!name.trim()) {
       safeAlert("Nombre requerido", "El producto debe tener un nombre");
       return;
@@ -89,6 +91,59 @@ export default function EditScannedItemScreen({ route, navigation }) {
     ]);
   };
 
+  /* ---------------------------
+     Guardar
+  ----------------------------*/
+  const handleSave = () => {
+    if (!name.trim()) {
+      safeAlert("Nombre vacío", "El producto debe tener un nombre");
+      return;
+    }
+    if (isUnitInvalid) {
+      safeAlert(
+        "Cantidad inválida",
+        "Para unidades (u) la cantidad debe ser un número entero",
+      );
+      return;
+    }
+    const promoValidation = validatePromotionUnit(
+      normalizePromotion(pricing.promo),
+      pricing.unit,
+    );
+    if (!promoValidation.valid) {
+      safeAlert("Oferta inválida", promoValidation.message);
+      return;
+    }
+    updateItem(listId, itemId, {
+      name: name.trim(),
+      barcode: barcode.trim(),
+      unit: pricing.unit, // 👈 CLAVE
+      priceInfo,
+    });
+    navigation.goBack();
+  };
+
+  /* ---------------------------
+     Eliminar
+  ----------------------------*/
+  const handleDelete = () => {
+    safeAlert(
+      "Eliminar producto",
+      `¿Seguro que quieres eliminar "${item.name}"?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: () => {
+            deleteItem(listId, itemId);
+            navigation.goBack();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -101,9 +156,10 @@ export default function EditScannedItemScreen({ route, navigation }) {
         <Text style={styles.title}>Editar producto</Text>
 
         {/* CÓDIGO */}
-        <Text style={styles.label}>Código de barras</Text>
+
+        <Text style={styles.label}>Barcode</Text>
         <View style={styles.codeBox}>
-          <Text style={styles.codeText}>{barcode}</Text>
+          <BarcodeLink barcode={barcode} label={barcode} iconColor="#2563eb" />
         </View>
 
         {/* NOMBRE */}
@@ -168,15 +224,25 @@ export default function EditScannedItemScreen({ route, navigation }) {
           style={[styles.input, { height: 80 }]}
         />
 
-        {/* GUARDAR */}
-        <Pressable style={styles.saveButton} onPress={save}>
-          <Text style={styles.saveText}>Guardar cambios</Text>
-        </Pressable>
+        {/* ACCIONES */}
+        <View
+          style={[
+            styles.actions,
+            {
+              paddingBottom: 8,
+            },
+          ]}
+        >
+          <Pressable style={styles.saveBtn} onPress={handleSave}>
+            <Ionicons name="save" size={20} color="#fff" />
+            <Text style={styles.saveText}>Guardar</Text>
+          </Pressable>
 
-        {/* BORRAR */}
-        <Pressable style={styles.deleteButton} onPress={removeItem}>
-          <Text style={styles.deleteText}>Borrar</Text>
-        </Pressable>
+          <Pressable style={styles.deleteBtn} onPress={handleDelete}>
+            <Ionicons name="trash" size={20} color="#fff" />
+            <Text style={styles.deleteText}>Eliminar</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -256,9 +322,9 @@ const styles = StyleSheet.create({
   },
 
   saveText: {
-    color: "white",
-    textAlign: "center",
-    fontWeight: "bold",
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
 
   deleteButton: {
@@ -269,8 +335,42 @@ const styles = StyleSheet.create({
   },
 
   deleteText: {
-    color: "white",
-    textAlign: "center",
-    fontWeight: "bold",
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  /* ACTIONS */
+  actions: {
+    flexDirection: "row",
+    gap: 16,
+    marginTop: 30,
+  },
+  saveBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+
+    height: 60,
+    borderRadius: 20,
+
+    backgroundColor: "#22c55e",
+
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  saveText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+
+  deleteText: {
+    color: "#fff",
+    fontWeight: "700",
   },
 });

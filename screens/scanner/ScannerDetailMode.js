@@ -15,6 +15,7 @@ function BarcodeInfoCard({
   barcode,
   product,
   openingBrowser,
+  loadingProduct,
   onSearch,
   onResume,
   onCopy,
@@ -37,6 +38,19 @@ function BarcodeInfoCard({
       </Text>
 
       <Text style={{ fontSize: 20, marginTop: 6 }}>{barcode}</Text>
+
+      {loadingProduct ? (
+        <Text
+          style={{
+            marginTop: 10,
+            fontSize: 13,
+            color: "#111827",
+            textAlign: "center",
+          }}
+        >
+          Buscando información del producto...
+        </Text>
+      ) : null}
 
       {product?.image ? (
         <Image
@@ -119,6 +133,7 @@ export default function ScannerDetailMode({
   const [scanned, setScanned] = useState(false);
   const [openingBrowser, setOpeningBrowser] = useState(false);
   const [product, setProduct] = useState(null);
+  const [loadingProduct, setLoadingProduct] = useState(false);
   const [scannerKey, setScannerKey] = useState(0);
 
   const isCancellingRef = useRef(false);
@@ -147,6 +162,7 @@ export default function ScannerDetailMode({
     setBarcode("");
     setScanned(false);
     setProduct(null);
+    setLoadingProduct(false);
     setOpeningBrowser(false);
     setScannerKey((prev) => prev + 1);
   }
@@ -213,7 +229,30 @@ export default function ScannerDetailMode({
     }
   }
 
-  async function handleScanned({ data }) {
+  async function enrichScan(normalized) {
+    try {
+      setLoadingProduct(true);
+
+      const productData = await fetchProduct(normalized);
+
+      if (isCancellingRef.current) return;
+
+      setProduct(productData);
+
+      addScannedItem({
+        barcode: normalized,
+        name: productData?.name ?? "",
+        thumbnailUri: productData?.image ?? "",
+        source: "scanner",
+      }).catch(() => {});
+    } finally {
+      if (!isCancellingRef.current) {
+        setLoadingProduct(false);
+      }
+    }
+  }
+
+  function handleScanned({ data }) {
     if (scanned || isCancellingRef.current) return;
 
     const normalized = normalizeBarcode(data);
@@ -222,27 +261,19 @@ export default function ScannerDetailMode({
     setScanned(true);
     setBarcode(normalized);
 
-    const productData = await fetchProduct(normalized);
-
-    if (isCancellingRef.current) return;
-
-    setProduct(productData);
-
-    await addScannedItem({
-      barcode: normalized,
-      name: productData?.name ?? "",
-      thumbnailUri: productData?.image ?? "",
-      source: "scanner",
-    });
-
     if (itemId) {
       navigation.navigate("ItemDetail", {
         id: itemId,
         scannedBarcode: normalized,
-        productName: productData?.name ?? "",
-        productImage: productData?.image ?? "",
+        productName: "",
+        productImage: "",
       });
+
+      enrichScan(normalized);
+      return;
     }
+
+    enrichScan(normalized);
   }
 
   return (
@@ -258,6 +289,7 @@ export default function ScannerDetailMode({
           setBarcode("");
           setScanned(false);
           setProduct(null);
+          setLoadingProduct(false);
           setOpeningBrowser(false);
         }}
         onScanned={handleScanned}
@@ -268,6 +300,7 @@ export default function ScannerDetailMode({
         <BarcodeInfoCard
           barcode={barcode}
           product={product}
+          loadingProduct={loadingProduct}
           openingBrowser={openingBrowser}
           onSearch={() => openBrowser(barcode)}
           onResume={() => {

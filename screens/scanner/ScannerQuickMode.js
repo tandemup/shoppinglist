@@ -10,6 +10,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import ScannerControls from "../../components/features/scanner/ScannerControls";
 import { getSearchSettings } from "../../src/storage/settingsStorage";
@@ -21,13 +22,14 @@ export default function ScannerQuickMode({ embedded = false }) {
   const [permission, requestPermission] = useCameraPermissions();
 
   const [scanned, setScanned] = useState(false);
+  const [scanningEnabled, setScanningEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lastCode, setLastCode] = useState(null);
 
   const scanLock = useRef(false);
 
   const [torch, setTorch] = useState(false);
-  const [zoomIndex, setZoomIndex] = useState(0);
+  const [zoomIndex, setZoomIndex] = useState(1);
   const zoom = getZoomValue(SCANNER_ZOOM, zoomIndex);
 
   const Wrapper = embedded ? View : SafeAreaView;
@@ -35,10 +37,11 @@ export default function ScannerQuickMode({ embedded = false }) {
   const resetScanner = useCallback(() => {
     scanLock.current = false;
     setScanned(false);
+    setScanningEnabled(false);
     setLoading(false);
     setLastCode(null);
     setTorch(false);
-    setZoomIndex(0);
+    setZoomIndex(1);
   }, []);
 
   useEffect(() => {
@@ -82,9 +85,10 @@ export default function ScannerQuickMode({ embedded = false }) {
 
   const handleBarcodeScanned = useCallback(
     async ({ data }) => {
-      if (!data || scanLock.current) return;
+      if (!data || scanLock.current || !scanningEnabled) return;
 
       scanLock.current = true;
+      setScanningEnabled(false);
       setScanned(true);
       setLoading(true);
       setLastCode(data);
@@ -115,7 +119,7 @@ export default function ScannerQuickMode({ embedded = false }) {
         setLoading(false);
       }
     },
-    [resetScanner, resolveEngineKey],
+    [resetScanner, resolveEngineKey, scanningEnabled],
   );
 
   if (!permission) {
@@ -147,10 +151,10 @@ export default function ScannerQuickMode({ embedded = false }) {
         barcodeScannerSettings={{
           barcodeTypes: ["ean13", "ean8", "upc_a", "upc_e"],
         }}
-        onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+        onBarcodeScanned={scanningEnabled ? handleBarcodeScanned : undefined}
       />
 
-      {!scanned && !loading && (
+      {!loading && (
         <ScannerControls
           torch={torch}
           zoomIndex={zoomIndex}
@@ -170,7 +174,9 @@ export default function ScannerQuickMode({ embedded = false }) {
           </>
         ) : (
           <>
-            <Text style={styles.text}>Apunta al código de barras</Text>
+            <Text style={styles.text}>
+              {scanningEnabled ? "Escaneando..." : "Apunta al código de barras"}
+            </Text>
 
             {lastCode ? (
               <Text style={styles.subText}>Código: {lastCode}</Text>
@@ -180,11 +186,40 @@ export default function ScannerQuickMode({ embedded = false }) {
               </Text>
             )}
 
-            {scanned && (
-              <Pressable onPress={resetScanner}>
-                <Text style={styles.button}>Escanear de nuevo</Text>
+            <Pressable
+              style={[
+                styles.scanButton,
+                scanningEnabled && styles.scanButtonActive,
+              ]}
+              onPress={() => {
+                if (scanningEnabled) {
+                  scanLock.current = false;
+                  setScanningEnabled(false);
+                  return;
+                }
+
+                scanLock.current = false;
+                setScanned(false);
+                setLastCode(null);
+                setLoading(false);
+                setScanningEnabled(true);
+              }}
+            >
+              <MaterialCommunityIcons
+                name={scanningEnabled ? "stop-circle-outline" : "barcode-scan"}
+                size={22}
+                color="#fff"
+              />
+              <Text style={styles.scanButtonText}>
+                {scanningEnabled ? "Detener" : "Escanear"}
+              </Text>
+            </Pressable>
+
+            {scanned && !scanningEnabled ? (
+              <Pressable onPress={resetScanner} style={styles.retryButton}>
+                <Text style={styles.button}>Reiniciar</Text>
               </Pressable>
-            )}
+            ) : null}
           </>
         )}
       </View>
@@ -227,5 +262,28 @@ const styles = StyleSheet.create({
     color: "#22c55e",
     fontSize: 16,
     fontWeight: "600",
+  },
+  scanButton: {
+    minWidth: 140,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 999,
+    backgroundColor: "#2563eb",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  scanButtonActive: {
+    backgroundColor: "#16a34a",
+  },
+  scanButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  retryButton: {
+    marginTop: 12,
   },
 });

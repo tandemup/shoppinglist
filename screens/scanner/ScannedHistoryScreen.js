@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { ROUTES } from "../../navigation/ROUTES";
 import { Image } from "expo-image";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 
@@ -53,19 +52,19 @@ export default function ScannedHistoryScreen({ navigation }) {
   };
 
   useEffect(() => {
-    if (!searchQuery.trim()) {
+    const q = searchQuery.trim().toLowerCase();
+
+    if (!q) {
       setFilteredItems(scannedItems);
       return;
     }
 
-    const q = searchQuery.toLowerCase();
-
     const results = scannedItems.filter((item) => {
-      return (
-        item.name?.toLowerCase().includes(q) ||
-        item.barcode?.toLowerCase().includes(q) ||
-        item.brand?.toLowerCase().includes(q)
-      );
+      const name = String(item.name || "").toLowerCase();
+      const barcode = String(item.barcode || "").toLowerCase();
+      const brand = String(item.brand || "").toLowerCase();
+
+      return name.includes(q) || barcode.includes(q) || brand.includes(q);
     });
 
     setFilteredItems(results);
@@ -147,36 +146,67 @@ export default function ScannedHistoryScreen({ navigation }) {
     </View>
   );
 
-  return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <Text style={styles.title}>Historial de Escaneos</Text>
+  const Header = () => {
+    return (
+      <View style={styles.headerBlock}>
+        <Text style={styles.title}>Historial de Escaneos</Text>
 
-      <View style={styles.searchContainer}>
-        <Ionicons
-          name="search"
-          size={20}
-          color="#666"
-          style={{ marginRight: 6 }}
-        />
-        <TextInput
-          placeholder="Buscar producto o código..."
-          placeholderTextColor="#888"
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={20}
+            color="#666"
+            style={styles.searchIcon}
+          />
+          <TextInput
+            placeholder="Buscar producto o código..."
+            placeholderTextColor="#888"
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      </View>
+    );
+  };
+
+  const emptyMessage = scannedItems.length
+    ? "No se encontraron resultados"
+    : "No hay escaneos guardados";
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.headerBlock}>
+        <Text style={styles.title}>Historial de Escaneos</Text>
+
+        <View style={styles.searchContainer}>
+          <Ionicons
+            name="search"
+            size={20}
+            color="#666"
+            style={styles.searchIcon}
+          />
+          <TextInput
+            placeholder="Buscar producto o código..."
+            placeholderTextColor="#888"
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       <FlatList
         data={filteredItems}
         renderItem={renderItem}
-        keyExtractor={(item, index) => item.barcode ?? `scan-${index}`}
-        contentContainerStyle={{ paddingBottom: 50 }}
-        ListEmptyComponent={
-          <Text style={styles.empty}>No se encontraron resultados</Text>
+        keyExtractor={(item, index) =>
+          item.id?.toString() || item.barcode?.toString() || `scan-${index}`
         }
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
+        keyboardShouldPersistTaps="handled"
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -187,11 +217,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#FAFAFA",
   },
 
+  listContent: {
+    paddingBottom: 50,
+  },
+
+  headerBlock: {
+    marginBottom: 14,
+  },
+
   title: {
     fontSize: 26,
     fontWeight: "800",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
 
   empty: {
@@ -286,7 +324,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderWidth: 1,
     borderColor: "#E0E7FF",
-    marginBottom: 14,
+  },
+
+  searchIcon: {
+    marginRight: 6,
   },
 
   searchInput: {
