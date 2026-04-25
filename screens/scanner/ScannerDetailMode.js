@@ -8,9 +8,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { addScannedItem } from "../../services/scannerHistory";
-import BarcodeScanner from "../../components/features/scanner/BarcodeScanner";
 
+import { addScannedItem } from "../../services/scannerHistory";
+import UnifiedBarcodeScanner from "../../components/features/scanner/UnifiedBarcodeScanner";
+
+/* -----------------------------------------
+   📦 UI: TARJETA INFO CÓDIGO
+------------------------------------------ */
 function BarcodeInfoCard({
   barcode,
   product,
@@ -39,7 +43,7 @@ function BarcodeInfoCard({
 
       <Text style={{ fontSize: 20, marginTop: 6 }}>{barcode}</Text>
 
-      {loadingProduct ? (
+      {loadingProduct && (
         <Text
           style={{
             marginTop: 10,
@@ -50,9 +54,9 @@ function BarcodeInfoCard({
         >
           Buscando información del producto...
         </Text>
-      ) : null}
+      )}
 
-      {product?.image ? (
+      {product?.image && (
         <Image
           source={{ uri: product.image }}
           style={{
@@ -63,9 +67,9 @@ function BarcodeInfoCard({
           }}
           resizeMode="contain"
         />
-      ) : null}
+      )}
 
-      {product?.name ? (
+      {product?.name && (
         <Text
           style={{
             marginTop: 10,
@@ -75,7 +79,7 @@ function BarcodeInfoCard({
         >
           {product.name}
         </Text>
-      ) : null}
+      )}
 
       <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
         <Pressable
@@ -122,6 +126,9 @@ function BarcodeInfoCard({
   );
 }
 
+/* -----------------------------------------
+   📱 SCREEN PRINCIPAL
+------------------------------------------ */
 export default function ScannerDetailMode({
   navigation,
   route,
@@ -148,6 +155,9 @@ export default function ScannerDetailMode({
     };
   }, []);
 
+  /* -----------------------------------------
+     🔢 NORMALIZAR CÓDIGO
+  ------------------------------------------ */
   function normalizeBarcode(code) {
     const clean = String(code || "").replace(/\D/g, "");
 
@@ -157,6 +167,9 @@ export default function ScannerDetailMode({
     return null;
   }
 
+  /* -----------------------------------------
+     🔄 RESET
+  ------------------------------------------ */
   function resetScanState() {
     abortControllerRef.current?.abort();
     setBarcode("");
@@ -164,6 +177,8 @@ export default function ScannerDetailMode({
     setProduct(null);
     setLoadingProduct(false);
     setOpeningBrowser(false);
+
+    // Reinicia el scanner
     setScannerKey((prev) => prev + 1);
   }
 
@@ -174,6 +189,9 @@ export default function ScannerDetailMode({
     navigation.goBack();
   }
 
+  /* -----------------------------------------
+     📋 ACCIONES
+  ------------------------------------------ */
   async function copyBarcode(code) {
     if (!code || isCancellingRef.current) return;
     await Clipboard.setStringAsync(code);
@@ -198,6 +216,9 @@ export default function ScannerDetailMode({
     }
   }
 
+  /* -----------------------------------------
+     🌐 FETCH PRODUCTO
+  ------------------------------------------ */
   async function fetchProduct(scannedBarcode) {
     try {
       abortControllerRef.current?.abort();
@@ -213,8 +234,6 @@ export default function ScannerDetailMode({
       if (isCancellingRef.current) return null;
 
       const json = await res.json();
-
-      if (isCancellingRef.current) return null;
 
       if (json?.status === 1) {
         return {
@@ -252,6 +271,9 @@ export default function ScannerDetailMode({
     }
   }
 
+  /* -----------------------------------------
+     📸 EVENTO SCAN
+  ------------------------------------------ */
   function handleScanned({ data }) {
     if (scanned || isCancellingRef.current) return;
 
@@ -276,27 +298,22 @@ export default function ScannerDetailMode({
     enrichScan(normalized);
   }
 
+  /* -----------------------------------------
+     🖥 RENDER
+  ------------------------------------------ */
   return (
     <Wrapper style={{ flex: 1, backgroundColor: "black" }}>
-      <BarcodeScanner
+      <UnifiedBarcodeScanner
         key={scannerKey}
+        mode="manual"
         active
+        barcodeTypes={["ean13"]}
         statusMessage="Escanea un código de barras"
-        statusColor="#2563eb"
-        onStartScanning={() => {
-          isCancellingRef.current = false;
-          abortControllerRef.current?.abort();
-          setBarcode("");
-          setScanned(false);
-          setProduct(null);
-          setLoadingProduct(false);
-          setOpeningBrowser(false);
-        }}
-        onScanned={handleScanned}
+        onDetected={handleScanned} // ✅ importante
         onCancel={handleCancel}
       />
 
-      {scanned && barcode && !itemId ? (
+      {scanned && barcode && !itemId && (
         <BarcodeInfoCard
           barcode={barcode}
           product={product}
@@ -309,7 +326,7 @@ export default function ScannerDetailMode({
           }}
           onCopy={() => copyBarcode(barcode)}
         />
-      ) : null}
+      )}
     </Wrapper>
   );
 }

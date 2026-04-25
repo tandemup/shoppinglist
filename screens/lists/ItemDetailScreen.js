@@ -22,7 +22,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { getSearchSettings } from "../../src/storage/settingsStorage";
 import { DEFAULT_CURRENCY } from "../../constants/currency";
 import { SEARCH_ENGINES } from "../../constants/searchEngines";
-import BarcodeScannerEAN13 from "../../components/features/scanner/BarcodeScannerEAN13";
+import UnifiedBarcodeScanner from "../../components/features/scanner/UnifiedBarcodeScanner";
 import { useLists } from "../../context/ListsContext";
 
 import {
@@ -36,6 +36,8 @@ import { validatePromotionUnit } from "../../utils/pricing";
 import { formatCurrency } from "../../utils/store/prices";
 import { formatUnit } from "../../utils/pricing/unitFormat";
 import { safeAlert, safeConfirm } from "../../components/ui/alert/safeAlert";
+
+import BarcodeScannerModal from "../../components/features/scanner/BarcodeScannerModal";
 
 function CardNombreBarcode({
   nameItem,
@@ -480,6 +482,26 @@ export default function ItemDetailScreen() {
   const summaryCurrency = priceInfo.currency ?? DEFAULT_CURRENCY.code;
   const isUnitInvalid = pricing.unit === "u" && hasDecimals(pricing.qty);
 
+  function normalizeBarcode(code) {
+    const clean = String(code || "").replace(/\D/g, "");
+    if (clean.length === 13) return clean;
+    if (clean.length === 8) return clean;
+    return null;
+  }
+
+  /* ---------------------------
+   📸 EVENTO SCAN (FIX)
+----------------------------*/
+  function handleScanned({ data }) {
+    if (!data) return;
+
+    const normalized = normalizeBarcode(data);
+    if (!normalized) return;
+
+    setBarcode(normalized);
+    setShowScanner(false);
+  }
+
   function hasDecimals(value) {
     const n = Number(String(value).replace(",", "."));
     if (Number.isNaN(n)) return false;
@@ -545,22 +567,16 @@ export default function ItemDetailScreen() {
               </Pressable>
             </View>
           </ScrollView>
-          {showScanner && (
-            <View style={styles.scannerOverlay}>
-              <BarcodeScannerEAN13
-                onDetected={(code) => {
-                  setBarcode(code);
-                  setShowScanner(false);
-                }}
-              />
-              <Pressable
-                style={styles.closeScannerBtn}
-                onPress={() => setShowScanner(false)}
-              >
-                <Ionicons name="close" size={28} color="#fff" />
-              </Pressable>
-            </View>
-          )}
+          <BarcodeScannerModal
+            visible={showScanner}
+            onClose={() => setShowScanner(false)}
+            onDetected={({ data }) => {
+              const normalized = String(data).replace(/\D/g, "");
+              if (normalized.length === 13 || normalized.length === 8) {
+                setBarcode(normalized);
+              }
+            }}
+          />
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>

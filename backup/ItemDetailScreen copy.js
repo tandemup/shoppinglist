@@ -19,7 +19,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { getSearchSettings } from "../src/storage/settingsStorage";
 import { DEFAULT_CURRENCY } from "../constants/currency";
 import { SEARCH_ENGINES } from "../constants/searchEngines";
-import BarcodeScannerEAN13 from "../components/features/scanner/BarcodeScannerEAN13";
+import BarcodeScannerEAN13 from "./BarcodeScannerEAN13";
 import { useLists } from "../context/ListsContext";
 
 import {
