@@ -24,13 +24,16 @@ const StoreSearchLink = ({ store, onPressStore }) => {
   if (!store) return <Text style={{ color: "#999" }}>Sin tienda</Text>;
 
   const handlePress = () => {
-    if (onPressStore) {
-      onPressStore(store.id);
-      return;
-    }
     Linking.openURL(
       `https://www.google.com/search?q=${encodeURIComponent(store.name)}`,
     );
+
+    if (onPressStore) {
+      onPressStore(store.id);
+      console.log(store);
+
+      return;
+    }
   };
 
   return (
@@ -261,10 +264,31 @@ export default function ArchivedListsScreen({ navigation }) {
   }, [search, sortedLists, getStoreById]);
 
   const openDetails = (list) => {
-    navigation.navigation(ROUTES.ARCHIVED_LIST_DETAIL, {
+    navigation.navigate(ROUTES.ARCHIVED_LIST_DETAIL, {
       listId: list.id,
     });
   };
+
+  const openStoreInfo = (storeId) => {
+    if (!storeId) return;
+
+    navigation.navigate(ROUTES.STORE_INFO, {
+      storeId,
+    });
+  };
+
+  const renderItem = ({ item }) => (
+    <ArchivedListCard
+      list={item}
+      store={item.storeId ? getStoreById(item.storeId) : null}
+      expanded={expandedListId === item.id}
+      onToggle={() =>
+        setExpandedListId(expandedListId === item.id ? null : item.id)
+      }
+      onPressDetails={() => openDetails(item)}
+      onPressStore={() => {}}
+    />
+  );
 
   return (
     <View style={styles.container}>
@@ -281,18 +305,7 @@ export default function ArchivedListsScreen({ navigation }) {
         data={filteredLists}
         keyExtractor={(item) => item.id}
         extraData={expandedListId}
-        renderItem={({ item }) => (
-          <ArchivedListCard
-            list={item}
-            store={item.storeId ? getStoreById(item.storeId) : null}
-            expanded={expandedListId === item.id}
-            onToggle={() =>
-              setExpandedListId(expandedListId === item.id ? null : item.id)
-            }
-            onPressDetails={() => openDetails(item)}
-            onPressStore={() => {}}
-          />
-        )}
+        renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 60 }}
       />
     </View>
