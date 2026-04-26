@@ -22,7 +22,6 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { getSearchSettings } from "../../src/storage/settingsStorage";
 import { DEFAULT_CURRENCY } from "../../constants/currency";
 import { SEARCH_ENGINES } from "../../constants/searchEngines";
-import UnifiedBarcodeScanner from "../../components/features/scanner/UnifiedBarcodeScanner";
 import { useLists } from "../../context/ListsContext";
 
 import {
@@ -37,7 +36,7 @@ import { formatCurrency } from "../../utils/store/prices";
 import { formatUnit } from "../../utils/pricing/unitFormat";
 import { safeAlert, safeConfirm } from "../../components/ui/alert/safeAlert";
 
-import BarcodeScannerModal from "../../components/features/scanner/BarcodeScannerModal";
+import BarcodeScannerView from "../../components/features/scanner/BarcodeScannerView";
 
 function CardNombreBarcode({
   nameItem,
@@ -567,15 +566,11 @@ export default function ItemDetailScreen() {
               </Pressable>
             </View>
           </ScrollView>
-          <BarcodeScannerModal
+          <BarcodeScannerView
             visible={showScanner}
+            variant="modal"
             onClose={() => setShowScanner(false)}
-            onDetected={({ data }) => {
-              const normalized = String(data).replace(/\D/g, "");
-              if (normalized.length === 13 || normalized.length === 8) {
-                setBarcode(normalized);
-              }
-            }}
+            onDetected={(code) => setBarcode(code)}
           />
         </View>
       </SafeAreaView>

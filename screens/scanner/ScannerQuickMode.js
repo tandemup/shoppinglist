@@ -8,6 +8,7 @@ import {
   Linking,
   SafeAreaView,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 import UnifiedBarcodeScanner from "../../components/features/scanner/UnifiedBarcodeScanner";
 import { getSearchSettings } from "../../src/storage/settingsStorage";
@@ -16,11 +17,14 @@ import { addScannedItem } from "../../services/scannerHistory";
 
 export default function ScannerQuickMode({ embedded = false }) {
   const Wrapper = embedded ? View : SafeAreaView;
+  const navigation = useNavigation();
 
   const [loading, setLoading] = useState(false);
   const [lastCode, setLastCode] = useState(null);
+  const [scannerActive, setScannerActive] = useState(true);
 
-  const isProcessingRef = useRef(false);
+  // 🔥 evita múltiples detecciones
+  const handledRef = useRef(false);
 
   const resolveEngineKey = useCallback(async () => {
     try {
@@ -44,17 +48,28 @@ export default function ScannerQuickMode({ embedded = false }) {
     }
   }, []);
 
+  // 🔥 normalización robusta
+  function normalizeBarcode(code) {
+    const clean = String(code || "").replace(/\D/g, "");
+    if (clean.length === 13 || clean.length === 8) return clean;
+    return null;
+  }
+
   const handleDetected = useCallback(
     async ({ data }) => {
-      if (!data || isProcessingRef.current) return;
+      if (!scannerActive) return;
+      if (!data || handledRef.current) return;
 
-      isProcessingRef.current = true;
+      const normalized = normalizeBarcode(data);
+      if (!normalized) return;
+
+      handledRef.current = true;
       setLoading(true);
-      setLastCode(data);
+      setLastCode(normalized);
 
       try {
         await addScannedItem({
-          barcode: data,
+          barcode: normalized,
           scannedAt: new Date().toISOString(),
           source: "scanner",
         });
@@ -63,7 +78,7 @@ export default function ScannerQuickMode({ embedded = false }) {
         const engine =
           SEARCH_ENGINES[engineKey] ?? SEARCH_ENGINES[DEFAULT_ENGINE];
 
-        const url = engine.buildUrl(data);
+        const url = engine.buildUrl(normalized);
 
         const canOpen = await Linking.canOpenURL(url);
         if (canOpen) {
@@ -73,22 +88,41 @@ export default function ScannerQuickMode({ embedded = false }) {
         console.warn("Error en QuickMode", err);
       } finally {
         setLoading(false);
-        isProcessingRef.current = false;
+        handledRef.current = false; // 🔥 permite siguiente escaneo
       }
     },
-    [resolveEngineKey],
+    [resolveEngineKey, scannerActive],
   );
+
+  function handleClose() {
+    setScannerActive(false);
+    handledRef.current = false;
+
+    // 🔥 si es pantalla completa → volver atrás
+    if (!embedded) {
+      navigation.goBack();
+    }
+  }
 
   return (
     <Wrapper style={styles.container}>
       <UnifiedBarcodeScanner
         mode="auto"
+        active={scannerActive}
         barcodeTypes={["ean13", "ean8", "upc_a", "upc_e"]}
         hintText="Apunta al código (modo rápido)"
         onDetected={handleDetected}
         showControls={!loading}
       />
 
+      {/* BOTÓN X ÚNICO */}
+      {scannerActive && (
+        <Pressable style={styles.closeBtn} onPress={handleClose}>
+          <Text style={styles.closeText}>✕</Text>
+        </Pressable>
+      )}
+
+      {/* OVERLAY */}
       <View style={styles.overlay} pointerEvents="none">
         {loading ? (
           <>
@@ -97,7 +131,9 @@ export default function ScannerQuickMode({ embedded = false }) {
           </>
         ) : (
           <>
-            <Text style={styles.text}>Escaneo automático activo</Text>
+            <Text style={styles.text}>
+              {scannerActive ? "Escaneo automático activo" : "Escaneo detenido"}
+            </Text>
 
             {lastCode ? (
               <Text style={styles.subText}>Código: {lastCode}</Text>
@@ -118,6 +154,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
   },
+
   overlay: {
     position: "absolute",
     bottom: 140,
@@ -126,15 +163,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     maxWidth: 260,
   },
+
   text: {
     color: "#fff",
     fontSize: 16,
     marginBottom: 6,
     textAlign: "center",
   },
+
   subText: {
     color: "#aaa",
     fontSize: 14,
     textAlign: "center",
+  },
+
+  closeBtn: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999,
+  },
+
+  closeText: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "bold",
   },
 });

@@ -1,55 +1,22 @@
 import React, { useState } from "react";
 import { SafeAreaView, View, Text, Pressable, StyleSheet } from "react-native";
-import ScannerQuickMode from "./ScannerQuickMode";
-import ScannerDetailMode from "./ScannerDetailMode";
+import BarcodeScannerView from "./BarcodeScannerView";
 
 export default function ScannerScreen({ navigation, route }) {
   const [mode, setMode] = useState("detail");
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.selectorWrap}>
-        <Pressable
-          style={[
-            styles.selectorButton,
-            mode === "detail" && styles.selectorButtonActive,
-          ]}
-          onPress={() => setMode("detail")}
-        >
-          <Text
-            style={[
-              styles.selectorText,
-              mode === "detail" && styles.selectorTextActive,
-            ]}
-          >
-            Detalle
-          </Text>
-        </Pressable>
-
-        <Pressable
-          style={[
-            styles.selectorButton,
-            mode === "quick" && styles.selectorButtonActive,
-          ]}
-          onPress={() => setMode("quick")}
-        >
-          <Text
-            style={[
-              styles.selectorText,
-              mode === "quick" && styles.selectorTextActive,
-            ]}
-          >
-            Rápido
-          </Text>
-        </Pressable>
-      </View>
-
       <View style={styles.content}>
-        {mode === "detail" ? (
-          <ScannerDetailMode navigation={navigation} route={route} />
-        ) : (
-          <ScannerQuickMode navigation={navigation} route={route} />
-        )}
+        <BarcodeScannerView
+          mode={mode}
+          onDetected={(code) => {
+            navigation.navigate("ItemDetail", {
+              scannedBarcode: code,
+            });
+          }}
+          onClose={() => navigation.goBack()}
+        />
       </View>
     </SafeAreaView>
   );

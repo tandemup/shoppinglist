@@ -25,7 +25,7 @@ export default function BarcodeScannerModal({
           hintText={hintText}
           onDetected={(data) => {
             onDetected?.(data);
-            onClose?.(); // 🔥 cierre automático
+            onClose?.();
           }}
           onCancel={onClose}
         />
