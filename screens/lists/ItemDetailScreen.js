@@ -36,8 +36,6 @@ import { formatCurrency } from "../../utils/store/prices";
 import { formatUnit } from "../../utils/pricing/unitFormat";
 import { safeAlert, safeConfirm } from "../../components/ui/alert/safeAlert";
 
-// import BarcodeScannerView from "../../components/features/scanner/BarcodeScannerView";
-
 function CardNombreBarcode({
   nameItem,
   barcodeItem,
@@ -490,9 +488,12 @@ export default function ItemDetailScreen() {
    📸 EVENTO SCAN (FIX)
 ----------------------------*/
   function handleOpenScanner() {
-    navigation.navigate("ScannerScreen", {
-      onScan: (code) => {
-        setBarcode(code);
+    navigation.navigate("ScannerTab", {
+      screen: "ScannerScreen",
+      params: {
+        onScan: (code) => {
+          setBarcode(code);
+        },
       },
     });
   }

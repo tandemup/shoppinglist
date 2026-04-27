@@ -2,7 +2,7 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./ROUTES";
 
-import ScannerSelectorScreen from "../screens/scanner/ScannerSelectorScreen";
+import ScannerScreen from "../screens/scanner/ScannerScreen";
 import EditScannedItemScreen from "../screens/scanner/EditScannedItemScreen";
 import ScannedHistoryScreen from "../screens/scanner/ScannedHistoryScreen";
 
@@ -17,17 +17,23 @@ export default function ScannerStack() {
         headerBackButtonDisplayMode: "minimal",
       }}
     >
+      {/* 🔥 SCANNER PRINCIPAL */}
       <Stack.Screen
-        name={ROUTES.SCANNER_TAB}
-        component={ScannerSelectorScreen}
+        name={ROUTES.SCANNER_SCREEN}
+        component={ScannerScreen}
+        options={{ title: "Escanear" }}
       />
+
       <Stack.Screen
         name={ROUTES.EDIT_SCANNED_ITEM}
         component={EditScannedItemScreen}
+        options={{ title: "Editar escaneo" }}
       />
+
       <Stack.Screen
         name={ROUTES.SCANNED_HISTORY}
         component={ScannedHistoryScreen}
+        options={{ title: "Historial" }}
       />
     </Stack.Navigator>
   );
