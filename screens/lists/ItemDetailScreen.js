@@ -36,7 +36,7 @@ import { formatCurrency } from "../../utils/store/prices";
 import { formatUnit } from "../../utils/pricing/unitFormat";
 import { safeAlert, safeConfirm } from "../../components/ui/alert/safeAlert";
 
-import BarcodeScannerView from "../../components/features/scanner/BarcodeScannerView";
+// import BarcodeScannerView from "../../components/features/scanner/BarcodeScannerView";
 
 function CardNombreBarcode({
   nameItem,
@@ -347,8 +347,6 @@ export default function ItemDetailScreen() {
   const list = lists.find((l) => l.id === listId);
   const item = list?.items.find((i) => i.id === itemId);
 
-  const [showScanner, setShowScanner] = useState(false);
-
   if (!item) {
     return (
       <SafeAreaView style={styles.container}>
@@ -491,14 +489,12 @@ export default function ItemDetailScreen() {
   /* ---------------------------
    📸 EVENTO SCAN (FIX)
 ----------------------------*/
-  function handleScanned({ data }) {
-    if (!data) return;
-
-    const normalized = normalizeBarcode(data);
-    if (!normalized) return;
-
-    setBarcode(normalized);
-    setShowScanner(false);
+  function handleOpenScanner() {
+    navigation.navigate("ScannerScreen", {
+      onScan: (code) => {
+        setBarcode(code);
+      },
+    });
   }
 
   function hasDecimals(value) {
@@ -527,7 +523,7 @@ export default function ItemDetailScreen() {
               barcodeItem={barcode}
               onChangeName={setName}
               onChangeBarcode={setBarcode}
-              onScanner={() => setShowScanner(true)}
+              onScanner={handleOpenScanner}
               onSearch={handleSearch}
             />
             <Contenedor
@@ -566,12 +562,6 @@ export default function ItemDetailScreen() {
               </Pressable>
             </View>
           </ScrollView>
-          <BarcodeScannerView
-            visible={showScanner}
-            variant="modal"
-            onClose={() => setShowScanner(false)}
-            onDetected={(code) => setBarcode(code)}
-          />
         </View>
       </SafeAreaView>
     </KeyboardAvoidingView>

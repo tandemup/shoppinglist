@@ -1,24 +1,23 @@
-import React, { useState } from "react";
-import { SafeAreaView, View, Text, Pressable, StyleSheet } from "react-native";
+import React from "react";
 import BarcodeScannerView from "./BarcodeScannerView";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
-export default function ScannerScreen({ navigation, route }) {
-  const [mode, setMode] = useState("detail");
+export default function ScannerScreen() {
+  const route = useRoute();
+  const navigation = useNavigation();
+
+  const onScan = route.params?.onScan;
+
+  function handleDetected(code) {
+    onScan?.(code);
+    navigation.goBack();
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <BarcodeScannerView
-          mode={mode}
-          onDetected={(code) => {
-            navigation.navigate("ItemDetail", {
-              scannedBarcode: code,
-            });
-          }}
-          onClose={() => navigation.goBack()}
-        />
-      </View>
-    </SafeAreaView>
+    <BarcodeScannerView
+      onDetected={handleDetected}
+      onClose={() => navigation.goBack()}
+    />
   );
 }
 

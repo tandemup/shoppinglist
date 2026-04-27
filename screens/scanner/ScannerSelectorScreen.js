@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { SafeAreaView, View, Text, Pressable, StyleSheet } from "react-native";
 
-import ScannerQuickMode from "./ScannerQuickMode";
-import ScannerDetailMode from "./ScannerDetailMode";
+// import ScannerQuickMode from "./ScannerQuickMode";
+// import ScannerDetailMode from "./ScannerDetailMode";
 
 export default function ScannerSelectorScreen({ navigation, route }) {
   const initialMode = route?.params?.initialMode ?? "quick";

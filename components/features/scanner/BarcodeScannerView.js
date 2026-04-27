@@ -82,7 +82,7 @@ export default function BarcodeScannerView({
     <SafeAreaView style={styles.container}>
       <UnifiedBarcodeScanner
         mode={mode}
-        active={visible}
+        active={true}
         initialZoomIndex={0}
         barcodeTypes={["ean13", "ean8", "upc_a", "upc_e"]}
         showControls={!loading}
