@@ -17,19 +17,16 @@ export default function ScannerStack() {
         headerBackButtonDisplayMode: "minimal",
       }}
     >
-      {/* 🔥 SCANNER PRINCIPAL */}
       <Stack.Screen
         name={ROUTES.SCANNER_SCREEN}
         component={ScannerScreen}
         options={{ title: "Escanear" }}
       />
-
       <Stack.Screen
         name={ROUTES.EDIT_SCANNED_ITEM}
         component={EditScannedItemScreen}
         options={{ title: "Editar escaneo" }}
       />
-
       <Stack.Screen
         name={ROUTES.SCANNED_HISTORY}
         component={ScannedHistoryScreen}

@@ -31,6 +31,10 @@ export default function UnifiedBarcodeScanner({
 
   statusMessage = "",
   statusColor = "#2563eb",
+
+  // NUEVO
+  continuous = false,
+  scanCooldownMs = 1200,
 }) {
   const isFocused = useIsFocused();
   const [permission, requestPermission] = useCameraPermissions();
@@ -40,6 +44,7 @@ export default function UnifiedBarcodeScanner({
   const [scanningEnabled, setScanningEnabled] = useState(mode === "auto");
 
   const lockRef = useRef(false);
+  const unlockTimerRef = useRef(null);
 
   const cameraActive = active && isFocused && permission?.granted;
 
@@ -70,8 +75,22 @@ export default function UnifiedBarcodeScanner({
     }
   }, [mode, active, isFocused]);
 
+  useEffect(() => {
+    return () => {
+      if (unlockTimerRef.current) {
+        clearTimeout(unlockTimerRef.current);
+      }
+    };
+  }, []);
+
   function resetScanner() {
     lockRef.current = false;
+
+    if (unlockTimerRef.current) {
+      clearTimeout(unlockTimerRef.current);
+      unlockTimerRef.current = null;
+    }
+
     setScanningEnabled(mode === "auto");
     setTorch(false);
   }
@@ -86,6 +105,19 @@ export default function UnifiedBarcodeScanner({
     lockRef.current = false;
     setScanningEnabled(false);
     onStopScanning?.();
+  }
+
+  function scheduleUnlock() {
+    if (!continuous || mode !== "auto") return;
+
+    if (unlockTimerRef.current) {
+      clearTimeout(unlockTimerRef.current);
+    }
+
+    unlockTimerRef.current = setTimeout(() => {
+      lockRef.current = false;
+      unlockTimerRef.current = null;
+    }, scanCooldownMs);
   }
 
   function handleBarcodeScanned({ data, type }) {
@@ -104,6 +136,8 @@ export default function UnifiedBarcodeScanner({
       data: String(data),
       type: String(type),
     });
+
+    scheduleUnlock();
   }
 
   if (!permission) {

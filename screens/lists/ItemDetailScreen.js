@@ -1,6 +1,6 @@
-import UNITS from "../../data/units.json";
-
 import React, { useEffect, useMemo, useState } from "react";
+import UNITS from "../../data/units.json";
+import { ROUTES } from "../../navigation/ROUTES";
 import {
   View,
   Text,
@@ -488,8 +488,8 @@ export default function ItemDetailScreen() {
    📸 EVENTO SCAN (FIX)
 ----------------------------*/
   function handleOpenScanner() {
-    navigation.navigate("ScannerTab", {
-      screen: "ScannerScreen",
+    navigation.navigate(ROUTES.SCANNER_TAB, {
+      screen: ROUTES.SCANNER_SCREEN,
       params: {
         onScan: (code) => {
           setBarcode(code);

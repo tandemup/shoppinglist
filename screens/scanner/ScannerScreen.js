@@ -8,14 +8,10 @@ export default function ScannerScreen() {
   const route = useRoute();
   const navigation = useNavigation();
 
-  // Callback recibido desde la pantalla que abre el scanner
   const onScan = route.params?.onScan;
 
   function handleDetected(code) {
-    // Devolver código al origen
     onScan?.(code);
-
-    // Volver atrás
     navigation.goBack();
   }
 
@@ -24,7 +20,11 @@ export default function ScannerScreen() {
   }
 
   return (
-    <BarcodeScannerView onDetected={handleDetected} onClose={handleClose} />
+    <BarcodeScannerView
+      onDetected={handleDetected}
+      onClose={handleClose}
+      continuous={false}
+    />
   );
 }
 

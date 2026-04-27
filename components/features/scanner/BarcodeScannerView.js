@@ -4,8 +4,15 @@ import { Ionicons } from "@expo/vector-icons";
 
 import UnifiedBarcodeScanner from "./UnifiedBarcodeScanner";
 
-export default function BarcodeScannerView({ onDetected, onClose }) {
+export default function BarcodeScannerView({
+  onDetected,
+  onClose,
+  continuous = false,
+  duplicateCooldownMs = 1500,
+}) {
   const handledRef = useRef(false);
+  const lastCodeRef = useRef(null);
+  const lastTimeRef = useRef(0);
 
   function normalizeBarcode(code) {
     const clean = String(code || "").replace(/\D/g, "");
@@ -13,18 +20,38 @@ export default function BarcodeScannerView({ onDetected, onClose }) {
     return null;
   }
 
+  function isDuplicateTooSoon(code) {
+    const now = Date.now();
+
+    const sameCode = lastCodeRef.current === code;
+    const tooSoon = now - lastTimeRef.current < duplicateCooldownMs;
+
+    if (sameCode && tooSoon) {
+      return true;
+    }
+
+    lastCodeRef.current = code;
+    lastTimeRef.current = now;
+
+    return false;
+  }
+
   const handleDetected = useCallback(
     ({ data }) => {
-      if (!data || handledRef.current) return;
+      if (!data) return;
 
       const normalized = normalizeBarcode(data);
       if (!normalized) return;
+
+      if (!continuous && handledRef.current) return;
+
+      if (continuous && isDuplicateTooSoon(normalized)) return;
 
       handledRef.current = true;
 
       onDetected?.(normalized);
     },
-    [onDetected],
+    [onDetected, continuous, duplicateCooldownMs],
   );
 
   return (
@@ -32,12 +59,14 @@ export default function BarcodeScannerView({ onDetected, onClose }) {
       <UnifiedBarcodeScanner
         mode="auto"
         active={true}
-        barcodeTypes={["ean13"]} // 🔥 SOLO EAN13 → más rápido
-        showControls={false} // 🔥 menos UI → más rendimiento
+        barcodeTypes={["ean13"]}
+        showControls={false}
         showHint
         hintText="Apunta al código"
         onDetected={handleDetected}
         onCancel={onClose}
+        continuous={continuous}
+        scanCooldownMs={1200}
       />
 
       {/* Botón cerrar */}
