@@ -7,14 +7,8 @@ import { ROUTES } from "../../navigation/ROUTES";
 
 export default function ScannerTabScreen({ navigation }) {
   const goToScanner = () => {
-    //    navigation.navigate(ROUTES.SCANNER_SCREEN);
-    navigation.navigate(ROUTES.SCANNER_TAB, {
-      screen: ROUTES.SCANNER_SCREEN,
-      params: {
-        onScan: (code) => {
-          setBarcode(code);
-        },
-      },
+    navigation.navigate(ROUTES.SCANNER_SCREEN, {
+      saveToHistory: true,
     });
   };
 

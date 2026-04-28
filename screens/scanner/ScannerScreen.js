@@ -16,6 +16,8 @@ export default function ScannerScreen() {
   const continuous = route.params?.continuous ?? false;
   const closeOnScan = route.params?.closeOnScan ?? true;
 
+  const shouldSaveToHistory = route.params?.saveToHistory ?? !onScan;
+
   async function saveDetectedBarcode(code) {
     const barcode = String(code || "").trim();
 
@@ -51,7 +53,9 @@ export default function ScannerScreen() {
     try {
       if (typeof onScan === "function") {
         onScan(code);
-      } else {
+      }
+
+      if (shouldSaveToHistory) {
         await saveDetectedBarcode(code);
       }
 
@@ -59,7 +63,7 @@ export default function ScannerScreen() {
         navigation.goBack();
       }
     } catch (error) {
-      console.log("Error saving scanned barcode:", error);
+      console.log("Error handling scanned barcode:", error);
 
       if (closeOnScan) {
         navigation.goBack();
