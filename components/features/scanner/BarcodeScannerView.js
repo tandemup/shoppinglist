@@ -1,18 +1,20 @@
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { View, StyleSheet, Pressable, SafeAreaView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
+import { useIsFocused } from "@react-navigation/native";
 import UnifiedBarcodeScanner from "./UnifiedBarcodeScanner";
 
 export default function BarcodeScannerView({
   onDetected,
   onClose,
-  continuous = false,
+  continuous = true,
   duplicateCooldownMs = 1500,
+  showControls = true,
 }) {
   const handledRef = useRef(false);
   const lastCodeRef = useRef(null);
   const lastTimeRef = useRef(0);
+  const isFocused = useIsFocused();
 
   function normalizeBarcode(code) {
     const clean = String(code || "").replace(/\D/g, "");
@@ -54,25 +56,34 @@ export default function BarcodeScannerView({
     [onDetected, continuous, duplicateCooldownMs],
   );
 
+  useEffect(() => {
+    if (isFocused) {
+      handledRef.current = false;
+      lastCodeRef.current = null;
+      lastTimeRef.current = 0;
+    }
+  }, [isFocused]);
+
   return (
     <SafeAreaView style={styles.container}>
       <UnifiedBarcodeScanner
-        mode="auto"
+        mode="manual"
         active={true}
         barcodeTypes={["ean13"]}
-        showControls={false}
+        showControls={showControls}
         showHint
         hintText="Apunta al código"
         onDetected={handleDetected}
         onCancel={onClose}
         continuous={continuous}
-        scanCooldownMs={1200}
+        scanCooldownMs={duplicateCooldownMs}
       />
 
-      {/* Botón cerrar */}
-      <Pressable style={styles.closeBtn} onPress={onClose}>
-        <Ionicons name="close" size={24} color="#fff" />
-      </Pressable>
+      {!showControls ? (
+        <Pressable style={styles.closeBtn} onPress={onClose}>
+          <Ionicons name="close" size={24} color="#fff" />
+        </Pressable>
+      ) : null}
     </SafeAreaView>
   );
 }

@@ -30,9 +30,12 @@ export const ROUTES = {
   SCANNED_HISTORY: "ScannedHistory",
 
   // Scanner
+  SCANNER_HOME: "ScannerHome",
   EDIT_SCANNED_ITEM: "EditScannedItem",
   SHELF_LABEL_SCANNER: "ShelfLabelScanner",
   SCANNER_SCREEN: "ScannerScreen",
+  QUICK_SCANNER_SCREEN: "QuickScannerScreen",
+  DETAILED_SCANNER_SCREEN: "DetailedScannerScreen",
 
   // Menu
   MENU: "Menu",

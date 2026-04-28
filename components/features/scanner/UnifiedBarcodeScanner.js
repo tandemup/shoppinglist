@@ -132,12 +132,14 @@ export default function UnifiedBarcodeScanner({
       setScanningEnabled(false);
     }
 
-    onDetected?.({
-      data: String(data),
-      type: String(type),
-    });
-
-    scheduleUnlock();
+    try {
+      onDetected?.({
+        data: String(data),
+        type: String(type),
+      });
+    } finally {
+      scheduleUnlock();
+    }
   }
 
   if (!permission) {
