@@ -1,41 +1,98 @@
-export async function fetchProductInfo(barcode) {
-  try {
-    // 📘 ISBN
-    if (barcode.startsWith("978") || barcode.startsWith("979")) {
-      const r = await fetch(`https://openlibrary.org/isbn/${barcode}.json`);
-      if (r.ok) {
-        const b = await r.json();
-        return {
-          code: barcode,
-          name: b.title ?? "Libro desconocido",
-          brand: b.publishers?.join(", ") ?? "Editorial desconocida",
-          image: b.covers
-            ? `https://covers.openlibrary.org/b/id/${b.covers[0]}-M.jpg`
-            : null,
-          url: `https://openlibrary.org/isbn/${barcode}`,
-        };
-      }
-    }
+// services/productLookup.js
 
-    // 🍎 OpenFoodFacts
-    const r = await fetch(
-      `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
-    );
-    const data = await r.json();
-    if (data.status === 1) {
-      const p = data.product;
+const OPEN_FOOD_FACTS_BASE_URL =
+  "https://world.openfoodfacts.org/api/v2/product";
+
+function normalizeBarcode(code) {
+  return String(code || "")
+    .replace(/\D/g, "")
+    .trim();
+}
+
+function getBestImage(product) {
+  return (
+    product?.image_front_url ||
+    product?.image_url ||
+    product?.selected_images?.front?.display?.es ||
+    product?.selected_images?.front?.display?.en ||
+    product?.selected_images?.front?.small?.es ||
+    product?.selected_images?.front?.small?.en ||
+    null
+  );
+}
+
+export async function lookupProductByBarcode(barcode) {
+  const cleanBarcode = normalizeBarcode(barcode);
+
+  if (!cleanBarcode) {
+    return {
+      found: false,
+      product: null,
+    };
+  }
+
+  try {
+    const fields = [
+      "code",
+      "product_name",
+      "product_name_es",
+      "generic_name",
+      "brands",
+      "image_url",
+      "image_front_url",
+      "selected_images",
+      "url",
+    ].join(",");
+
+    const url = `${OPEN_FOOD_FACTS_BASE_URL}/${cleanBarcode}.json?fields=${fields}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
       return {
-        code: barcode,
-        name: p.product_name ?? "Producto desconocido",
-        brand: p.brands ?? "Sin marca",
-        image: p.image_small_url ?? null,
-        url: p.url,
+        found: false,
+        product: null,
       };
     }
 
-    return null;
-  } catch (e) {
-    console.error("fetchProductInfo error", e);
-    return null;
+    const data = await response.json();
+
+    if (data.status !== 1 || !data.product) {
+      return {
+        found: false,
+        product: null,
+      };
+    }
+
+    const product = data.product;
+
+    const name =
+      product.product_name_es ||
+      product.product_name ||
+      product.generic_name ||
+      "";
+
+    const imageUrl = getBestImage(product);
+
+    return {
+      found: true,
+      product: {
+        barcode: cleanBarcode,
+        name,
+        brand: product.brands || "",
+        imageUrl,
+        url:
+          product.url ||
+          `https://world.openfoodfacts.org/product/${cleanBarcode}`,
+        lookupSource: "openfoodfacts",
+      },
+    };
+  } catch (error) {
+    console.log("Error looking up product by barcode:", error);
+
+    return {
+      found: false,
+      product: null,
+    };
   }
 }

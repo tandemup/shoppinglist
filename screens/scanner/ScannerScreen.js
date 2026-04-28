@@ -3,7 +3,12 @@ import { StyleSheet } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 
 import BarcodeScannerView from "../../components/features/scanner/BarcodeScannerView";
-import { updateScannedEntry } from "../../services/scannerHistory";
+import {
+  getScannedEntryByBarcode,
+  saveScannedEntry,
+} from "../../services/scannerHistory";
+
+import { lookupProductByBarcode } from "../../services/productLookup";
 
 export default function ScannerScreen() {
   const route = useRoute();
@@ -15,34 +20,70 @@ export default function ScannerScreen() {
 
   const continuous = route.params?.continuous ?? false;
   const closeOnScan = route.params?.closeOnScan ?? true;
-
   const shouldSaveToHistory = route.params?.saveToHistory ?? !onScan;
+  const returnToTab = route.params?.returnToTab;
 
   async function saveDetectedBarcode(code) {
-    const barcode = String(code || "").trim();
+    const barcode = String(code || "")
+      .replace(/\D/g, "")
+      .trim();
 
     if (!barcode) return null;
 
     const now = new Date().toISOString();
 
+    const cachedItem = await getScannedEntryByBarcode(barcode);
+
+    const hasUsefulCachedData =
+      cachedItem?.name?.trim() || cachedItem?.imageUrl?.trim();
+
+    const hasCompleteCachedData =
+      cachedItem?.name?.trim() && cachedItem?.imageUrl?.trim();
+
+    if (hasUsefulCachedData) {
+      await saveScannedEntry(barcode, {
+        ...cachedItem,
+        barcode,
+        source: cachedItem.source || "scanner",
+        updatedAt: now,
+      });
+
+      return cachedItem;
+    }
+
+    const lookup = await lookupProductByBarcode(barcode);
+    const product = lookup.found ? lookup.product : null;
+
     const scannedItem = {
       id: barcode,
       barcode,
-      name: "",
-      brand: "",
-      url: "",
-      imageUrl: "",
-      thumbnailUri: null,
-      notes: "",
+
+      name: product?.name || cachedItem?.name || "",
+      brand: product?.brand || cachedItem?.brand || "",
+      imageUrl: product?.imageUrl || cachedItem?.imageUrl || "",
+      thumbnailUri: cachedItem?.thumbnailUri || null,
+      url: product?.url || cachedItem?.url || "",
+      notes: cachedItem?.notes || "",
+
       source: "scanner",
-      scannedAt: now,
+      lookupSource: product?.lookupSource || cachedItem?.lookupSource || null,
+
+      scannedAt: cachedItem?.scannedAt || now,
       updatedAt: now,
-      scanCount: 1,
     };
 
-    await updateScannedEntry(barcode, scannedItem);
+    await saveScannedEntry(barcode, scannedItem);
 
     return scannedItem;
+  }
+
+  function closeScanner() {
+    if (returnToTab) {
+      navigation.getParent()?.navigate(returnToTab);
+      return;
+    }
+
+    navigation.goBack();
   }
 
   async function handleDetected(code) {
@@ -60,13 +101,13 @@ export default function ScannerScreen() {
       }
 
       if (closeOnScan) {
-        navigation.goBack();
+        closeScanner();
       }
     } catch (error) {
       console.log("Error handling scanned barcode:", error);
 
       if (closeOnScan) {
-        navigation.goBack();
+        closeScanner();
       }
     } finally {
       setTimeout(() => {
@@ -76,7 +117,7 @@ export default function ScannerScreen() {
   }
 
   function handleClose() {
-    navigation.goBack();
+    closeScanner();
   }
 
   return (

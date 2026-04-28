@@ -14,7 +14,7 @@ export default function BarcodeLink({ barcode, label, iconColor = "#2563eb" }) {
   const handlePress = useCallback(() => {
     if (!barcode) return;
 
-    showOptions("Código de barras", [
+    showOptions("Barcodes", [
       {
         text: "Copiar",
         onPress: () => Clipboard.setStringAsync(barcode),

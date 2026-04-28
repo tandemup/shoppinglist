@@ -7,13 +7,15 @@ import {
   StyleSheet,
   Pressable,
 } from "react-native";
-import { ROUTES } from "../../navigation/ROUTES";
+
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 
+import { ROUTES } from "../../navigation/ROUTES";
 import { safeAlert } from "../../components/ui/alert/safeAlert";
 import BarcodeLink from "../../components/controls/BarcodeLink";
+
 import {
   getScannedHistory,
   removeScannedItem,
@@ -31,25 +33,6 @@ export default function ScannedHistoryScreen({ navigation }) {
       loadScannedHistory();
     }
   }, [isFocused]);
-
-  const loadScannedHistory = async () => {
-    try {
-      const all = await getScannedHistory();
-
-      const onlyScanned = all.filter((i) => i.source === "scanner");
-
-      onlyScanned.sort(
-        (a, b) =>
-          new Date(b.updatedAt || b.scannedAt).valueOf() -
-          new Date(a.updatedAt || a.scannedAt).valueOf(),
-      );
-
-      setScannedItems(onlyScanned);
-      setFilteredItems(onlyScanned);
-    } catch (error) {
-      console.log("Error loading scanned history:", error);
-    }
-  };
 
   useEffect(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -70,102 +53,118 @@ export default function ScannedHistoryScreen({ navigation }) {
     setFilteredItems(results);
   }, [searchQuery, scannedItems]);
 
+  const loadScannedHistory = async () => {
+    try {
+      const all = await getScannedHistory();
+
+      const onlyScanned = all.filter((item) => item.source === "scanner");
+
+      onlyScanned.sort((a, b) => {
+        const dateA = new Date(a.updatedAt || a.scannedAt || 0).valueOf();
+        const dateB = new Date(b.updatedAt || b.scannedAt || 0).valueOf();
+
+        return dateB - dateA;
+      });
+
+      setScannedItems(onlyScanned);
+      setFilteredItems(onlyScanned);
+    } catch (error) {
+      console.log("Error loading scanned history:", error);
+      safeAlert("Error", "No se pudo cargar el historial de escaneos");
+    }
+  };
+
   const handleDelete = (item) => {
-    safeAlert("Eliminar", `¿Deseas eliminar este escaneo?\n\n${item.name}`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          await removeScannedItem(item.barcode);
-          loadScannedHistory();
+    safeAlert(
+      "Eliminar escaneo",
+      `¿Deseas eliminar este escaneo?\n\n${item.name || item.barcode}`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeScannedItem(item.barcode);
+              await loadScannedHistory();
+            } catch (error) {
+              console.log("Error deleting scanned item:", error);
+              safeAlert("Error", "No se pudo eliminar el escaneo");
+            }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const getItemImage = (item) => {
-    return item.thumbnailUri || null;
+    return item.thumbnailUri || item.imageUrl || null;
   };
 
   const openItem = (item) => {
     navigation.navigate(ROUTES.EDIT_SCANNED_ITEM, { item });
   };
 
-  const renderItem = ({ item }) => (
-    <View style={[styles.card, item.isBook && styles.cardBook]}>
-      <Pressable
-        style={styles.mainPressable}
-        onPress={() => openItem(item)}
-        onLongPress={() => handleDelete(item)}
-      >
-        <View style={styles.imageWrapper}>
-          {getItemImage(item) ? (
-            <Image
-              source={{ uri: getItemImage(item) }}
-              style={styles.image}
-              contentFit="cover"
-              cachePolicy="disk"
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons name="cube-outline" size={26} color="#999" />
-            </View>
-          )}
-        </View>
+  const renderItem = ({ item }) => {
+    const imageUri = getItemImage(item);
 
-        <View style={styles.infoContent}>
-          <Text style={styles.name} numberOfLines={2}>
-            {item.isBook ? "📚 " : ""}
-            {item.name || "Sin nombre"}
-          </Text>
-
-          <Text style={styles.count}>Búsquedas: {item.scanCount ?? 1}</Text>
-
-          {item.scannedAt ? (
-            <Text style={styles.date}>
-              Fecha: {new Date(item.scannedAt).toLocaleDateString("es-ES")}
-            </Text>
-          ) : null}
-        </View>
-
-        <View style={styles.actionsCol}>
-          <Ionicons name="chevron-forward" size={26} color="#888" />
-        </View>
-      </Pressable>
-
-      {item.barcode ? (
-        <View style={styles.barcodeRow}>
-          <BarcodeLink
-            barcode={item.barcode}
-            label={item.barcode}
-            iconColor="#2563eb"
-          />
-        </View>
-      ) : null}
-    </View>
-  );
-
-  const Header = () => {
     return (
-      <View style={styles.headerBlock}>
-        <Text style={styles.title}>Historial de Escaneos</Text>
+      <View style={[styles.card, item.isBook && styles.cardBook]}>
+        <Pressable
+          style={styles.mainPressable}
+          onPress={() => openItem(item)}
+          onLongPress={() => handleDelete(item)}
+        >
+          <View style={styles.imageWrapper}>
+            {imageUri ? (
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.image}
+                contentFit="cover"
+                cachePolicy="disk"
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Ionicons name="cube-outline" size={26} color="#999" />
+              </View>
+            )}
+          </View>
 
-        <View style={styles.searchContainer}>
-          <Ionicons
-            name="search"
-            size={20}
-            color="#666"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            placeholder="Buscar producto o código..."
-            placeholderTextColor="#888"
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.name} numberOfLines={2}>
+              {item.isBook ? "📚 " : ""}
+              {item.name || "Sin nombre"}
+            </Text>
+
+            {item.brand ? (
+              <Text style={styles.brand} numberOfLines={1}>
+                {item.brand}
+              </Text>
+            ) : null}
+
+            <Text style={styles.count}>Escaneos: {item.scanCount ?? 1}</Text>
+
+            {item.scannedAt ? (
+              <Text style={styles.date}>
+                Fecha: {new Date(item.scannedAt).toLocaleDateString("es-ES")}
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.actionsCol}>
+            <Ionicons name="chevron-forward" size={26} color="#888" />
+          </View>
+        </Pressable>
+
+        {item.barcode ? (
+          <View style={styles.barcodeRow}>
+            <BarcodeLink
+              barcode={item.barcode}
+              label={item.barcode}
+              iconColor="#2563eb"
+            />
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -186,12 +185,15 @@ export default function ScannedHistoryScreen({ navigation }) {
             color="#666"
             style={styles.searchIcon}
           />
+
           <TextInput
             placeholder="Buscar producto o código..."
             placeholderTextColor="#888"
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
         </View>
       </View>
@@ -230,6 +232,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
     marginBottom: 16,
+    color: "#111827",
   },
 
   empty: {
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
 
   card: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: "#E0E7FF",
@@ -287,8 +290,14 @@ const styles = StyleSheet.create({
 
   name: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#111",
+    fontWeight: "700",
+    color: "#111827",
+  },
+
+  brand: {
+    marginTop: 3,
+    fontSize: 13,
+    color: "#4b5563",
   },
 
   barcodeRow: {
@@ -319,7 +328,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,

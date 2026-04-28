@@ -1,125 +1,214 @@
-import { storage } from "../src/storage/storage";
-import { STORAGE_KEYS } from "../src/storage/storageKeys";
+// services/scannerHistory.js
+
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const SCANNER_HISTORY_KEY = "scanner_history_v1";
 
 /* -------------------------------------------------
-   Helpers internos
+   Storage helpers
 -------------------------------------------------- */
-const loadAll = async () => {
+async function getItem(key) {
+  if (Platform.OS === "web") {
+    return window.localStorage.getItem(key);
+  }
+
+  return AsyncStorage.getItem(key);
+}
+
+async function setItem(key, value) {
+  if (Platform.OS === "web") {
+    window.localStorage.setItem(key, value);
+    return;
+  }
+
+  await AsyncStorage.setItem(key, value);
+}
+
+export async function getScannedEntryByBarcode(barcode) {
+  const cleanBarcode = String(barcode || "").trim();
+
+  if (!cleanBarcode) return null;
+
+  const all = await getScannedHistory();
+
+  return (
+    all.find((item) => String(item.barcode || "").trim() === cleanBarcode) ||
+    null
+  );
+}
+/* -------------------------------------------------
+   Leer historial completo
+-------------------------------------------------- */
+export async function getScannedHistory() {
   try {
-    return await storage.getJSON(STORAGE_KEYS.SCANNED_ITEMS, []);
-  } catch (err) {
-    console.error("Error loading scanned items:", err);
+    const raw = await getItem(SCANNER_HISTORY_KEY);
+
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed;
+  } catch (error) {
+    console.log("Error reading scanned history:", error);
     return [];
   }
-};
-
-const saveAll = async (items) => {
-  try {
-    await storage.setJSON(STORAGE_KEYS.SCANNED_ITEMS, items);
-  } catch (err) {
-    console.error("Error saving scanned items:", err);
-  }
-};
+}
 
 /* -------------------------------------------------
-   API pública
+   Guardar historial completo
 -------------------------------------------------- */
+export async function saveScannedHistory(items) {
+  try {
+    const safeItems = Array.isArray(items) ? items : [];
 
-/**
- * Devuelve todo el historial de escaneos
- */
-export const getScannedHistory = async () => {
-  return await loadAll();
-};
+    await setItem(SCANNER_HISTORY_KEY, JSON.stringify(safeItems));
 
-/**
- * Añade o actualiza un escaneo
- */
-export const addScannedItem = async (item) => {
-  if (!item?.barcode) return null;
+    return safeItems;
+  } catch (error) {
+    console.log("Error saving scanned history:", error);
+    return [];
+  }
+}
 
-  const all = await loadAll();
-  const index = all.findIndex((i) => i.barcode === item.barcode);
+/* -------------------------------------------------
+   Crear o actualizar escaneo
+-------------------------------------------------- */
+export async function updateScannedEntry(barcode, patch = {}) {
+  const cleanBarcode = String(barcode || "").trim();
+
+  if (!cleanBarcode) return null;
+
+  const all = await getScannedHistory();
   const now = new Date().toISOString();
 
-  if (index !== -1) {
-    const previous = all[index];
-
-    const updatedItem = {
-      ...previous,
-      ...item,
-      name: item.name || previous.name || "",
-      thumbnailUri: item.thumbnailUri || previous.thumbnailUri || "",
-      scanCount: (previous.scanCount || 1) + 1,
-      scannedAt: previous.scannedAt || now,
-      updatedAt: now,
-      source: "scanner",
-    };
-
-    const updated = [
-      updatedItem,
-      ...all.filter((i) => i.barcode !== item.barcode),
-    ];
-
-    await saveAll(updated);
-    return updatedItem;
-  }
-
-  const newItem = {
-    ...item,
-    name: item.name || "",
-    thumbnailUri: item.thumbnailUri || "",
-    scanCount: 1,
-    scannedAt: now,
-    updatedAt: now,
-    source: "scanner",
-  };
-
-  await saveAll([newItem, ...all]);
-  return newItem;
-};
-
-/**
- * Actualiza campos editables
- */
-export const updateScannedEntry = async (barcode, updates) => {
-  if (!barcode) return;
-
-  const all = await loadAll();
-
-  const updated = all.map((item) =>
-    item.barcode === barcode
-      ? {
-          ...item,
-          ...updates,
-          barcode,
-          updatedAt: new Date().toISOString(),
-        }
-      : item,
+  const index = all.findIndex(
+    (item) => String(item.barcode || "").trim() === cleanBarcode,
   );
 
-  await saveAll(updated);
-};
+  let nextItem;
 
-/**
- * Elimina un escaneo
- */
-export const removeScannedItem = async (barcode) => {
-  if (!barcode) return;
+  if (index >= 0) {
+    const previous = all[index];
 
-  const all = await loadAll();
-  const filtered = all.filter((item) => item.barcode !== barcode);
+    nextItem = {
+      ...previous,
+      ...patch,
+      id: previous.id || cleanBarcode,
+      barcode: cleanBarcode,
+      source: patch.source ?? previous.source ?? "scanner",
+      scannedAt: previous.scannedAt ?? patch.scannedAt ?? now,
+      updatedAt: patch.updatedAt ?? now,
+    };
 
-  await saveAll(filtered);
-};
+    all[index] = nextItem;
+  } else {
+    nextItem = {
+      id: cleanBarcode,
+      barcode: cleanBarcode,
+      name: "",
+      brand: "",
+      url: "",
+      imageUrl: "",
+      thumbnailUri: null,
+      notes: "",
+      source: "scanner",
+      scannedAt: now,
+      updatedAt: now,
+      scanCount: 1,
+      ...patch,
+    };
 
-/**
- * Borra todo el historial
- */
-export const clearScannedHistory = async () => {
-  try {
-    await storage.remove(STORAGE_KEYS.SCANNED_ITEMS);
-  } catch (err) {
-    console.error("Error clearing scanned history:", err);
+    all.unshift(nextItem);
   }
-};
+
+  await saveScannedHistory(all);
+
+  return nextItem;
+}
+
+/* -------------------------------------------------
+   Guardar escaneo nuevo desde scanner
+-------------------------------------------------- */
+export async function saveScannedEntry(barcode, patch = {}) {
+  const cleanBarcode = String(barcode || "").trim();
+
+  if (!cleanBarcode) return null;
+
+  const all = await getScannedHistory();
+  const now = new Date().toISOString();
+
+  const index = all.findIndex(
+    (item) => String(item.barcode || "").trim() === cleanBarcode,
+  );
+
+  let nextItem;
+
+  if (index >= 0) {
+    const previous = all[index];
+
+    nextItem = {
+      ...previous,
+      ...patch,
+      id: previous.id || cleanBarcode,
+      barcode: cleanBarcode,
+      source: patch.source ?? previous.source ?? "scanner",
+      scanCount: Number(previous.scanCount ?? 0) + 1,
+      scannedAt: previous.scannedAt ?? patch.scannedAt ?? now,
+      updatedAt: now,
+    };
+
+    all[index] = nextItem;
+  } else {
+    nextItem = {
+      id: cleanBarcode,
+      barcode: cleanBarcode,
+      name: "",
+      brand: "",
+      url: "",
+      imageUrl: "",
+      thumbnailUri: null,
+      notes: "",
+      source: "scanner",
+      scannedAt: now,
+      updatedAt: now,
+      scanCount: 1,
+      ...patch,
+    };
+
+    all.unshift(nextItem);
+  }
+
+  await saveScannedHistory(all);
+
+  return nextItem;
+}
+
+/* -------------------------------------------------
+   Eliminar escaneo
+-------------------------------------------------- */
+export async function removeScannedItem(barcode) {
+  const cleanBarcode = String(barcode || "").trim();
+
+  if (!cleanBarcode) return [];
+
+  const all = await getScannedHistory();
+
+  const next = all.filter(
+    (item) => String(item.barcode || "").trim() !== cleanBarcode,
+  );
+
+  await saveScannedHistory(next);
+
+  return next;
+}
+
+/* -------------------------------------------------
+   Borrar todo el historial
+-------------------------------------------------- */
+export async function clearScannedHistory() {
+  await saveScannedHistory([]);
+  return [];
+}

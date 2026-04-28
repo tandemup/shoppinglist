@@ -492,6 +492,8 @@ export default function ItemDetailScreen() {
       screen: ROUTES.SCANNER_SCREEN,
       params: {
         saveToHistory: false,
+        closeOnScan: true,
+        returnToTab: ROUTES.SHOPPING_TAB,
         onScan: (code) => {
           setBarcode(code);
         },

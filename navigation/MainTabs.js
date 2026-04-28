@@ -49,9 +49,19 @@ export default function MainTabs() {
           ),
         }}
       />
+
       <Tab.Screen
         name={ROUTES.SCANNER_TAB}
         component={ScannerStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+
+            navigation.navigate(ROUTES.SCANNER_TAB, {
+              screen: ROUTES.SCANNER_HOME,
+            });
+          },
+        })}
         options={{
           title: "Scanner",
           tabBarIcon: ({ color, size }) => (
@@ -59,6 +69,7 @@ export default function MainTabs() {
           ),
         }}
       />
+
       <Tab.Screen
         name={ROUTES.MENU_TAB}
         component={MenuStack}
