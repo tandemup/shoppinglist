@@ -351,6 +351,7 @@ export default function ShoppingListsScreen() {
               </>
             }
             contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
           />
         </View>
         <Modal

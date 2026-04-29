@@ -295,6 +295,7 @@ const styles = StyleSheet.create({
     color: "#111827",
     paddingVertical: 12,
     marginLeft: 8,
+    outlineStyle: "none",
   },
 
   listContent: {

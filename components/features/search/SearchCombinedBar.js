@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useStores } from "../../../context/StoresContext";
 import { useLists } from "../../../context/ListsContext";
@@ -119,22 +120,24 @@ export default function SearchCombinedBar({
   -------------------------------------------------- */
   return (
     <View style={styles.container}>
-      <TextInput
-        ref={inputRef}
-        style={styles.input}
-        placeholder="🔍 Buscar producto (actual o histórico)…"
-        placeholderTextColor="#999"
-        value={query}
-        onChangeText={setQuery}
-        onSubmitEditing={() => {
-          if (query.trim()) {
-            onCreateNew?.(query.trim());
-            setQuery("");
-          }
-        }}
-        returnKeyType="done"
-      />
-
+      <View style={styles.searchBox}>
+        <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+        <TextInput
+          ref={inputRef}
+          style={styles.searchInput}
+          placeholder="Buscar producto (actual o histórico)…"
+          placeholderTextColor="#9CA3AF"
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={() => {
+            if (query.trim()) {
+              onCreateNew?.(query.trim());
+              setQuery("");
+            }
+          }}
+          returnKeyType="done"
+        />
+      </View>
       {(suggestions.length > 0 || showCreate) && (
         <FlatList
           style={styles.resultsBox}
@@ -203,14 +206,13 @@ const styles = StyleSheet.create({
     zIndex: 30,
     marginHorizontal: 16,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    padding: 10,
-    backgroundColor: "#fff",
-    marginBottom: 6,
+  searchInput: {
+    flex: 1,
     fontSize: 15,
+    color: "#111827",
+    paddingVertical: 12,
+    marginLeft: 8,
+    outlineStyle: "none", // Web: elimina borde naranja al enfocar
   },
   resultsBox: {
     backgroundColor: "#fff",
@@ -260,5 +262,22 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 10,
     fontWeight: "700",
+  },
+
+  searchBox: {
+    minHeight: 48,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
 });
