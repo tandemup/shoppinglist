@@ -313,46 +313,45 @@ export default function ShoppingListsScreen() {
   const sortedActiveLists = [...activeLists].sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
   );
-
+  /*
+        <MenuNavegacion1 onCreateList={handleAddList} />
+        <MenuNavegacion2
+          archivedCount={archivedLists.length}
+          historyCount={0}
+          scannedCount={0}
+          onCreateList={handleAddList}
+        />
+*/
   return (
     <View style={styles.screen}>
       <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Shopping Lists</Text>
-
-          <Text style={styles.subtitle}>
-            Crea, consulta y gestiona tus listas de compra activas.
-          </Text>
-          <MenuNavegacion2
-            archivedCount={archivedLists.length}
-            historyCount={0}
-            scannedCount={0}
-            onCreateList={handleAddList}
-          />
-          <FlatList
-            ref={listRef}
-            style={styles.list}
-            data={sortedActiveLists}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            ListHeaderComponent={
-              <>
-                <Text style={styles.listHeader}>Mis Listas</Text>
-              </>
-            }
-            ListEmptyComponent={
-              <>
-                <Text style={styles.emptyText}>
-                  No tienes listas activas 😊
-                </Text>
-                <Text style={styles.emptyHint}>
-                  Pulsa + para crear tu primera lista
-                </Text>
-              </>
-            }
-            contentContainerStyle={styles.listContent}
-          />
-        </View>
+        <MenuNavegacion2
+          archivedCount={archivedLists.length}
+          historyCount={0}
+          scannedCount={0}
+          onCreateList={handleAddList}
+        />
+        <FlatList
+          ref={listRef}
+          style={styles.list}
+          data={sortedActiveLists}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ListHeaderComponent={
+            <>
+              <Text style={styles.listHeader}>Mis Listas</Text>
+            </>
+          }
+          ListEmptyComponent={
+            <>
+              <Text style={styles.emptyText}>No tienes listas activas 😊</Text>
+              <Text style={styles.emptyHint}>
+                Pulsa + para crear tu primera lista
+              </Text>
+            </>
+          }
+          contentContainerStyle={styles.listContent}
+        />
         <Modal
           transparent
           visible={editingList !== undefined}
@@ -441,15 +440,16 @@ const styles1 = StyleSheet.create({
 
 const styles2 = StyleSheet.create({
   quickWrapper: {
+    paddingHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
   },
 
   quickTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "700",
     color: "#374151",
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   quickScroll: {
@@ -517,6 +517,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingTop: 12,
+    paddingHorizontal: 16,
     paddingBottom: 120,
   },
   screen: {
@@ -526,24 +527,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    color: "#111827",
-    marginBottom: 8,
-  },
 
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: "#6B7280",
-    marginBottom: 18,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",

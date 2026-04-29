@@ -49,21 +49,32 @@ export default function PurchaseDetailScreen() {
      Repetir (crear nueva lista)
   ----------------------------*/
   const handleRepeatProduct = () => {
-    const listName = `Comprar • ${product.name}`;
-    const listId = createList(listName);
+    if (!product) {
+      console.warn("No hay producto para repetir");
+      return;
+    }
 
-    const last = purchases[0];
+    const quantity = product.quantity ?? product.lastQuantity ?? 1;
+    const unitPrice =
+      product.unitPrice ??
+      product.priceInfo?.unitPrice ??
+      product.averagePrice ??
+      0;
 
-    addItem(listId, {
-      name: product.name,
-      quantity: last.quantity,
-      priceInfo: last.priceInfo,
+    const newItem = {
+      id: String(Date.now()),
+      name: product.name ?? "",
+      barcode: product.barcode ?? "",
+      quantity,
+      unitPrice,
+      unit: product.unit ?? "u",
       checked: true,
+    };
+
+    navigation.navigate(ROUTES.SHOPPING_LISTS, {
+      repeatedProduct: newItem,
     });
-
-    navigation.replace(ROUTES.SHOPPING_LIST, { listId });
   };
-
   /* ---------------------------
      Render item
   ----------------------------*/

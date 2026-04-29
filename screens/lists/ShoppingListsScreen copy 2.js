@@ -175,6 +175,7 @@ function MenuNavegacion2({
     </View>
   );
 }
+
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
   const listRef = useRef(null);
@@ -289,23 +290,45 @@ export default function ShoppingListsScreen() {
     const currency = item.currency ?? DEFAULT_CURRENCY;
 
     return (
-      <Pressable style={styles.card} onPress={() => handleOpenList(item.id)}>
-        <View style={styles.cardHeader}>
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        onPress={() => handleOpenList(item.id)}
+      >
+        <View style={styles.iconBox}>
+          <Ionicons name="list-outline" size={28} color="#111827" />
+        </View>
+
+        <View style={styles.cardText}>
           <View style={styles.nameRow}>
-            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {item.name}
+            </Text>
             <CurrencyBadge currency={currency} size="sm" />
           </View>
 
-          <Pressable onPress={() => openListMenu(item)} hitSlop={8}>
-            <Ionicons name="ellipsis-vertical" size={20} color="#555" />
-          </Pressable>
+          <Text style={styles.cardSubtitle}>
+            Creada el {new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+
+          <Text style={styles.cardMeta}>
+            {item.items?.length || 0} productos
+          </Text>
         </View>
 
-        <Text style={styles.date}>
-          Creada el {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
+        <View style={styles.cardRight}>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation?.();
+              openListMenu(item);
+            }}
+            hitSlop={8}
+            style={styles.menuButton}
+          >
+            <Ionicons name="ellipsis-vertical" size={18} color="#6B7280" />
+          </Pressable>
 
-        <Text style={styles.count}>{item.items?.length || 0} productos</Text>
+          <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+        </View>
       </Pressable>
     );
   };
@@ -323,12 +346,14 @@ export default function ShoppingListsScreen() {
           <Text style={styles.subtitle}>
             Crea, consulta y gestiona tus listas de compra activas.
           </Text>
+
           <MenuNavegacion2
             archivedCount={archivedLists.length}
             historyCount={0}
             scannedCount={0}
             onCreateList={handleAddList}
           />
+
           <FlatList
             ref={listRef}
             style={styles.list}
@@ -336,9 +361,7 @@ export default function ShoppingListsScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             ListHeaderComponent={
-              <>
-                <Text style={styles.listHeader}>Mis Listas</Text>
-              </>
+              <Text style={styles.listHeader}>Mis listas</Text>
             }
             ListEmptyComponent={
               <>
@@ -346,55 +369,20 @@ export default function ShoppingListsScreen() {
                   No tienes listas activas 😊
                 </Text>
                 <Text style={styles.emptyHint}>
-                  Pulsa + para crear tu primera lista
+                  Pulsa “Nueva lista” para crear tu primera lista
                 </Text>
               </>
             }
             contentContainerStyle={styles.listContent}
           />
         </View>
+
         <Modal
           transparent
           visible={editingList !== undefined}
           animationType="fade"
         >
-          <Pressable style={styles.modalOverlay} onPress={closeEditModal}>
-            <Pressable
-              style={styles.modalCard}
-              onPress={(e) => e.stopPropagation()}
-            >
-              <Text style={styles.modalTitle}>
-                {editingList ? "Editar nombre" : "Nueva lista"}
-              </Text>
-
-              <TextInput
-                style={styles.modalInput}
-                value={editName}
-                onChangeText={setEditName}
-                autoFocus
-                onSubmitEditing={handleConfirmEditName}
-              />
-
-              <View style={styles.modalActions}>
-                <Pressable onPress={closeEditModal} style={styles.modalCancel}>
-                  <Text>Cancelar</Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={handleConfirmEditName}
-                  style={[
-                    styles.modalConfirm,
-                    !editName.trim() && { opacity: 0.5 },
-                  ]}
-                  disabled={!editName.trim()}
-                >
-                  <Text style={{ color: "#fff" }}>
-                    {editingList ? "Guardar" : "Crear"}
-                  </Text>
-                </Pressable>
-              </View>
-            </Pressable>
-          </Pressable>
+          ...
         </Modal>
       </SafeAreaView>
     </View>
@@ -438,18 +426,16 @@ const styles1 = StyleSheet.create({
     color: "#374151",
   },
 });
-
 const styles2 = StyleSheet.create({
   quickWrapper: {
-    marginTop: 12,
-    marginBottom: 8,
+    marginBottom: 12,
   },
 
   quickTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "700",
     color: "#374151",
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   quickScroll: {
@@ -460,25 +446,31 @@ const styles2 = StyleSheet.create({
     width: 104,
     minHeight: 92,
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#BFD7FF",
+    borderColor: "#E5E7EB",
     paddingVertical: 14,
     paddingHorizontal: 12,
     marginRight: 10,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
 
   quickCardPressed: {
-    opacity: 0.8,
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
   },
 
   quickIconBox: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#F3F4F6",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
@@ -492,7 +484,7 @@ const styles2 = StyleSheet.create({
     height: 18,
     paddingHorizontal: 4,
     borderRadius: 9,
-    backgroundColor: "#ef4444",
+    backgroundColor: "#EF4444",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -510,27 +502,22 @@ const styles2 = StyleSheet.create({
     textAlign: "center",
   },
 });
-
 const styles = StyleSheet.create({
-  list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingTop: 12,
-    paddingBottom: 120,
-  },
   screen: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: "#F9FAFB",
   },
+
   safeArea: {
     flex: 1,
   },
+
   content: {
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 24,
   },
+
   title: {
     fontSize: 28,
     fontWeight: "800",
@@ -544,86 +531,111 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginBottom: 18,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
-    color: "#374151",
+
+  list: {
+    flex: 1,
   },
 
-  quickActions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginBottom: 16,
+  listContent: {
+    paddingTop: 8,
+    paddingBottom: 24,
   },
+
   listHeader: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#374151",
     marginBottom: 12,
+    marginTop: 8,
   },
 
   card: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 14,
-    marginBottom: 14,
+    minHeight: 96,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: "#BFD7FF",
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+    marginBottom: 14,
   },
 
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  cardPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
+  },
+
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
     alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  cardText: {
+    flex: 1,
+    paddingRight: 10,
   },
 
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginBottom: 4,
   },
 
-  name: {
+  cardTitle: {
+    flexShrink: 1,
     fontSize: 17,
     fontWeight: "700",
+    color: "#111827",
   },
 
-  date: {
-    fontSize: 13,
+  cardSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+
+  cardMeta: {
+    fontSize: 14,
     color: "#6B7280",
   },
 
-  count: {
-    fontSize: 13,
-    color: "#6B7280",
+  cardRight: {
+    alignItems: "flex-end",
+    justifyContent: "center",
+    gap: 10,
+    marginLeft: 8,
+  },
+
+  menuButton: {
+    padding: 2,
   },
 
   emptyText: {
     marginTop: 40,
     textAlign: "center",
-    color: "#888",
-    fontSize: 15,
+    color: "#374151",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   emptyHint: {
     textAlign: "center",
     color: "#9CA3AF",
     marginTop: 6,
-  },
-
-  fab: {
-    position: "absolute",
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#16a34a",
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 6,
+    fontSize: 14,
   },
 
   modalOverlay: {
@@ -644,14 +656,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 12,
+    color: "#111827",
   },
 
   modalInput: {
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: "#E5E7EB",
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
+    color: "#111827",
+    backgroundColor: "#fff",
   },
 
   modalActions: {
@@ -665,8 +680,9 @@ const styles = StyleSheet.create({
   },
 
   modalConfirm: {
-    backgroundColor: "#16a34a",
-    padding: 10,
+    backgroundColor: "#2563EB",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 8,
   },
 });

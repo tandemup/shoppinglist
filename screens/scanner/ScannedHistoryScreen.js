@@ -142,13 +142,12 @@ export default function ScannedHistoryScreen({ navigation }) {
               </Text>
             ) : null}
 
-            <Text style={styles.count}>Escaneos: {item.scanCount ?? 1}</Text>
-
-            {item.scannedAt ? (
-              <Text style={styles.date}>
-                Fecha: {new Date(item.scannedAt).toLocaleDateString("es-ES")}
-              </Text>
-            ) : null}
+            <Text style={styles.count}>
+              Escaneos: {item.scanCount ?? 1}
+              {item.scannedAt
+                ? ` · Fecha: ${new Date(item.scannedAt).toLocaleDateString("es-ES")}`
+                : ""}
+            </Text>
           </View>
 
           <View style={styles.actionsCol}>
@@ -301,7 +300,7 @@ const styles = StyleSheet.create({
   },
 
   barcodeRow: {
-    marginTop: 10,
+    marginTop: 1,
     marginLeft: 76,
     alignItems: "flex-start",
   },
