@@ -342,5 +342,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     color: "#333",
+    outlineStyle: "none",
   },
 });

@@ -1,5 +1,13 @@
+// screens/StoresNearbyScreen.js
 import React from "react";
-import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  SafeAreaView,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
@@ -36,34 +44,38 @@ export default function StoresNearbyScreen() {
   };
 
   /* ---------------------------------------------
-     Render fila (MISMO PATRÓN que StoresBrowseScreen)
+     Render fila
   ---------------------------------------------- */
   const renderStoreRow = ({ item: store }) => {
     const isFavorite = isFavoriteStore(store.id);
 
     return (
-      <View style={styles.rowContainer}>
-        <Pressable
-          style={styles.rowInfo}
-          onPress={() => handlePressStore(store)}
-          android_ripple={{ color: "#eee" }}
-        >
-          <Text style={styles.rowName}>{store.name}</Text>
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        onPress={() => handlePressStore(store)}
+      >
+        <View style={styles.iconBox}>
+          <Ionicons name="location-outline" size={26} color="#111827" />
+        </View>
 
-          {store.address && (
-            <Text style={styles.rowAddress}>📍 {store.address}</Text>
-          )}
-
-          <Text style={styles.rowMeta}>
-            <Text style={styles.rowMetaCity}>{store.city}</Text>
-            {Number.isFinite(store.distance) && (
-              <Text style={styles.rowMetaDistance}>
-                {" · a "}
-                {formatDistanceKm(store.distance)}
-              </Text>
-            )}
+        <View style={styles.cardText}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {store.name}
           </Text>
-        </Pressable>
+
+          {store.address ? (
+            <Text style={styles.cardSubtitle} numberOfLines={1}>
+              {store.address}
+            </Text>
+          ) : null}
+
+          <Text style={styles.cardMeta} numberOfLines={1}>
+            {store.city}
+            {Number.isFinite(store.distance)
+              ? ` · a ${formatDistanceKm(store.distance)}`
+              : ""}
+          </Text>
+        </View>
 
         <Pressable
           onPress={() => toggleFavoriteStore(store.id)}
@@ -73,110 +85,261 @@ export default function StoresNearbyScreen() {
           <Ionicons
             name={isFavorite ? "star" : "star-outline"}
             size={22}
-            color={isFavorite ? "#f5c518" : "#bbb"}
+            color={isFavorite ? "#F59E0B" : "#9CA3AF"}
           />
         </Pressable>
-      </View>
+
+        <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+      </Pressable>
     );
   };
 
   /* ---------------------------------------------
-     Render
+     Loading
   ---------------------------------------------- */
   if (loading) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.muted}>Buscando tiendas cercanas…</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Tiendas cercanas</Text>
+
+          <Text style={styles.subtitle}>
+            Busca tiendas próximas a tu ubicación actual.
+          </Text>
+
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="location-outline" size={34} color="#9CA3AF" />
+            </View>
+
+            <Text style={styles.emptyTitle}>Buscando tiendas cercanas…</Text>
+
+            <Text style={styles.emptyText}>
+              Estamos calculando la distancia de las tiendas disponibles.
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
+  /* ---------------------------------------------
+     No location
+  ---------------------------------------------- */
   if (!hasLocation) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.muted}>No se pudo obtener tu ubicación</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Tiendas cercanas</Text>
+
+          <Text style={styles.subtitle}>
+            Busca tiendas próximas a tu ubicación actual.
+          </Text>
+
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="navigate-outline" size={34} color="#9CA3AF" />
+            </View>
+
+            <Text style={styles.emptyTitle}>
+              No se pudo obtener tu ubicación
+            </Text>
+
+            <Text style={styles.emptyText}>
+              Revisa los permisos de ubicación para ordenar las tiendas por
+              cercanía.
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
+  /* ---------------------------------------------
+     Render
+  ---------------------------------------------- */
   return (
-    <FlatList
-      data={sortedStores}
-      keyExtractor={(item) => item.id}
-      renderItem={renderStoreRow}
-      contentContainerStyle={styles.content}
-    />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Tiendas cercanas</Text>
+
+        <Text style={styles.subtitle}>
+          Consulta las tiendas ordenadas por distancia desde tu ubicación.
+        </Text>
+
+        <Text style={styles.countText}>
+          {sortedStores.length} tienda{sortedStores.length === 1 ? "" : "s"}
+        </Text>
+
+        <FlatList
+          data={sortedStores}
+          keyExtractor={(item) => item.id}
+          renderItem={renderStoreRow}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            sortedStores.length === 0 && styles.emptyListContent,
+          ]}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconBox}>
+                <Ionicons name="storefront-outline" size={34} color="#9CA3AF" />
+              </View>
+
+              <Text style={styles.emptyTitle}>No hay tiendas cercanas</Text>
+
+              <Text style={styles.emptyText}>
+                No se encontraron tiendas disponibles para mostrar.
+              </Text>
+            </View>
+          }
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 /* ---------------------------------------------
-   Styles (COPIADOS de StoresBrowseScreen)
+   Styles
 ---------------------------------------------- */
 const styles = StyleSheet.create({
-  content: {
-    padding: 12,
-    paddingBottom: 24,
-  },
-
-  center: {
+  container: {
     flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
+
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#111827",
+    marginBottom: 8,
+  },
+
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#6B7280",
+    marginBottom: 18,
+  },
+
+  countText: {
+    marginBottom: 10,
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "700",
+  },
+
+  listContent: {
+    paddingTop: 4,
+    paddingBottom: 32,
+    gap: 14,
+  },
+
+  emptyListContent: {
+    flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
   },
 
-  muted: {
-    fontSize: 14,
-    color: "#777",
-  },
-
-  rowContainer: {
+  card: {
+    minHeight: 86,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    margin: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
 
-  rowInfo: {
+  cardPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
+  },
+
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  cardText: {
     flex: 1,
+    paddingRight: 10,
   },
 
-  rowName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111",
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
   },
 
-  rowAddress: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#444",
+  cardSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 3,
   },
 
-  rowMeta: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#666",
-  },
-
-  rowMetaCity: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#666",
-  },
-
-  rowMetaDistance: {
+  cardMeta: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#666",
+    color: "#6B7280",
   },
 
   starButton: {
-    paddingLeft: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
     justifyContent: "center",
+    marginRight: 4,
+  },
+
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+
+  emptyIconBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#374151",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+
+  emptyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6B7280",
+    textAlign: "center",
   },
 });

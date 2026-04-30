@@ -1,11 +1,17 @@
+// screens/StoresFavoritesScreen.js
 import React from "react";
-import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  SafeAreaView,
+} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useStores } from "../../context/StoresContext";
-import { useLocation } from "../../context/LocationContext";
-import { distanceMetersBetween } from "../../utils/math/distance";
 import { formatDistance } from "../../utils/math/formatDistance";
 import { ROUTES } from "../../navigation/ROUTES";
 
@@ -15,17 +21,6 @@ export default function StoresFavoritesScreen() {
 
   const { listId } = route.params || {};
   const { favoriteStores, toggleFavoriteStore, isFavoriteStore } = useStores();
-
-  if (!favoriteStores || favoriteStores.length === 0) {
-    return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>No tienes tiendas favoritas</Text>
-        <Text style={styles.emptyText}>
-          Marca una tienda con la estrella para acceder rápidamente a ella
-        </Text>
-      </View>
-    );
-  }
 
   /* ---------------------------------------------
      Navigation
@@ -44,25 +39,32 @@ export default function StoresFavoritesScreen() {
     const isFavorite = isFavoriteStore(store.id);
 
     return (
-      <View style={styles.rowContainer}>
-        <Pressable
-          style={styles.rowInfo}
-          onPress={() => handlePressStore(store)}
-          android_ripple={{ color: "#eee" }}
-        >
-          <Text style={styles.rowName}>{store.name}</Text>
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+        onPress={() => handlePressStore(store)}
+      >
+        <View style={styles.iconBox}>
+          <Ionicons name="storefront-outline" size={26} color="#111827" />
+        </View>
 
-          {store.address && (
-            <Text style={styles.rowAddress}>📍 {store.address}</Text>
-          )}
-
-          <Text style={styles.rowMeta}>
-            <Text style={styles.rowMetaCity}>{store.city}</Text>
-            <Text style={styles.rowMetaDistance}>
-              {store.distance != null && ` · ${formatDistance(store.distance)}`}
-            </Text>
+        <View style={styles.cardText}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {store.name}
           </Text>
-        </Pressable>
+
+          {store.address ? (
+            <Text style={styles.cardSubtitle} numberOfLines={1}>
+              {store.address}
+            </Text>
+          ) : null}
+
+          <Text style={styles.cardMeta} numberOfLines={1}>
+            {store.city}
+            {store.distance != null
+              ? ` · ${formatDistance(store.distance)}`
+              : ""}
+          </Text>
+        </View>
 
         <Pressable
           onPress={() => toggleFavoriteStore(store.id)}
@@ -72,21 +74,49 @@ export default function StoresFavoritesScreen() {
           <Ionicons
             name={isFavorite ? "star" : "star-outline"}
             size={22}
-            color={isFavorite ? "#f5c518" : "#bbb"}
+            color={isFavorite ? "#F59E0B" : "#9CA3AF"}
           />
         </Pressable>
-      </View>
+
+        <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+      </Pressable>
     );
   };
 
+  const isEmpty = !favoriteStores || favoriteStores.length === 0;
+
   return (
-    <FlatList
-      data={favoriteStores}
-      keyExtractor={(item) => item.id}
-      renderItem={renderStoreRow}
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Tiendas favoritas</Text>
+
+        <Text style={styles.subtitle}>
+          Consulta tus tiendas guardadas y accede rápidamente a sus detalles.
+        </Text>
+
+        {isEmpty ? (
+          <View style={styles.emptyState}>
+            <View style={styles.emptyIconBox}>
+              <Ionicons name="star-outline" size={34} color="#9CA3AF" />
+            </View>
+
+            <Text style={styles.emptyTitle}>No tienes tiendas favoritas</Text>
+
+            <Text style={styles.emptyText}>
+              Marca una tienda con la estrella para acceder rápidamente a ella.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={favoriteStores}
+            keyExtractor={(item) => item.id}
+            renderItem={renderStoreRow}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          />
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -96,86 +126,129 @@ export default function StoresFavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f6f6f6",
+    backgroundColor: "#F9FAFB",
   },
 
   content: {
-    padding: 12,
-    paddingBottom: 24,
-  },
-
-  list: {
-    paddingVertical: 8,
-  },
-
-  empty: {
     flex: 1,
-    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#111827",
+    marginBottom: 8,
+  },
+
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#6B7280",
+    marginBottom: 24,
+  },
+
+  listContent: {
+    paddingTop: 4,
+    paddingBottom: 32,
+    gap: 14,
+  },
+
+  card: {
+    minHeight: 86,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
     alignItems: "center",
-    padding: 24,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+
+  cardPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
+  },
+
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  cardText: {
+    flex: 1,
+    paddingRight: 10,
+  },
+
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+
+  cardSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 3,
+  },
+
+  cardMeta: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+
+  starButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 4,
+  },
+
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+
+  emptyIconBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
   },
 
   emptyTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#374151",
+    textAlign: "center",
     marginBottom: 8,
   },
 
   emptyText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6B7280",
     textAlign: "center",
-    color: "#666",
-  },
-
-  rowContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    margin: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-    backgroundColor: "#fff",
-  },
-
-  rowInfo: {
-    flex: 1,
-  },
-
-  rowName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111",
-  },
-
-  rowAddress: {
-    marginTop: 2,
-    fontSize: 13,
-    color: "#555",
-  },
-
-  rowMeta: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#666",
-  },
-
-  rowMetaCity: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#666",
-  },
-
-  rowMetaDistance: {
-    marginTop: 4,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#666",
-  },
-
-  starButton: {
-    paddingLeft: 12,
-    justifyContent: "center",
   },
 });

@@ -79,14 +79,16 @@ export default function SmartSearchBar({ currentList, onSelectHistoryItem }) {
 
   return (
     <View style={styles.container}>
-      {/* INPUT */}
-      <TextInput
-        style={styles.input}
-        placeholder="🔍 Buscar producto (actual, histórico o escaneos)…"
-        placeholderTextColor="#999"
-        value={query}
-        onChangeText={handleSearch}
-      />
+      <View style={styles.searchBox}>
+        <Ionicons name="search" size={18} color="#777" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Buscar producto (actual, histórico o escaneos)…"
+          placeholderTextColor="#999"
+          value={query}
+          onChangeText={handleSearch}
+        />
+      </View>
 
       {(localResults.length > 0 ||
         historyResults.length > 0 ||
@@ -193,6 +195,23 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
 
+  searchBox: {
+    minHeight: 48,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+  },
+
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -200,6 +219,7 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: "#fff",
     marginBottom: 6,
+    outlineStyle: "none",
   },
 
   resultsBox: {

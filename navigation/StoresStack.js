@@ -21,9 +21,7 @@ export default function StoresStack() {
       }}
     >
       <Stack.Screen name={ROUTES.STORES_HOME} component={StoresHomeScreen} />
-
       <Stack.Screen name={ROUTES.STORE_SELECT} component={StoreSelectScreen} />
-
       <Stack.Screen
         name={ROUTES.STORES_BROWSE}
         component={StoresBrowseScreen}

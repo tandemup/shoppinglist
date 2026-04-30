@@ -56,5 +56,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#222",
     paddingVertical: 6,
+    outlineStyle: "none",
   },
 });

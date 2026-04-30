@@ -11,12 +11,23 @@ import {
 } from "../../utils/maps/openGoogleMaps";
 
 import StoreMapPreview from "../../components/features/maps/StoreMapPreview";
+import { useLocation } from "../../context/LocationContext";
 
 export default function StoreDetailScreen() {
   const route = useRoute();
   const { storeId } = route.params || {};
 
   const { getStoreById, toggleFavoriteStore, isFavoriteStore } = useStores();
+  const { location } = useLocation();
+
+  const userCoords =
+    location?.lat != null && location?.lng != null
+      ? {
+          lat: location.lat,
+          lng: location.lng,
+        }
+      : null;
+
   const [showMapPreview, setShowMapPreview] = useState(false);
 
   const store = getStoreById(storeId);
@@ -70,7 +81,12 @@ export default function StoreDetailScreen() {
 
         {coords && showMapPreview ? (
           <View style={styles.mapContainer}>
-            <StoreMapPreview lat={coords.lat} lng={coords.lng} />
+            <StoreMapPreview
+              lat={coords.lat}
+              lng={coords.lng}
+              userLat={userCoords?.lat}
+              userLng={userCoords?.lng}
+            />
           </View>
         ) : (
           <View style={styles.mapPlaceholder}>
