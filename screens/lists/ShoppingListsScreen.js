@@ -336,19 +336,17 @@ export default function ShoppingListsScreen() {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             ListHeaderComponent={
-              <>
-                <Text style={styles.listHeader}>Mis Listas</Text>
-              </>
+              <Text style={styles.listHeader}>Mis Listas</Text>
             }
             ListEmptyComponent={
-              <>
+              <View style={styles.emptyBlock}>
                 <Text style={styles.emptyText}>
                   No tienes listas activas 😊
                 </Text>
                 <Text style={styles.emptyHint}>
                   Pulsa + para crear tu primera lista
                 </Text>
-              </>
+              </View>
             }
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
@@ -614,7 +612,11 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     marginTop: 6,
   },
-
+  emptyBlock: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 40,
+  },
   fab: {
     position: "absolute",
     right: 20,

@@ -1,7 +1,14 @@
 // PurchaseDetailScreen.js
 
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Pressable,
+  SafeAreaView,
+} from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -17,19 +24,30 @@ export default function PurchaseDetailScreen() {
   const route = useRoute();
   const navigation = useNavigation();
 
-  const { product } = route.params;
+  const { productId, product: routeProduct } = route.params || {};
 
-  const { createList, addItem } = useLists();
+  const { purchaseHistory = [] } = useLists();
   const { getStoreById } = useStores();
 
   /* ---------------------------
-     Compras ordenadas (recientes primero)
+     Producto desde historial
+  ----------------------------*/
+  const product = useMemo(() => {
+    if (productId) {
+      return purchaseHistory.find((item) => item.id === productId) ?? null;
+    }
+
+    return routeProduct ?? null;
+  }, [productId, routeProduct, purchaseHistory]);
+
+  /* ---------------------------
+     Compras ordenadas
   ----------------------------*/
   const purchases = useMemo(() => {
-    return [...(product.purchases ?? [])].sort(
+    return [...(product?.purchases ?? [])].sort(
       (a, b) => new Date(b.purchasedAt) - new Date(a.purchasedAt),
     );
-  }, [product.purchases]);
+  }, [product?.purchases]);
 
   /* ---------------------------
      Precio medio
@@ -38,7 +56,7 @@ export default function PurchaseDetailScreen() {
     if (purchases.length === 0) return 0;
 
     const sum = purchases.reduce(
-      (acc, p) => acc + (p.priceInfo?.total ?? 0),
+      (acc, purchase) => acc + (purchase.priceInfo?.total ?? 0),
       0,
     );
 
@@ -46,15 +64,28 @@ export default function PurchaseDetailScreen() {
   }, [purchases]);
 
   /* ---------------------------
-     Repetir (crear nueva lista)
+     Protección básica
+  ----------------------------*/
+  if (!product) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.emptyState}>
+          <Ionicons name="alert-circle-outline" size={34} color="#9CA3AF" />
+          <Text style={styles.emptyTitle}>Producto no disponible</Text>
+          <Text style={styles.emptyText}>
+            No se ha recibido información del producto seleccionado.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* ---------------------------
+     Repetir producto
   ----------------------------*/
   const handleRepeatProduct = () => {
-    if (!product) {
-      console.warn("No hay producto para repetir");
-      return;
-    }
-
     const quantity = product.quantity ?? product.lastQuantity ?? 1;
+
     const unitPrice =
       product.unitPrice ??
       product.priceInfo?.unitPrice ??
@@ -75,6 +106,7 @@ export default function PurchaseDetailScreen() {
       repeatedProduct: newItem,
     });
   };
+
   /* ---------------------------
      Render item
   ----------------------------*/
@@ -82,17 +114,31 @@ export default function PurchaseDetailScreen() {
     const store = item.storeId ? getStoreById(item.storeId) : null;
 
     return (
-      <View style={styles.row}>
-        <View>
-          <Text style={styles.date}>
-            {new Date(item.purchasedAt).toLocaleDateString()}
-          </Text>
-          {store && <Text style={styles.store}>{store.name}</Text>}
+      <View style={styles.card}>
+        <View style={styles.iconBox}>
+          <Ionicons name="calendar-outline" size={24} color="#111827" />
         </View>
 
-        <Text style={styles.price}>
-          {formatCurrency(item.priceInfo?.total ?? 0)}
-        </Text>
+        <View style={styles.cardText}>
+          <Text style={styles.cardTitle}>
+            {new Date(item.purchasedAt).toLocaleDateString()}
+          </Text>
+
+          {store?.name ? (
+            <Text style={styles.cardSubtitle} numberOfLines={1}>
+              {store.name}
+            </Text>
+          ) : (
+            <Text style={styles.cardSubtitle}>Tienda no indicada</Text>
+          )}
+        </View>
+
+        <View style={styles.priceBox}>
+          <Ionicons name="pricetag-outline" size={17} color="#059669" />
+          <Text style={styles.price}>
+            {formatCurrency(item.priceInfo?.total ?? 0)}
+          </Text>
+        </View>
       </View>
     );
   };
@@ -101,27 +147,49 @@ export default function PurchaseDetailScreen() {
      Render
   ----------------------------*/
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{product.name}</Text>
-        <Text style={styles.subtitle}>
-          {purchases.length} compras · Precio medio{" "}
-          {formatCurrency(averagePrice)}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title} numberOfLines={2}>
+          {product.name}
         </Text>
+
+        <Text style={styles.subtitle}>
+          {purchases.length} compra{purchases.length === 1 ? "" : "s"} · Precio
+          medio {formatCurrency(averagePrice)}
+        </Text>
+
+        <FlatList
+          data={purchases}
+          keyExtractor={(_, index) => `purchase-${index}`}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.listContent,
+            purchases.length === 0 && styles.emptyContainer,
+          ]}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="receipt-outline" size={34} color="#9CA3AF" />
+              <Text style={styles.emptyTitle}>Sin compras registradas</Text>
+              <Text style={styles.emptyText}>
+                Este producto todavía no tiene compras individuales asociadas.
+              </Text>
+            </View>
+          }
+        />
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={handleRepeatProduct}
+        >
+          <Ionicons name="refresh-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.buttonText}>Añadir a nueva lista</Text>
+        </Pressable>
       </View>
-
-      <FlatList
-        data={purchases}
-        keyExtractor={(_, index) => `purchase-${index}`}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 16 }}
-      />
-
-      <Pressable style={styles.button} onPress={handleRepeatProduct}>
-        <Ionicons name="refresh-outline" size={20} color="#fff" />
-        <Text style={styles.buttonText}>Añadir a nueva lista</Text>
-      </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -129,69 +197,147 @@ export default function PurchaseDetailScreen() {
    Styles
 -------------------------------------------------- */
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
-    padding: 16,
     backgroundColor: "#F9FAFB",
   },
 
-  header: {
-    marginBottom: 16,
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
 
   title: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: "800",
+    color: "#111827",
+    marginBottom: 8,
   },
 
   subtitle: {
-    marginTop: 4,
+    fontSize: 15,
+    lineHeight: 22,
     color: "#6B7280",
+    marginBottom: 18,
   },
 
-  row: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
+  listContent: {
+    paddingTop: 8,
+    paddingBottom: 24,
+    gap: 14,
+  },
+
+  emptyContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+
+  card: {
+    minHeight: 86,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
 
-  date: {
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  cardText: {
+    flex: 1,
+    paddingRight: 10,
+  },
+
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+
+  cardSubtitle: {
     fontSize: 14,
-    fontWeight: "600",
+    color: "#6B7280",
   },
 
-  store: {
-    marginTop: 2,
-    fontSize: 13,
-    color: "#374151",
+  priceBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#ECFDF5",
   },
 
   price: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#059669",
   },
 
   button: {
-    marginTop: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    minHeight: 52,
     backgroundColor: "#2563EB",
+    paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
     gap: 8,
   },
 
+  buttonPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
+  },
+
   buttonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+  },
+
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+
+  emptyTitle: {
+    marginTop: 10,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#374151",
+    textAlign: "center",
+  },
+
+  emptyText: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#9CA3AF",
+    textAlign: "center",
   },
 });

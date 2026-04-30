@@ -10,12 +10,12 @@ import {
   SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
 import { useNavigation } from "@react-navigation/native";
 
 import { useLists } from "../../context/ListsContext";
 import { useStores } from "../../context/StoresContext";
 import { ROUTES } from "../../navigation/ROUTES";
+
 import StoreFilterBadges from "../../components/features/stores/StoreFilterBadges";
 import BarcodeLink from "../../components/controls/BarcodeLink";
 
@@ -28,7 +28,6 @@ import {
   joinText,
   priceText,
   purchaseMetaText,
-  formatCurrency,
 } from "../../utils/store/formatters";
 
 /* -------------------------------------------------
@@ -45,18 +44,14 @@ export default function PurchaseHistoryScreen() {
   const [selectedStore, setSelectedStore] = useState(null);
 
   /* ---------------------------
-     Stores (badges)
+     Stores disponibles en historial
   ----------------------------*/
   const stores = useMemo(() => {
     return getStoresFromPurchaseHistory(purchaseHistory, getStoreById);
   }, [purchaseHistory, getStoreById]);
 
-  if (__DEV__) {
-    // console.log("STORES:", stores);
-  }
-
   /* ---------------------------
-     Products (query + sort)
+     Productos filtrados + ordenados
   ----------------------------*/
   const products = useMemo(() => {
     const base = queryProducts({
@@ -78,6 +73,22 @@ export default function PurchaseHistoryScreen() {
     Linking.openURL(url);
   };
 
+  const reloadPurchaseHistory = () => {
+    if (typeof rebuildPurchaseHistory !== "function") {
+      console.warn(
+        "rebuildPurchaseHistory no está disponible en ListsContext/useLists()",
+      );
+      return;
+    }
+
+    try {
+      rebuildPurchaseHistory();
+      console.log("purchaseHistory reconstruido");
+    } catch (e) {
+      console.error("Error al reconstruir purchaseHistory", e);
+    }
+  };
+
   /* ---------------------------
      Render item
   ----------------------------*/
@@ -86,9 +97,10 @@ export default function PurchaseHistoryScreen() {
 
     const goToDetail = () => {
       navigation.navigate(ROUTES.PURCHASE_DETAIL, {
-        product: item,
+        productId: item.id,
       });
     };
+
     return (
       <Pressable
         style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
@@ -139,21 +151,6 @@ export default function PurchaseHistoryScreen() {
     );
   };
 
-  const reloadPurchaseHistory = () => {
-    if (typeof rebuildPurchaseHistory !== "function") {
-      console.warn(
-        "rebuildPurchaseHistory no está disponible en ListsContext/useLists()",
-      );
-      return;
-    }
-
-    try {
-      rebuildPurchaseHistory();
-      console.log("purchaseHistory reconstruido");
-    } catch (e) {
-      console.error("Error al reconstruir purchaseHistory", e);
-    }
-  };
   /* ---------------------------
      Render
   ----------------------------*/
@@ -182,6 +179,7 @@ export default function PurchaseHistoryScreen() {
 
         <View style={styles.searchBox}>
           <Ionicons name="search-outline" size={18} color="#9CA3AF" />
+
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar producto…"
