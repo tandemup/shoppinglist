@@ -36,7 +36,7 @@ export const ROUTES = {
   SCANNER_SCREEN: "ScannerScreen",
   QUICK_SCANNER_SCREEN: "QuickScannerScreen",
   DETAILED_SCANNER_SCREEN: "DetailedScannerScreen",
-
+  SEARCH_ENGINES: "SearchEngines",
   // Menu
   MENU: "Menu",
 

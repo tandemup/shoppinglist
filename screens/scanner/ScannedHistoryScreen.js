@@ -140,12 +140,14 @@ export default function ScannedHistoryScreen({ navigation }) {
               <Text style={styles.brand} numberOfLines={1}>
                 {item.brand}
               </Text>
-            ) : null}
+            ) : (
+              <Text style={styles.brand}>N/A</Text>
+            )}
 
             <Text style={styles.count}>
               Escaneos: {item.scanCount ?? 1}
               {item.scannedAt
-                ? ` · Fecha: ${new Date(item.scannedAt).toLocaleDateString("es-ES")}`
+                ? ` · ${new Date(item.scannedAt).toLocaleDateString("es-ES")}`
                 : ""}
             </Text>
           </View>

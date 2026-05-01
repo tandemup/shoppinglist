@@ -16,6 +16,10 @@ export default function ScannerTabScreen({ navigation }) {
     navigation.navigate(ROUTES.SCANNED_HISTORY);
   };
 
+  const goToSelectBrowser = () => {
+    navigation.navigate(ROUTES.SEARCH_ENGINES);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -63,6 +67,27 @@ export default function ScannerTabScreen({ navigation }) {
               <Text style={styles.cardTitle}>Historial de Escaneos</Text>
               <Text style={styles.cardSubtitle}>
                 Ver productos y códigos escaneados anteriormente
+              </Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.card,
+              pressed && styles.cardPressed,
+            ]}
+            onPress={goToSelectBrowser}
+          >
+            <View style={styles.iconBox}>
+              <Ionicons name="search-outline" size={28} color="#111827" />
+            </View>
+
+            <View style={styles.cardText}>
+              <Text style={styles.cardTitle}>Motor de Búsqueda</Text>
+              <Text style={styles.cardSubtitle}>
+                Selecciona motores para productos y libros
               </Text>
             </View>
 

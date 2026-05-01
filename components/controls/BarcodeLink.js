@@ -3,8 +3,8 @@ import { Linking, Pressable, Text } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { showOptions } from "../../utils/ui/primitives/ActionSheet";
 
-import { settingsStorage } from "../../src/storage";
-import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
+//import { settingsStorage } from "../../src/storage";
+//import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
 
 export default function BarcodeLink({ barcode, label, iconColor = "#2563eb" }) {
   const openSearch = (query) => {

@@ -175,6 +175,7 @@ function MenuNavegacion2({
     </View>
   );
 }
+
 export default function ShoppingListsScreen() {
   const navigation = useNavigation();
   const listRef = useRef(null);

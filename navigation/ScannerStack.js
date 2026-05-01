@@ -1,3 +1,5 @@
+// navigation/ScannerStack.js
+
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ROUTES } from "./ROUTES";
@@ -6,6 +8,7 @@ import ScannerTabScreen from "../screens/scanner/ScannerTabScreen";
 import ScannerScreen from "../screens/scanner/ScannerScreen";
 import EditScannedItemScreen from "../screens/scanner/EditScannedItemScreen";
 import ScannedHistoryScreen from "../screens/scanner/ScannedHistoryScreen";
+import SearchEngines from "../screens/settings/SearchEngines";
 
 const Stack = createNativeStackNavigator();
 
@@ -41,6 +44,12 @@ export default function ScannerStack() {
         name={ROUTES.SCANNED_HISTORY}
         component={ScannedHistoryScreen}
         options={{ title: "Historial de Escaneos" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.SEARCH_ENGINES}
+        component={SearchEngines}
+        options={{ title: "Motor de búsqueda" }}
       />
     </Stack.Navigator>
   );
