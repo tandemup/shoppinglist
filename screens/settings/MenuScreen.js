@@ -1,354 +1,364 @@
-// screens/settings/MenuScreen.js
+import React, { useEffect, useRef } from "react";
 
-import React from "react";
-import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  Animated,
+  Easing,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 import { ROUTES } from "../../navigation/ROUTES";
 
+// ✅ IMPORT CLAVE (antes faltaba)
 import { safeAlert } from "../../components/ui/alert/safeAlert";
 
+// ✅ STORAGE ACTIONS
 import {
-  clearAppStorage as clearStorage,
   clearLists as clearActiveLists,
   clearPurchaseHistory,
   clearScannedHistory,
   clearStoresData,
+  clearAppStorage as clearStorage,
 } from "../../src/storage";
 
-export default function MenuScreen({ navigation }) {
-  const ActionCard = ({
-    icon,
-    title,
-    subtitle,
-    onPress,
-    destructive = false,
-  }) => {
-    const iconColor = destructive ? "#B91C1C" : "#111827";
+/* -------------------------------------------------------------------------- */
+/* CARD */
+/* -------------------------------------------------------------------------- */
 
-    return (
-      <Pressable
-        style={({ pressed }) => [
-          styles.card,
-          destructive && styles.dangerCard,
-          pressed && styles.cardPressed,
-        ]}
-        onPress={onPress}
-      >
-        <View style={[styles.iconBox, destructive && styles.dangerIconBox]}>
-          <Ionicons name={icon} size={28} color={iconColor} />
+function Card({ title, subtitle, icon, onPress, danger = false }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.card, danger && styles.cardDanger]}
+    >
+      <View style={styles.cardLeft}>
+        <View style={[styles.iconWrapper, danger && styles.iconDanger]}>
+          <Ionicons
+            name={icon}
+            size={22}
+            color={danger ? "#b91c1c" : "#1f2937"}
+          />
         </View>
 
-        <View style={styles.cardText}>
-          <Text style={[styles.cardTitle, destructive && styles.dangerTitle]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.cardTitle, danger && styles.textDanger]}>
             {title}
           </Text>
-
           <Text style={styles.cardSubtitle}>{subtitle}</Text>
         </View>
+      </View>
 
-        <Ionicons
-          name={destructive ? "warning-outline" : "chevron-forward"}
-          size={22}
-          color={destructive ? "#B91C1C" : "#9CA3AF"}
-        />
-      </Pressable>
-    );
-  };
-
-  const handleClearArchivedLists = () => {
-    safeAlert(
-      "Pendiente",
-      "No hay una función clearArchivedLists exportada en el storage actual.",
-    );
-  };
-
-  const handleReloadStores = () => {
-    safeAlert(
-      "Recargar tiendas",
-      "Se eliminarán los cambios locales en tiendas y se volverán a cargar desde los datos iniciales. ¿Continuar?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Recargar",
-          style: "destructive",
-          onPress: async () => {
-            await clearStoresData();
-
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: ROUTES.SHOPPING_TAB,
-                  params: { screen: ROUTES.SHOPPING_LISTS },
-                },
-              ],
-            });
-          },
-        },
-      ],
-    );
-  };
-
-  const handleClearAllStorage = () => {
-    safeAlert(
-      "Borrar almacenamiento",
-      "¿Seguro? Esta acción no se puede deshacer.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Borrar todo",
-          style: "destructive",
-          onPress: async () => {
-            await clearStorage();
-
-            navigation.reset({
-              index: 0,
-              routes: [
-                {
-                  name: ROUTES.SHOPPING_TAB,
-                  params: { screen: ROUTES.SHOPPING_LISTS },
-                },
-              ],
-            });
-          },
-        },
-      ],
-    );
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.title}>Menú</Text>
-
-        <Text style={styles.subtitle}>
-          Gestiona la configuración, el mantenimiento de datos locales y el
-          almacenamiento de la aplicación.
-        </Text>
-
-        <View style={styles.actions}>
-          <ActionCard
-            icon="search-outline"
-            title="Motor de búsqueda"
-            subtitle="Configura los motores usados para buscar productos"
-            onPress={() => navigation.navigate(ROUTES.SEARCH_ENGINES)}
-          />
-
-          <ActionCard
-            icon="search-outline"
-            title="Motor de búsqueda"
-            subtitle="Configura los motores usados para buscar libros"
-            onPress={() => navigation.navigate(ROUTES.SEARCH_ENGINES)}
-          />
-          <View>
-            <Text style={styles.cardTitle}>Danger Zone</Text>
-          </View>
-          <ActionCard
-            icon="trash-outline"
-            title="Borrar listas activas"
-            subtitle="Elimina las listas de compra que todavía no están archivadas"
-            destructive
-            onPress={() =>
-              safeAlert("Borrar listas activas", "¿Seguro?", [
-                { text: "Cancelar", style: "cancel" },
-                {
-                  text: "Borrar",
-                  style: "destructive",
-                  onPress: clearActiveLists,
-                },
-              ])
-            }
-          />
-
-          <ActionCard
-            icon="file-tray-outline"
-            title="Borrar listas archivadas"
-            subtitle="Elimina las listas guardadas como archivadas"
-            destructive
-            onPress={() =>
-              safeAlert("Borrar listas archivadas", "¿Seguro?", [
-                { text: "Cancelar", style: "cancel" },
-                {
-                  text: "Borrar",
-                  style: "destructive",
-                  onPress: handleClearArchivedLists,
-                },
-              ])
-            }
-          />
-
-          <ActionCard
-            icon="receipt-outline"
-            title="Borrar historial de compras"
-            subtitle="Limpia los registros generados a partir de compras anteriores"
-            destructive
-            onPress={() =>
-              safeAlert("Borrar historial de compras", "¿Seguro?", [
-                { text: "Cancelar", style: "cancel" },
-                {
-                  text: "Borrar",
-                  style: "destructive",
-                  onPress: clearPurchaseHistory,
-                },
-              ])
-            }
-          />
-
-          <ActionCard
-            icon="barcode-outline"
-            title="Borrar historial de escaneos"
-            subtitle="Elimina productos y códigos guardados desde el scanner"
-            destructive
-            onPress={() =>
-              safeAlert("Borrar historial de escaneos", "¿Seguro?", [
-                { text: "Cancelar", style: "cancel" },
-                {
-                  text: "Borrar",
-                  style: "destructive",
-                  onPress: clearScannedHistory,
-                },
-              ])
-            }
-          />
-
-          <ActionCard
-            icon="refresh-outline"
-            title="Recargar tiendas"
-            subtitle="Restaura las tiendas desde los datos iniciales del proyecto"
-            destructive
-            onPress={handleReloadStores}
-          />
-
-          <ActionCard
-            icon="close-circle-outline"
-            title="Borrar almacenamiento completo"
-            subtitle="Elimina todos los datos locales guardados por la aplicación"
-            destructive
-            onPress={handleClearAllStorage}
-          />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={danger ? "#b91c1c" : "#9ca3af"}
+      />
+    </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-  },
+export default function MenuScreen() {
+  const navigation = useNavigation();
 
-  scroll: {
+  const goToBarcodeSettings = () => {
+    navigation.navigate(ROUTES.BARCODE_SETTINGS);
+  };
+
+  return (
+    <View style={styles.screen}>
+      <SafeAreaView edges={["left", "right", "bottom"]} style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.content}>
+          {/* HEADER */}
+          <Text style={styles.title}>Menú</Text>
+          <Text style={styles.subtitle}>
+            Gestiona la configuración, el mantenimiento de datos locales y el
+            almacenamiento de la aplicación.
+          </Text>
+
+          {/* ---------------- SEARCH ---------------- */}
+          <View style={styles.section}>
+            <Card
+              title="Search Engine productos"
+              subtitle="Configura los motores usados para buscar productos"
+              icon="search-outline"
+              onPress={() =>
+                navigation.navigate("SearchEngineSettingsScreen", {
+                  type: "product",
+                })
+              }
+            />
+
+            <Card
+              title="Search Engine libros"
+              subtitle="Configura los motores usados para buscar libros"
+              icon="book-outline"
+              onPress={() =>
+                navigation.navigate("SearchEngineSettingsScreen", {
+                  type: "book",
+                })
+              }
+            />
+            <Card
+              title="Configuración del escáner"
+              subtitle="Selecciona formatos como EAN-13, EAN-8, UPC o QR"
+              icon="barcode-outline"
+              onPress={goToBarcodeSettings}
+            />
+
+            <Card
+              title="Ajustes generales"
+              subtitle="Preferencias globales de la aplicación"
+              icon="settings-outline"
+              onPress={() =>
+                safeAlert(
+                  "Pendiente",
+                  "No hay función implementada todavía para listas archivadas.",
+                )
+              }
+            />
+          </View>
+
+          {/* ---------------- DANGER ZONE ---------------- */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Danger Zone</Text>
+            <Card
+              title="Borrar listas activas"
+              subtitle="Elimina las listas de compra que todavía no están archivadas"
+              icon="trash-outline"
+              danger
+              onPress={() =>
+                safeAlert("Borrar listas activas", "¿Seguro?", [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Borrar",
+                    style: "destructive",
+                    onPress: async () => {
+                      await clearActiveLists();
+                    },
+                  },
+                ])
+              }
+            />
+
+            <Card
+              title="Borrar listas archivadas"
+              subtitle="Elimina las listas guardadas como archivadas"
+              icon="archive-outline"
+              danger
+              onPress={() =>
+                safeAlert(
+                  "Pendiente",
+                  "No hay función implementada todavía para listas archivadas.",
+                )
+              }
+            />
+
+            <Card
+              title="Borrar historial de compras"
+              subtitle="Limpia los registros generados a partir de listas archivadas"
+              icon="receipt-outline"
+              danger
+              onPress={() =>
+                safeAlert("Borrar historial de compras", "¿Seguro?", [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Borrar",
+                    style: "destructive",
+                    onPress: async () => {
+                      await clearPurchaseHistory();
+                    },
+                  },
+                ])
+              }
+            />
+
+            <Card
+              title="Borrar historial de escaneos"
+              subtitle="Elimina productos y códigos guardados desde el scanner"
+              icon="barcode-outline"
+              danger
+              onPress={() =>
+                safeAlert("Borrar historial de escaneos", "¿Seguro?", [
+                  { text: "Cancelar", style: "cancel" },
+                  {
+                    text: "Borrar",
+                    style: "destructive",
+                    onPress: async () => {
+                      await clearScannedHistory();
+                    },
+                  },
+                ])
+              }
+            />
+
+            <Card
+              title="Recargar tiendas"
+              subtitle="Restaura las tiendas desde los datos iniciales"
+              icon="refresh-outline"
+              danger
+              onPress={() =>
+                safeAlert(
+                  "Recargar tiendas",
+                  "Se perderán cambios locales. ¿Continuar?",
+                  [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Recargar",
+                      style: "destructive",
+                      onPress: async () => {
+                        await clearStoresData();
+                        navigation.navigate(ROUTES.SHOPPING_TAB);
+                      },
+                    },
+                  ],
+                )
+              }
+            />
+
+            <Card
+              title="Borrar almacenamiento completo"
+              subtitle="Elimina todos los datos locales"
+              icon="close-circle-outline"
+              danger
+              onPress={() =>
+                safeAlert(
+                  "Borrar almacenamiento",
+                  "Esta acción no se puede deshacer",
+                  [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Borrar todo",
+                      style: "destructive",
+                      onPress: async () => {
+                        await clearStorage();
+                        navigation.navigate(ROUTES.SHOPPING_TAB);
+                      },
+                    },
+                  ],
+                )
+              }
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* STYLES */
+/* -------------------------------------------------------------------------- */
+
+const styles = {
+  screen: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  safeArea: {
     flex: 1,
   },
-
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 120,
+    padding: 16,
+    paddingBottom: 40,
   },
 
   title: {
     fontSize: 28,
-    fontWeight: "800",
+    fontWeight: "700",
     color: "#111827",
-    marginBottom: 8,
+    marginBottom: 6,
   },
-
   subtitle: {
     fontSize: 15,
-    lineHeight: 22,
-    color: "#6B7280",
-    marginBottom: 24,
+    color: "#6b7280",
+    marginBottom: 20,
   },
 
-  actions: {
-    gap: 14,
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 12,
   },
 
   card: {
-    minHeight: 86,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-
-  dangerCard: {
-    borderColor: "#FECACA",
-    backgroundColor: "#FFFFFF",
-  },
-
-  cardPressed: {
-    opacity: 0.75,
-    transform: [{ scale: 0.99 }],
-  },
-
-  iconBox: {
-    width: 48,
-    height: 48,
+    justifyContent: "space-between",
+    backgroundColor: "#ffffff",
+    padding: 14,
     borderRadius: 16,
-    backgroundColor: "#F3F4F6",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+
+  cardDanger: {
+    borderColor: "#fecaca",
+    backgroundColor: "#fff1f2",
+  },
+
+  cardLeft: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginRight: 14,
-  },
-
-  dangerIconBox: {
-    backgroundColor: "#FEF2F2",
-  },
-
-  cardText: {
     flex: 1,
   },
 
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 4,
+  iconWrapper: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
   },
 
-  dangerTitle: {
-    color: "#B91C1C",
-  },
-
-  cardSubtitle: {
-    fontSize: 14,
-    lineHeight: 19,
-    color: "#6B7280",
+  iconDanger: {
+    backgroundColor: "#fee2e2",
   },
 
   cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     color: "#111827",
-    marginBottom: 4,
+  },
+
+  textDanger: {
+    color: "#b91c1c",
   },
 
   cardSubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
+    fontSize: 13,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  warningPanel: {
+    width: "100%",
+    overflow: "hidden",
+    borderRadius: 8,
+    backgroundColor: "#FACC15",
+    marginVertical: 12,
   },
 
-  cardMeta: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginTop: 5,
+  warningStripeWrapper: {
+    flex: 1,
+    position: "relative",
   },
-});
+
+  warningStripe: {
+    position: "absolute",
+    top: -20,
+    width: 14,
+    height: 80,
+    transform: [{ rotate: "35deg" }],
+  },
+};

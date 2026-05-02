@@ -36,6 +36,11 @@ export default function MenuStack() {
         component={SearchEngines}
         options={{ title: "Barcode config" }}
       />
+      <Stack.Screen
+        name={ROUTES.SEARCH_ENGINE_SETTINGS}
+        component={SearchEngines}
+        options={{ title: "Barcode config" }}
+      />
     </Stack.Navigator>
   );
 }

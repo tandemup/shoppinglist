@@ -37,9 +37,12 @@ export const ROUTES = {
   QUICK_SCANNER_SCREEN: "QuickScannerScreen",
   DETAILED_SCANNER_SCREEN: "DetailedScannerScreen",
   SEARCH_ENGINES: "SearchEngines",
+  SEARCH_ENGINE_SETTINGS: "SearchEngineSettingsScreen",
+  CONFIRM_DELETE: "ConfirmDeleteScreen",
+  SETTINGS: "SettingsScreen",
   // Menu
   MENU: "Menu",
-  BARCODE_SETTINGS: "BarcodeSettings",
+  BARCODE_SETTINGS: "BarcodeSettingsScreen",
 
   // Debug
   PRODUCT_LEARNING_DEBUG: "ProductLearningDebug",
