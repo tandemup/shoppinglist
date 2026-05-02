@@ -16,4 +16,5 @@ export const STORAGE_KEYS = {
   LOCATION_CACHE: "@shopping/location-cache",
   HOME_LOCATION: "@shopping/home-location",
   SHOPPING_LOCATION: "@shopping/shopping-location",
+  BARCODE_SETTINGS: "barcode_settings",
 };

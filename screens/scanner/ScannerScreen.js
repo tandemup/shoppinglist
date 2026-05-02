@@ -23,6 +23,8 @@ export default function ScannerScreen() {
   const shouldSaveToHistory = route.params?.saveToHistory ?? !onScan;
   const returnToTab = route.params?.returnToTab;
 
+  const barcodeTypes = route.params?.barcodeTypes ?? ["ean13"];
+
   async function saveDetectedBarcode(code) {
     const barcode = String(code || "")
       .replace(/\D/g, "")
@@ -36,9 +38,6 @@ export default function ScannerScreen() {
 
     const hasUsefulCachedData =
       cachedItem?.name?.trim() || cachedItem?.imageUrl?.trim();
-
-    const hasCompleteCachedData =
-      cachedItem?.name?.trim() && cachedItem?.imageUrl?.trim();
 
     if (hasUsefulCachedData) {
       await saveScannedEntry(barcode, {
@@ -125,7 +124,7 @@ export default function ScannerScreen() {
       onDetected={handleDetected}
       onClose={handleClose}
       continuous={continuous}
-      showControls={true}
+      barcodeTypes={barcodeTypes}
     />
   );
 }

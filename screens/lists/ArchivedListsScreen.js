@@ -7,6 +7,7 @@ import {
   StyleSheet,
   FlatList,
   Linking,
+  SafeAreaView,
 } from "react-native";
 import SearchBar from "../../components/features/search/SearchBar";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,35 +22,37 @@ import { normalizePriceInfo } from "../../utils/core/defaultItem";
 ──────────────────────────────────────────────── */
 
 const StoreSearchLink = ({ store, onPressStore }) => {
-  if (!store) return <Text style={{ color: "#999" }}>Sin tienda</Text>;
+  if (!store) {
+    return <Text style={styles.storeMutedText}>Sin tienda</Text>;
+  }
 
   const handlePress = () => {
+    if (onPressStore) {
+      onPressStore(store.id);
+      return;
+    }
+
     Linking.openURL(
       `https://www.google.com/search?q=${encodeURIComponent(store.name)}`,
     );
-
-    if (onPressStore) {
-      onPressStore(store.id);
-      console.log(store);
-
-      return;
-    }
   };
 
   return (
     <TouchableOpacity onPress={handlePress} style={styles.storeLink}>
-      <Ionicons name="location-outline" size={16} color="#2563eb" />
-      <Text style={styles.storeText}>{store.name}</Text>
+      <Ionicons name="location-outline" size={16} color="#2563EB" />
+      <Text style={styles.storeText} numberOfLines={1}>
+        {store.name}
+      </Text>
     </TouchableOpacity>
   );
 };
 
 /* ────────────────────────────────────────────────
-   HEADER ROW (FIXED)
+   HEADER ROW
 ──────────────────────────────────────────────── */
+
 const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
   <View style={styles.topRow}>
-    {/* TITLE */}
     <Pressable
       onPress={onPressDetails}
       style={styles.titlePressable}
@@ -60,12 +63,11 @@ const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
       </Text>
     </Pressable>
 
-    {/* CHEVRON — always right */}
     <Pressable onPress={onToggle} style={styles.chevronPressable} hitSlop={10}>
       <Ionicons
         name="chevron-forward"
         size={22}
-        color="#555"
+        color="#9CA3AF"
         style={{
           transform: [{ rotate: expanded ? "90deg" : "0deg" }],
         }}
@@ -76,46 +78,37 @@ const HeaderRow = ({ title, expanded, onToggle, onPressDetails }) => (
 
 const InfoRow = ({ archivedAt, store, onPressStore }) => (
   <View style={styles.infoRow}>
-    <Ionicons name="calendar-outline" size={16} color="#777" />
-    <Text style={styles.subInfo}>
-      {new Date(archivedAt).toLocaleDateString("es-ES", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      })}
-    </Text>
-    <Text style={styles.dot}>•</Text>
-    <StoreSearchLink store={store} onPressStore={onPressStore} />
+    <View style={styles.metaPill}>
+      <Ionicons name="calendar-outline" size={15} color="#6B7280" />
+      <Text style={styles.subInfo} numberOfLines={1}>
+        {new Date(archivedAt).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}
+      </Text>
+    </View>
+
+    <View style={[styles.metaPill, styles.storePill]}>
+      <StoreSearchLink store={store} onPressStore={onPressStore} />
+    </View>
   </View>
 );
 
 const ProductsAndTotalRow = ({ count, total }) => (
   <View style={styles.bottomRow}>
     <View style={styles.iconRow}>
-      <Ionicons name="cart-outline" size={17} color="#777" />
+      <Ionicons name="cart-outline" size={17} color="#6B7280" />
       <Text style={styles.productsText}>{count} productos</Text>
     </View>
+
     <Text style={styles.totalPrice}>{total.toFixed(2)} €</Text>
   </View>
 );
 
 /* ────────────────────────────────────────────────
-   ITEM ROW — OPCIÓN C
+   ITEM ROW
 ──────────────────────────────────────────────── */
-const PriceRow = ({ label, value, highlight = false }) => {
-  if (value === null || value === undefined) return null;
-
-  return (
-    <View style={styles.priceRow}>
-      <Text style={styles.priceLabel}>{label}</Text>
-      <Text
-        style={[styles.priceValue, highlight && styles.priceValueHighlight]}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-};
 
 const ArchivedItemRow = ({ item }) => {
   const pi = normalizePriceInfo(item.priceInfo);
@@ -124,8 +117,11 @@ const ArchivedItemRow = ({ item }) => {
 
   return (
     <View style={styles.itemRow}>
-      {/* LEFT COLUMN */}
-      <View style={{ flex: 1 }}>
+      <View style={styles.itemIconBox}>
+        <Ionicons name="receipt-outline" size={18} color="#111827" />
+      </View>
+
+      <View style={styles.itemContent}>
         <View style={styles.nameRow}>
           <Text style={styles.itemName} numberOfLines={1}>
             {item.name}
@@ -135,12 +131,6 @@ const ArchivedItemRow = ({ item }) => {
             <View style={styles.offerBadgeInline}>
               <Text style={styles.offerText}>{promoLabel || promo}</Text>
             </View>
-          )}
-
-          {typeof savings === "number" && savings > 0 && (
-            <Text style={styles.savingText}>
-              {"💸 "} {savings.toFixed(2)} {currency}
-            </Text>
           )}
         </View>
 
@@ -152,12 +142,17 @@ const ArchivedItemRow = ({ item }) => {
           <Text style={styles.barcode}>🔎 {item.barcode}</Text>
         )}
 
+        {typeof savings === "number" && savings > 0 && (
+          <Text style={styles.savingText}>
+            💸 {savings.toFixed(2)} {currency}
+          </Text>
+        )}
+
         {typeof warning === "string" && (
           <Text style={styles.warningText}>⚠ {warning}</Text>
         )}
       </View>
 
-      {/* RIGHT COLUMN — PRICE */}
       <View style={styles.itemPriceColumn}>
         {typeof total === "number" && (
           <Text style={styles.itemPrice}>
@@ -189,18 +184,26 @@ const ArchivedListCard = ({
 
   return (
     <View style={styles.card}>
-      <HeaderRow
-        title={list.name}
-        expanded={expanded}
-        onToggle={onToggle}
-        onPressDetails={onPressDetails}
-      />
+      <View style={styles.cardHeaderRow}>
+        <View style={styles.iconBox}>
+          <Ionicons name="archive-outline" size={26} color="#111827" />
+        </View>
 
-      <InfoRow
-        archivedAt={list.archivedAt || list.createdAt}
-        store={store}
-        onPressStore={onPressStore}
-      />
+        <View style={styles.cardText}>
+          <HeaderRow
+            title={list.name}
+            expanded={expanded}
+            onToggle={onToggle}
+            onPressDetails={onPressDetails}
+          />
+
+          <InfoRow
+            archivedAt={list.archivedAt || list.createdAt}
+            store={store}
+            onPressStore={onPressStore}
+          />
+        </View>
+      </View>
 
       <View style={styles.separator} />
 
@@ -227,7 +230,6 @@ export default function ArchivedListsScreen({ navigation }) {
   const [expandedListId, setExpandedListId] = useState(null);
   const [search, setSearch] = useState("");
 
-  // ✅ SORT: most recent first
   const sortedLists = useMemo(() => {
     return [...(archivedLists ?? [])].sort(
       (a, b) =>
@@ -242,14 +244,11 @@ export default function ArchivedListsScreen({ navigation }) {
     const q = search.toLowerCase();
 
     return sortedLists.filter((list) => {
-      // 🟦 1. Nombre de la lista
       const listNameMatch = list.name?.toLowerCase().includes(q);
 
-      // 🟦 2. Supermercado
       const store = list.storeId ? getStoreById(list.storeId) : null;
       const storeMatch = store?.name?.toLowerCase().includes(q);
 
-      // 🟦 3. Items dentro de la lista
       const itemsMatch = (list.items || []).some((item) => {
         const nameMatch = item.name?.toLowerCase().includes(q);
         const barcodeMatch =
@@ -286,59 +285,128 @@ export default function ArchivedListsScreen({ navigation }) {
         setExpandedListId(expandedListId === item.id ? null : item.id)
       }
       onPressDetails={() => openDetails(item)}
-      onPressStore={() => {}}
+      onPressStore={openStoreInfo}
     />
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.screenTitle}>Listas Archivadas</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        <Text style={styles.title}>Listas archivadas</Text>
 
-      <SearchBar
-        value={search}
-        onChange={setSearch}
-        placeholder="Buscar lista o supermercado…"
-        style={{ marginBottom: 14 }}
-      />
+        <Text style={styles.subtitle}>
+          Consulta las listas ya pagadas, revisa sus productos y accede al
+          detalle de cada compra archivada.
+        </Text>
 
-      <FlatList
-        data={filteredLists}
-        keyExtractor={(item) => item.id}
-        extraData={expandedListId}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 60 }}
-      />
-    </View>
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar lista, supermercado o producto…"
+          style={styles.searchBar}
+        />
+
+        <FlatList
+          data={filteredLists}
+          keyExtractor={(item) => item.id}
+          extraData={expandedListId}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyCard}>
+              <View style={styles.emptyIconBox}>
+                <Ionicons name="archive-outline" size={30} color="#9CA3AF" />
+              </View>
+              <Text style={styles.emptyTitle}>No hay listas archivadas</Text>
+              <Text style={styles.emptySubtitle}>
+                Cuando archives una lista de compra aparecerá aquí.
+              </Text>
+            </View>
+          }
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 /* ────────────────────────────────────────────────
    STYLES
 ──────────────────────────────────────────────── */
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#F2F3F7",
+    backgroundColor: "#F9FAFB",
   },
 
-  screenTitle: {
-    fontSize: 24,
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+  },
+
+  title: {
+    fontSize: 28,
     fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 18,
+    color: "#111827",
+    marginBottom: 8,
+  },
+
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#6B7280",
+    marginBottom: 20,
+  },
+
+  searchBar: {
+    marginBottom: 16,
+  },
+
+  listContent: {
+    paddingBottom: 60,
   },
 
   card: {
-    backgroundColor: "#FFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.06)",
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
 
-  /* ───────── HEADER ───────── */
+  cardPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
+  },
+
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+
+  cardText: {
+    flex: 1,
+  },
 
   topRow: {
     flexDirection: "row",
@@ -346,46 +414,78 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
+  titlePressable: {
+    flex: 1,
+    paddingVertical: 2,
+  },
+
   listTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
+    color: "#111827",
+  },
+
+  chevronPressable: {
+    padding: 6,
+    marginLeft: 8,
   },
 
   infoRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
-    gap: 6,
-    marginTop: 4,
+    gap: 8,
+    marginTop: 8,
+  },
+
+  metaPill: {
+    minHeight: 28,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "#F3F4F6",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+
+  storePill: {
+    flexShrink: 1,
   },
 
   subInfo: {
-    fontSize: 14,
-    color: "#666",
-  },
-
-  dot: {
-    color: "#aaa",
+    fontSize: 13,
+    color: "#6B7280",
   },
 
   storeLink: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    flexShrink: 1,
   },
 
   storeText: {
-    color: "#2563eb",
-    fontSize: 14,
+    color: "#2563EB",
+    fontSize: 13,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+
+  storeMutedText: {
+    color: "#9CA3AF",
+    fontSize: 13,
   },
 
   separator: {
     height: 1,
-    backgroundColor: "rgba(0,0,0,0.08)",
-    marginVertical: 10,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 12,
   },
 
   bottomRow: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
   },
 
@@ -396,25 +496,21 @@ const styles = StyleSheet.create({
   },
 
   productsText: {
-    fontSize: 15,
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "600",
   },
 
   totalPrice: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#16a34a",
+    fontWeight: "800",
+    color: "#16A34A",
   },
-
-  /* ───────── ITEMS ───────── */
 
   itemsContainer: {
-    marginTop: 8,
-  },
-
-  itemRow1: {
-    flexDirection: "row",
-    paddingVertical: 12,
-    gap: 12,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
   },
 
   itemRow: {
@@ -422,6 +518,21 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     paddingVertical: 12,
     gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+
+  itemIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  itemContent: {
+    flex: 1,
   },
 
   nameRow: {
@@ -432,94 +543,100 @@ const styles = StyleSheet.create({
 
   itemName: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#111",
+    fontWeight: "700",
+    color: "#111827",
     flexShrink: 1,
   },
 
   barcode: {
     fontSize: 12,
-    color: "#2563eb",
+    color: "#2563EB",
     marginTop: 4,
   },
 
-  itemPrice: {
-    fontSize: 16,
+  summaryText: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 4,
+    lineHeight: 17,
+  },
+
+  savingText: {
+    fontSize: 12,
     fontWeight: "700",
-    marginLeft: 12,
+    color: "#16A34A",
+    marginTop: 4,
+  },
+
+  warningText: {
+    fontSize: 12,
+    color: "#B45309",
+    marginTop: 4,
   },
 
   itemPriceColumn: {
     alignItems: "flex-end",
     justifyContent: "flex-start",
-    minWidth: 80,
+    minWidth: 82,
   },
 
-  titlePressable: {
-    flexShrink: 1,
-    paddingVertical: 4,
-  },
-
-  chevronPressable: {
-    padding: 8, // 🔑 crea zona táctil clara
+  itemPrice: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#111827",
     marginLeft: 8,
   },
-
-  /* ───────── OFFER ───────── */
 
   offerBadgeInline: {
     backgroundColor: "#FEF3C7",
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
     flexShrink: 0,
   },
 
   offerText: {
     fontSize: 11,
-    fontWeight: "600",
-    color: "#92400e",
+    fontWeight: "700",
+    color: "#92400E",
   },
 
-  /* ───────── DETAILS ───────── */
-
-  summaryText: {
-    fontSize: 12,
-    color: "#555",
-    marginTop: 4,
-    whiteSpace: "pre-line", // RN Web
+  emptyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 28,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
 
-  savingText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#16a34a",
-    marginTop: 4,
-  },
-  warningText: {
-    fontSize: 12,
-    color: "#b45309",
-    marginTop: 4,
-  },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 2,
+  emptyIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
   },
 
-  priceLabel: {
-    fontSize: 12,
-    color: "#555",
-  },
-
-  priceValue: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#16a34a",
-  },
-
-  priceValueHighlight: {
-    fontSize: 14,
+  emptyTitle: {
+    fontSize: 17,
     fontWeight: "800",
+    color: "#111827",
+    marginBottom: 6,
+  },
+
+  emptySubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#6B7280",
+    textAlign: "center",
   },
 });

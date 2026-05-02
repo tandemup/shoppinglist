@@ -1,3 +1,5 @@
+// screens/scanner/ScannedHistoryScreen.js
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -111,7 +113,10 @@ export default function ScannedHistoryScreen({ navigation }) {
     return (
       <View style={[styles.card, item.isBook && styles.cardBook]}>
         <Pressable
-          style={styles.mainPressable}
+          style={({ pressed }) => [
+            styles.mainPressable,
+            pressed && styles.cardPressed,
+          ]}
           onPress={() => openItem(item)}
           onLongPress={() => handleDelete(item)}
         >
@@ -125,7 +130,7 @@ export default function ScannedHistoryScreen({ navigation }) {
               />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <Ionicons name="cube-outline" size={26} color="#999" />
+                <Ionicons name="cube-outline" size={26} color="#9CA3AF" />
               </View>
             )}
           </View>
@@ -136,13 +141,9 @@ export default function ScannedHistoryScreen({ navigation }) {
               {item.name || "Sin nombre"}
             </Text>
 
-            {item.brand ? (
-              <Text style={styles.brand} numberOfLines={1}>
-                {item.brand}
-              </Text>
-            ) : (
-              <Text style={styles.brand}>N/A</Text>
-            )}
+            <Text style={styles.brand} numberOfLines={1}>
+              {item.brand || "N/A"}
+            </Text>
 
             <Text style={styles.count}>
               Escaneos: {item.scanCount ?? 1}
@@ -153,7 +154,7 @@ export default function ScannedHistoryScreen({ navigation }) {
           </View>
 
           <View style={styles.actionsCol}>
-            <Ionicons name="chevron-forward" size={26} color="#888" />
+            <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
           </View>
         </Pressable>
 
@@ -176,20 +177,24 @@ export default function ScannedHistoryScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBlock}>
+      <View style={styles.content}>
         <Text style={styles.title}>Historial de Escaneos</Text>
+
+        <Text style={styles.subtitle}>
+          Consulta productos y códigos de barras escaneados anteriormente.
+        </Text>
 
         <View style={styles.searchContainer}>
           <Ionicons
-            name="search"
+            name="search-outline"
             size={20}
-            color="#666"
+            color="#6B7280"
             style={styles.searchIcon}
           />
 
           <TextInput
             placeholder="Buscar producto o código..."
-            placeholderTextColor="#888"
+            placeholderTextColor="#9CA3AF"
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -197,18 +202,24 @@ export default function ScannedHistoryScreen({ navigation }) {
             autoCorrect={false}
           />
         </View>
-      </View>
 
-      <FlatList
-        data={filteredItems}
-        renderItem={renderItem}
-        keyExtractor={(item, index) =>
-          item.id?.toString() || item.barcode?.toString() || `scan-${index}`
-        }
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<Text style={styles.empty}>{emptyMessage}</Text>}
-        keyboardShouldPersistTaps="handled"
-      />
+        <FlatList
+          data={filteredItems}
+          renderItem={renderItem}
+          keyExtractor={(item, index) =>
+            item.id?.toString() || item.barcode?.toString() || `scan-${index}`
+          }
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyBlock}>
+              <Ionicons name="barcode-outline" size={34} color="#9CA3AF" />
+              <Text style={styles.empty}>{emptyMessage}</Text>
+            </View>
+          }
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
     </View>
   );
 }
@@ -216,59 +227,98 @@ export default function ScannedHistoryScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: "#F9FAFB",
   },
 
-  listContent: {
-    paddingBottom: 50,
-  },
-
-  headerBlock: {
-    marginBottom: 14,
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
 
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 16,
     color: "#111827",
+    marginBottom: 8,
   },
 
-  empty: {
-    marginTop: 40,
-    fontSize: 16,
-    textAlign: "center",
-    color: "#888",
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#6B7280",
+    marginBottom: 18,
+  },
+
+  searchContainer: {
+    minHeight: 50,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
+    marginBottom: 16,
+  },
+
+  searchIcon: {
+    marginRight: 8,
+  },
+
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: "#111827",
+    outlineStyle: "none",
+  },
+
+  listContent: {
+    paddingBottom: 80,
   },
 
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    marginBottom: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#E0E7FF",
-    padding: 14,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+
+  cardPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.99 }],
   },
 
   cardBook: {
-    backgroundColor: "#E0F2FF",
-    borderColor: "#60A5FA",
-    borderWidth: 1.2,
+    borderColor: "#BFDBFE",
+    backgroundColor: "#EFF6FF",
   },
 
   mainPressable: {
     flexDirection: "row",
-    alignItems: "stretch",
+    alignItems: "center",
   },
 
   imageWrapper: {
     width: 64,
     height: 64,
-    borderRadius: 8,
+    borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#F3F4F6",
+    marginRight: 14,
   },
 
   image: {
@@ -285,65 +335,48 @@ const styles = StyleSheet.create({
 
   infoContent: {
     flex: 1,
-    marginLeft: 12,
     justifyContent: "center",
   },
 
   name: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: "#111827",
+    marginBottom: 3,
   },
 
   brand: {
-    marginTop: 3,
-    fontSize: 13,
-    color: "#4b5563",
-  },
-
-  barcodeRow: {
-    marginTop: 1,
-    marginLeft: 76,
-    alignItems: "flex-start",
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 4,
   },
 
   count: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#444",
-    fontStyle: "italic",
-  },
-
-  date: {
-    marginTop: 4,
-    color: "#444",
-    fontSize: 12,
+    fontSize: 13,
+    color: "#6B7280",
   },
 
   actionsCol: {
     justifyContent: "center",
-    marginLeft: 6,
+    marginLeft: 8,
   },
 
-  searchContainer: {
-    flexDirection: "row",
+  barcodeRow: {
+    marginTop: 10,
+    marginLeft: 78,
+    alignItems: "flex-start",
+  },
+
+  emptyBlock: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#E0E7FF",
+    justifyContent: "center",
+    paddingTop: 48,
   },
 
-  searchIcon: {
-    marginRight: 6,
-  },
-
-  searchInput: {
-    flex: 1,
+  empty: {
+    marginTop: 10,
     fontSize: 15,
-    color: "#333",
-    outlineStyle: "none",
+    textAlign: "center",
+    color: "#6B7280",
   },
 });

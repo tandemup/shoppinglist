@@ -39,6 +39,7 @@ export const ROUTES = {
   SEARCH_ENGINES: "SearchEngines",
   // Menu
   MENU: "Menu",
+  BARCODE_SETTINGS: "BarcodeSettings",
 
   // Debug
   PRODUCT_LEARNING_DEBUG: "ProductLearningDebug",

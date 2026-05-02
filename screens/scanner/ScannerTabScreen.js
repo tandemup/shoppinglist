@@ -1,14 +1,71 @@
 // screens/scanner/ScannerTabScreen.js
 
-import React from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, StyleSheet, Pressable, SafeAreaView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+
 import { ROUTES } from "../../navigation/ROUTES";
 
+import { DEFAULT_BARCODE_SETTINGS } from "../../constants/barcodeFormats";
+
+import { getBarcodeSettings } from "../../src/storage/barcodeSettingsStorage";
+
+function getEnabledBarcodeTypes(settings) {
+  const formats = settings?.formats ?? DEFAULT_BARCODE_SETTINGS.formats;
+
+  const enabled = Object.entries(formats)
+    .filter(([, value]) => Boolean(value))
+    .map(([formatId]) => formatId);
+
+  if (enabled.length > 0) {
+    return enabled;
+  }
+
+  return Object.entries(DEFAULT_BARCODE_SETTINGS.formats)
+    .filter(([, value]) => Boolean(value))
+    .map(([formatId]) => formatId);
+}
+
 export default function ScannerTabScreen({ navigation }) {
+  const [barcodeSettings, setBarcodeSettings] = useState(
+    DEFAULT_BARCODE_SETTINGS,
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+
+      const loadBarcodeSettings = async () => {
+        try {
+          const data = await getBarcodeSettings();
+
+          if (!mounted) return;
+
+          setBarcodeSettings(data || DEFAULT_BARCODE_SETTINGS);
+        } catch (error) {
+          console.log("❌ Error loading barcode settings:", error);
+
+          if (!mounted) return;
+
+          setBarcodeSettings(DEFAULT_BARCODE_SETTINGS);
+        }
+      };
+
+      loadBarcodeSettings();
+
+      return () => {
+        mounted = false;
+      };
+    }, []),
+  );
+
+  const enabledBarcodeTypes = getEnabledBarcodeTypes(barcodeSettings);
+
   const goToScanner = () => {
     navigation.navigate(ROUTES.SCANNER_SCREEN, {
       saveToHistory: true,
+      barcodeTypes: enabledBarcodeTypes,
     });
   };
 
@@ -16,9 +73,11 @@ export default function ScannerTabScreen({ navigation }) {
     navigation.navigate(ROUTES.SCANNED_HISTORY);
   };
 
-  const goToSelectBrowser = () => {
-    navigation.navigate(ROUTES.SEARCH_ENGINES);
+  const goToBarcodeSettings = () => {
+    navigation.navigate(ROUTES.BARCODE_SETTINGS);
   };
+
+  const enabledFormatsLabel = enabledBarcodeTypes.join(", ");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,6 +105,9 @@ export default function ScannerTabScreen({ navigation }) {
               <Text style={styles.cardTitle}>Escanear nuevo producto</Text>
               <Text style={styles.cardSubtitle}>
                 Abrir la cámara para leer un código de barras
+              </Text>
+              <Text style={styles.cardMeta} numberOfLines={1}>
+                Formatos activos: {enabledFormatsLabel}
               </Text>
             </View>
 
@@ -78,16 +140,18 @@ export default function ScannerTabScreen({ navigation }) {
               styles.card,
               pressed && styles.cardPressed,
             ]}
-            onPress={goToSelectBrowser}
+            onPress={goToBarcodeSettings}
           >
             <View style={styles.iconBox}>
-              <Ionicons name="search-outline" size={28} color="#111827" />
+              <Ionicons name="options-outline" size={28} color="#111827" />
             </View>
 
             <View style={styles.cardText}>
-              <Text style={styles.cardTitle}>Motor de Búsqueda</Text>
+              <Text style={styles.cardTitle}>
+                Configuración del código de barras
+              </Text>
               <Text style={styles.cardSubtitle}>
-                Selecciona motores para productos y libros
+                Selecciona formatos como EAN-13, EAN-8, UPC o QR
               </Text>
             </View>
 
@@ -175,5 +239,11 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     fontSize: 14,
     color: "#6B7280",
+  },
+
+  cardMeta: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginTop: 5,
   },
 });

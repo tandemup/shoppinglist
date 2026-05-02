@@ -9,6 +9,7 @@ import ScannerScreen from "../screens/scanner/ScannerScreen";
 import EditScannedItemScreen from "../screens/scanner/EditScannedItemScreen";
 import ScannedHistoryScreen from "../screens/scanner/ScannedHistoryScreen";
 import SearchEngines from "../screens/settings/SearchEngines";
+import BarcodeSettingsScreen from "../screens/settings/BarcodeSettingsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -50,6 +51,12 @@ export default function ScannerStack() {
         name={ROUTES.SEARCH_ENGINES}
         component={SearchEngines}
         options={{ title: "Motor de búsqueda" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.BARCODE_SETTINGS}
+        component={BarcodeSettingsScreen}
+        options={{ title: "Código de barras" }}
       />
     </Stack.Navigator>
   );

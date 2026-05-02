@@ -1,8 +1,19 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { View, StyleSheet, Pressable, SafeAreaView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
+
 import UnifiedBarcodeScanner from "./UnifiedBarcodeScanner";
+
+import { DEFAULT_BARCODE_SETTINGS } from "../../../constants/barcodeFormats";
+
+import { getBarcodeSettings } from "../../../src/storage/barcodeSettingsStorage";
 
 export default function BarcodeScannerView({
   onDetected,
@@ -10,15 +21,69 @@ export default function BarcodeScannerView({
   continuous = true,
   duplicateCooldownMs = 1500,
   showControls = true,
+  barcodeTypes = ["ean13"],
 }) {
   const handledRef = useRef(false);
   const lastCodeRef = useRef(null);
   const lastTimeRef = useRef(0);
   const isFocused = useIsFocused();
 
+  const [barcodeSettings, setBarcodeSettingsState] = useState(
+    DEFAULT_BARCODE_SETTINGS,
+  );
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadSettings = async () => {
+      try {
+        const data = await getBarcodeSettings();
+
+        if (!mounted) return;
+
+        setBarcodeSettingsState(data || DEFAULT_BARCODE_SETTINGS);
+      } catch (error) {
+        console.log("❌ Error loading barcode settings in scanner:", error);
+
+        if (!mounted) return;
+
+        setBarcodeSettingsState(DEFAULT_BARCODE_SETTINGS);
+      }
+    };
+
+    if (isFocused) {
+      loadSettings();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [isFocused]);
+
+  const enabledBarcodeTypes = useMemo(() => {
+    const formats =
+      barcodeSettings?.formats ?? DEFAULT_BARCODE_SETTINGS.formats;
+
+    const enabled = Object.entries(formats)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([formatId]) => formatId);
+
+    if (enabled.length > 0) {
+      return enabled;
+    }
+
+    return Object.entries(DEFAULT_BARCODE_SETTINGS.formats)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([formatId]) => formatId);
+  }, [barcodeSettings]);
+
   function normalizeBarcode(code) {
     const clean = String(code || "").replace(/\D/g, "");
-    if (clean.length === 13 || clean.length === 8) return clean;
+
+    if (clean.length === 13 || clean.length === 8 || clean.length === 12) {
+      return clean;
+    }
+
     return null;
   }
 
@@ -64,12 +129,14 @@ export default function BarcodeScannerView({
     }
   }, [isFocused]);
 
+  console.log(barcodeTypes);
+
   return (
     <SafeAreaView style={styles.container}>
       <UnifiedBarcodeScanner
         mode="manual"
         active={true}
-        barcodeTypes={["ean13"]}
+        barcodeTypes={barcodeTypes}
         showControls={showControls}
         showHint
         hintText="Apunta al código"
