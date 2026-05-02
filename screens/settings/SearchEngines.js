@@ -1,6 +1,6 @@
 // screens/settings/SearchEngines.js
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   SafeAreaView,
 } from "react-native";
+import { useRoute } from "@react-navigation/native";
 
 import {
   getSearchSettings,
@@ -19,8 +20,39 @@ import {
 import { SEARCH_ENGINES, BOOK_ENGINES } from "../../constants/searchEngines";
 
 export default function SearchEngines() {
+  const route = useRoute();
+
+  const type = route.params?.type ?? "all";
+
   const [settings, setSettings] = useState(DEFAULT_SEARCH_SETTINGS);
   const [isReady, setIsReady] = useState(false);
+
+  const showProducts = type === "product" || type === "all";
+  const showBooks = type === "book" || type === "all";
+
+  const screenCopy = useMemo(() => {
+    if (type === "product") {
+      return {
+        title: "Motores de productos",
+        subtitle:
+          "Selecciona qué motores estarán disponibles al buscar productos o códigos de barras.",
+      };
+    }
+
+    if (type === "book") {
+      return {
+        title: "Motores de libros",
+        subtitle:
+          "Selecciona qué motores estarán disponibles al buscar libros.",
+      };
+    }
+
+    return {
+      title: "Motor de búsqueda",
+      subtitle:
+        "Selecciona qué motores estarán disponibles al buscar productos, códigos de barras o libros.",
+    };
+  }, [type]);
 
   /* ---------------------------
      Load
@@ -99,31 +131,37 @@ export default function SearchEngines() {
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Motor de búsqueda</Text>
+        <Text style={styles.title}>{screenCopy.title}</Text>
 
-        <Text style={styles.subtitle}>
-          Selecciona qué motores estarán disponibles al buscar productos,
-          códigos de barras o libros.
-        </Text>
+        <Text style={styles.subtitle}>{screenCopy.subtitle}</Text>
 
-        <Text style={styles.sectionTitle}>Productos</Text>
+        {showProducts ? (
+          <>
+            <Text style={styles.sectionTitle}>Productos</Text>
 
-        {Object.values(SEARCH_ENGINES).map((engine) =>
-          renderEngineRow({
-            category: "productEngines",
-            engine,
-          }),
-        )}
+            {Object.values(SEARCH_ENGINES).map((engine) =>
+              renderEngineRow({
+                category: "productEngines",
+                engine,
+              }),
+            )}
+          </>
+        ) : null}
 
-        <Text style={styles.sectionTitle}>Libros</Text>
+        {showBooks ? (
+          <>
+            <Text style={styles.sectionTitle}>Libros</Text>
 
-        {Object.values(BOOK_ENGINES).map((engine) =>
-          renderEngineRow({
-            category: "bookEngines",
-            engine,
-          }),
-        )}
+            {Object.values(BOOK_ENGINES).map((engine) =>
+              renderEngineRow({
+                category: "bookEngines",
+                engine,
+              }),
+            )}
+          </>
+        ) : null}
 
         <View style={{ height: 40 }} />
       </ScrollView>

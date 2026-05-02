@@ -21,7 +21,7 @@ export default function BarcodeScannerView({
   continuous = true,
   duplicateCooldownMs = 1500,
   showControls = true,
-  barcodeTypes = ["ean13"],
+  barcodeTypes = null,
 }) {
   const handledRef = useRef(false);
   const lastCodeRef = useRef(null);
@@ -77,6 +77,14 @@ export default function BarcodeScannerView({
       .map(([formatId]) => formatId);
   }, [barcodeSettings]);
 
+  const effectiveBarcodeTypes = useMemo(() => {
+    if (Array.isArray(barcodeTypes) && barcodeTypes.length > 0) {
+      return barcodeTypes;
+    }
+
+    return enabledBarcodeTypes;
+  }, [barcodeTypes, enabledBarcodeTypes]);
+
   function normalizeBarcode(code) {
     const clean = String(code || "").replace(/\D/g, "");
 
@@ -129,14 +137,12 @@ export default function BarcodeScannerView({
     }
   }, [isFocused]);
 
-  console.log(barcodeTypes);
-
   return (
     <SafeAreaView style={styles.container}>
       <UnifiedBarcodeScanner
         mode="manual"
         active={true}
-        barcodeTypes={barcodeTypes}
+        barcodeTypes={effectiveBarcodeTypes}
         showControls={showControls}
         showHint
         hintText="Apunta al código"

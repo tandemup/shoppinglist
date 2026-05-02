@@ -23,7 +23,13 @@ export default function ScannerScreen() {
   const shouldSaveToHistory = route.params?.saveToHistory ?? !onScan;
   const returnToTab = route.params?.returnToTab;
 
-  const barcodeTypes = route.params?.barcodeTypes ?? ["ean13"];
+  /**
+   * Importante:
+   * No ponemos fallback ["ean13"] aquí.
+   * Si barcodeTypes no viene por navegación, BarcodeScannerView usará
+   * los formatos guardados en BarcodeSettingsScreen.
+   */
+  const barcodeTypes = route.params?.barcodeTypes;
 
   async function saveDetectedBarcode(code) {
     const barcode = String(code || "")

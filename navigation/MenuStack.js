@@ -7,6 +7,7 @@ import { ROUTES } from "./ROUTES";
 
 import MenuScreen from "../screens/settings/MenuScreen";
 import SearchEngines from "../screens/settings/SearchEngines";
+import BarcodeSettingsScreen from "../screens/settings/BarcodeSettingsScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -23,7 +24,13 @@ export default function MenuStack() {
       <Stack.Screen
         name={ROUTES.MENU}
         component={MenuScreen}
-        options={{ title: "Menu" }}
+        options={{ title: "Menú" }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.SEARCH_ENGINE_SETTINGS}
+        component={SearchEngines}
+        options={{ title: "Motor de búsqueda" }}
       />
 
       <Stack.Screen
@@ -31,15 +38,11 @@ export default function MenuStack() {
         component={SearchEngines}
         options={{ title: "Motor de búsqueda" }}
       />
+
       <Stack.Screen
         name={ROUTES.BARCODE_SETTINGS}
-        component={SearchEngines}
-        options={{ title: "Barcode config" }}
-      />
-      <Stack.Screen
-        name={ROUTES.SEARCH_ENGINE_SETTINGS}
-        component={SearchEngines}
-        options={{ title: "Barcode config" }}
+        component={BarcodeSettingsScreen}
+        options={{ title: "Código de barras" }}
       />
     </Stack.Navigator>
   );
