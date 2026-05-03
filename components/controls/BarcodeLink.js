@@ -1,26 +1,54 @@
+// components/controls/BarcodeLink.js
+
 import React, { useCallback } from "react";
 import { Linking, Pressable, Text } from "react-native";
 import * as Clipboard from "expo-clipboard";
+
 import { showOptions } from "../../utils/ui/primitives/ActionSheet";
 
-//import { settingsStorage } from "../../src/storage";
 import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
 
+import { getSearchSettings } from "../../src/storage/settingsStorage";
+
 export default function BarcodeLink({ barcode, label, iconColor = "#2563eb" }) {
-  const selectedEngine = DEFAULT_ENGINE;
-  const openSearch = (query) => {
-    const engine = SEARCH_ENGINES[selectedEngine];
+  const getSelectedProductEngine = async () => {
+    const settings = await getSearchSettings();
 
-    if (!engine) {
-      console.warn("Engine no encontrado:", selectedEngine);
-      return;
-    }
+    const selectedEngineId =
+      settings?.selectedProductEngine ||
+      settings?.generalEngine ||
+      DEFAULT_ENGINE;
 
-    const url = engine.buildUrl(query);
-    Linking.openURL(url);
+    const engine =
+      SEARCH_ENGINES[selectedEngineId] || SEARCH_ENGINES[DEFAULT_ENGINE];
+
+    return {
+      id: selectedEngineId,
+      engine,
+      label: engine?.label || selectedEngineId || "buscador",
+    };
   };
-  const handlePress = useCallback(() => {
+
+  const openSearch = async (query) => {
+    try {
+      const { id, engine } = await getSelectedProductEngine();
+
+      if (!engine?.buildUrl) {
+        console.warn("Motor de búsqueda no válido:", id);
+        return;
+      }
+
+      const url = engine.buildUrl(query);
+      await Linking.openURL(url);
+    } catch (error) {
+      console.warn("Error abriendo búsqueda de barcode:", error);
+    }
+  };
+
+  const handlePress = useCallback(async () => {
     if (!barcode) return;
+
+    const { label: engineLabel } = await getSelectedProductEngine();
 
     showOptions("Barcodes", [
       {
@@ -28,7 +56,7 @@ export default function BarcodeLink({ barcode, label, iconColor = "#2563eb" }) {
         onPress: () => Clipboard.setStringAsync(barcode),
       },
       {
-        text: "Buscar",
+        text: `Buscar en ${engineLabel}`,
         onPress: () => openSearch(barcode),
       },
       {

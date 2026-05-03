@@ -4,10 +4,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
-  Switch,
   StyleSheet,
   ScrollView,
   SafeAreaView,
+  Pressable,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 
@@ -18,6 +18,29 @@ import {
 } from "../../src/storage/settingsStorage";
 
 import { SEARCH_ENGINES, BOOK_ENGINES } from "../../constants/searchEngines";
+
+const CATEGORY_CONFIG = {
+  product: {
+    engines: SEARCH_ENGINES,
+    selectedKey: "selectedProductEngine",
+    legacyKey: "generalEngine",
+    legacyMapKey: "productEngines",
+  },
+
+  book: {
+    engines: BOOK_ENGINES,
+    selectedKey: "selectedBookEngine",
+    legacyKey: "bookEngine",
+    legacyMapKey: "bookEngines",
+  },
+};
+
+function buildSingleSelectionMap(engines, selectedId) {
+  return Object.keys(engines).reduce((acc, id) => {
+    acc[id] = id === selectedId;
+    return acc;
+  }, {});
+}
 
 export default function SearchEngines() {
   const route = useRoute();
@@ -35,28 +58,24 @@ export default function SearchEngines() {
       return {
         title: "Motores de productos",
         subtitle:
-          "Selecciona qué motores estarán disponibles al buscar productos o códigos de barras.",
+          "Elige el motor que se usará al buscar productos o códigos de barras.",
       };
     }
 
     if (type === "book") {
       return {
         title: "Motores de libros",
-        subtitle:
-          "Selecciona qué motores estarán disponibles al buscar libros.",
+        subtitle: "Elige el motor que se usará al buscar libros.",
       };
     }
 
     return {
       title: "Motor de búsqueda",
       subtitle:
-        "Selecciona qué motores estarán disponibles al buscar productos, códigos de barras o libros.",
+        "Elige los motores predeterminados para productos, códigos de barras y libros.",
     };
   }, [type]);
 
-  /* ---------------------------
-     Load
-  ----------------------------*/
   useEffect(() => {
     const init = async () => {
       try {
@@ -73,9 +92,6 @@ export default function SearchEngines() {
     init();
   }, []);
 
-  /* ---------------------------
-     Save helper
-  ----------------------------*/
   const saveSettings = async (updated) => {
     try {
       setSettings(updated);
@@ -88,41 +104,61 @@ export default function SearchEngines() {
     }
   };
 
-  /* ---------------------------
-     Toggle
-  ----------------------------*/
-  const toggleEngine = (category, key) => {
-    const currentValue = Boolean(settings?.[category]?.[key]);
+  const selectEngine = (category, engineId) => {
+    const config = CATEGORY_CONFIG[category];
+
+    if (!config) return;
 
     const updated = {
       ...settings,
-      [category]: {
-        ...(settings?.[category] ?? {}),
-        [key]: !currentValue,
-      },
+
+      // Modelo nuevo: selección única.
+      [config.selectedKey]: engineId,
+
+      // Compatibilidad con código antiguo.
+      [config.legacyKey]: engineId,
+
+      // Compatibilidad con mapas antiguos tipo { google: true, bing: false }.
+      [config.legacyMapKey]: buildSingleSelectionMap(config.engines, engineId),
     };
 
     saveSettings(updated);
   };
 
-  /* ---------------------------
-     Render helpers
-  ----------------------------*/
   const renderEngineRow = ({ category, engine }) => {
-    const value = Boolean(settings?.[category]?.[engine.id]);
+    const config = CATEGORY_CONFIG[category];
+
+    if (!config) return null;
+
+    const selectedId =
+      settings?.[config.selectedKey] ?? settings?.[config.legacyKey];
+
+    const selected = selectedId === engine.id;
 
     return (
-      <View style={styles.row} key={engine.id}>
+      <Pressable
+        key={engine.id}
+        onPress={() => selectEngine(category, engine.id)}
+        style={({ pressed }) => [
+          styles.row,
+          selected && styles.rowSelected,
+          pressed && styles.rowPressed,
+        ]}
+      >
         <View style={styles.rowText}>
-          <Text style={styles.label}>{engine.label}</Text>
+          <Text style={[styles.label, selected && styles.labelSelected]}>
+            {engine.label}
+          </Text>
+
           <Text style={styles.engineId}>{engine.id}</Text>
         </View>
 
-        <Switch
-          value={value}
-          onValueChange={() => toggleEngine(category, engine.id)}
-        />
-      </View>
+        <View
+          style={[styles.radioOuter, selected && styles.radioOuterSelected]}
+        >
+          {selected ? <View style={styles.radioInner} /> : null}
+        </View>
+      </Pressable>
     );
   };
 
@@ -143,7 +179,7 @@ export default function SearchEngines() {
 
             {Object.values(SEARCH_ENGINES).map((engine) =>
               renderEngineRow({
-                category: "productEngines",
+                category: "product",
                 engine,
               }),
             )}
@@ -156,14 +192,14 @@ export default function SearchEngines() {
 
             {Object.values(BOOK_ENGINES).map((engine) =>
               renderEngineRow({
-                category: "bookEngines",
+                category: "book",
                 engine,
               }),
             )}
           </>
         ) : null}
 
-        <View style={{ height: 40 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -222,6 +258,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
+  rowSelected: {
+    borderColor: "#14B8A6",
+    backgroundColor: "#F0FDFA",
+  },
+
+  rowPressed: {
+    opacity: 0.8,
+  },
+
   rowText: {
     flex: 1,
     paddingRight: 12,
@@ -234,8 +279,38 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
 
+  labelSelected: {
+    color: "#0F766E",
+  },
+
   engineId: {
     fontSize: 13,
     color: "#6B7280",
+  },
+
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#D1D5DB",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+
+  radioOuterSelected: {
+    borderColor: "#14B8A6",
+  },
+
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#14B8A6",
+  },
+
+  bottomSpacer: {
+    height: 40,
   },
 });
