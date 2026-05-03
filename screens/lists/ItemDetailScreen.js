@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import UNITS from "../../data/units.json";
+import { UNITS } from "../../constants/unitTypes";
 import { ROUTES } from "../../navigation/ROUTES";
 import {
   View,

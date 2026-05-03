@@ -4,10 +4,9 @@ import React from "react";
 import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { ROUTES } from "../../navigation/ROUTES";
-
 import { safeAlert } from "../../components/ui/alert/safeAlert";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import {
   clearAppStorage as clearStorage,
@@ -26,6 +25,7 @@ export default function MenuScreen({ navigation }) {
     destructive = false,
   }) => {
     const iconColor = destructive ? "#B91C1C" : "#111827";
+    const tabBarHeight = useBottomTabBarHeight();
 
     return (
       <Pressable
@@ -140,14 +140,15 @@ export default function MenuScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 16 }, // 👈 mucho más ajustado
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>Menú</Text>
-
         <Text style={styles.subtitle}>
           Gestiona la configuración, el mantenimiento de datos locales y el
           almacenamiento de la aplicación.
@@ -279,16 +280,16 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 120,
+    padding: 16,
+    paddingBottom: 40,
   },
 
   title: {
     fontSize: 28,
     fontWeight: "800",
     color: "#111827",
-    marginBottom: 8,
+    marginTop: 0,
+    marginBottom: 4,
   },
 
   subtitle: {

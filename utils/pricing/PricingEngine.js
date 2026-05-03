@@ -59,6 +59,13 @@ export const PROMOTIONS = {
     value: 50,
     hint: "Descuento 50%",
   },
+  percent75: {
+    id: "percent75",
+    label: "-75%",
+    type: "percent",
+    value: 75,
+    hint: "Descuento 75%",
+  },
 };
 
 export function toPromotion(promoKey) {

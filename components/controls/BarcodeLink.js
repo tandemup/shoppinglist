@@ -4,11 +4,19 @@ import * as Clipboard from "expo-clipboard";
 import { showOptions } from "../../utils/ui/primitives/ActionSheet";
 
 //import { settingsStorage } from "../../src/storage";
-//import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
+import { SEARCH_ENGINES, DEFAULT_ENGINE } from "../../constants/searchEngines";
 
 export default function BarcodeLink({ barcode, label, iconColor = "#2563eb" }) {
+  const selectedEngine = DEFAULT_ENGINE;
   const openSearch = (query) => {
-    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+    const engine = SEARCH_ENGINES[selectedEngine];
+
+    if (!engine) {
+      console.warn("Engine no encontrado:", selectedEngine);
+      return;
+    }
+
+    const url = engine.buildUrl(query);
     Linking.openURL(url);
   };
   const handlePress = useCallback(() => {
