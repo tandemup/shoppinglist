@@ -7,7 +7,6 @@ import StoresBrowseScreen from "../screens/stores/StoresBrowseScreen";
 import StoresFavoritesScreen from "../screens/stores/StoresFavoritesScreen";
 import StoresNearbyScreen from "../screens/stores/StoresNearbyScreen";
 import StoreDetailScreen from "../screens/stores/StoreDetailScreen";
-import StoreInfoScreen from "../screens/stores/StoreInfoScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -38,8 +37,6 @@ export default function StoresStack() {
       />
 
       <Stack.Screen name={ROUTES.STORE_DETAIL} component={StoreDetailScreen} />
-
-      <Stack.Screen name={ROUTES.STORE_INFO} component={StoreInfoScreen} />
     </Stack.Navigator>
   );
 }

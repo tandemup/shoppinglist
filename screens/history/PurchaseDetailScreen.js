@@ -16,6 +16,7 @@ import { useLists } from "../../context/ListsContext";
 import { useStores } from "../../context/StoresContext";
 import { ROUTES } from "../../navigation/ROUTES";
 import { formatCurrency } from "../../utils/store/formatters";
+import StoreLink from "../../components/controls/StoreLink";
 
 /* -------------------------------------------------
    Screen
@@ -125,9 +126,14 @@ export default function PurchaseDetailScreen() {
           </Text>
 
           {store?.name ? (
-            <Text style={styles.cardSubtitle} numberOfLines={1}>
-              {store.name}
-            </Text>
+            <StoreLink
+              store={store}
+              labelPrefix=""
+              queryPrefix={product.name}
+              iconColor="#2563EB"
+              textColor="#2563EB"
+              textStyle={styles.storeLinkText}
+            />
           ) : (
             <Text style={styles.cardSubtitle}>Tienda no indicada</Text>
           )}
@@ -142,7 +148,6 @@ export default function PurchaseDetailScreen() {
       </View>
     );
   };
-
   /* ---------------------------
      Render
   ----------------------------*/
@@ -275,6 +280,11 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     fontSize: 14,
     color: "#6B7280",
+  },
+
+  storeLinkText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 
   priceBox: {

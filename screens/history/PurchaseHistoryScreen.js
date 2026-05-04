@@ -18,6 +18,7 @@ import { ROUTES } from "../../navigation/ROUTES";
 
 import StoreFilterBadges from "../../components/features/stores/StoreFilterBadges";
 import BarcodeLink from "../../components/controls/BarcodeLink";
+import StoreLink from "../../components/controls/StoreLink";
 
 import {
   queryProducts,
@@ -127,16 +128,13 @@ export default function PurchaseHistoryScreen() {
             {purchaseMetaText(item.frequency, item.lastPurchasedAt)}
           </Text>
 
-          {store?.name ? (
-            <Pressable
-              onPress={() => openSearch(`${item.name} ${store.name}`)}
-              hitSlop={8}
-            >
-              <Text style={styles.link} numberOfLines={1}>
-                {joinText("Última tienda: ", store.name)}
-              </Text>
-            </Pressable>
-          ) : null}
+          <StoreLink
+            store={store}
+            labelPrefix="Última tienda:"
+            queryPrefix={item.name}
+            iconColor="#2563EB"
+            textColor="#2563EB"
+          />
         </View>
 
         <View style={styles.right}>

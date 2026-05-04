@@ -8,10 +8,9 @@ import { ROUTES } from "./ROUTES";
 import ShoppingListsScreen from "../screens/lists/ShoppingListsScreen";
 import ShoppingListScreen from "../screens/lists/ShoppingListScreen";
 import ItemDetailScreen from "../screens/lists/ItemDetailScreen";
-import StoresScreen from "../screens/stores/StoresScreen";
 import StoreSelectScreen from "../screens/stores/StoreSelectScreen";
 import ArchivedListsScreen from "../screens/lists/ArchivedListsScreen";
-
+import StoresScreen from "../screens/stores/StoresBrowseScreen";
 import PurchaseHistoryScreen from "../screens/history/PurchaseHistoryScreen";
 import PurchaseDetailScreen from "../screens/history/PurchaseDetailScreen";
 
@@ -21,9 +20,7 @@ import StoreMapScreen from "../screens/stores/StoreMapScreen";
 import MenuScreen from "../screens/settings/MenuScreen";
 
 const Stack = createNativeStackNavigator();
-//const navigation = useNa  vigation();
 
-// options={{ title: "Shopping Lists", headerBackTitle: "" }}
 export default function ShoppingStack() {
   return (
     <Stack.Navigator
