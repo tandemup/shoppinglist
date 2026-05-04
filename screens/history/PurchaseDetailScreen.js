@@ -1,14 +1,9 @@
 // PurchaseDetailScreen.js
 
 import React, { useMemo } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 

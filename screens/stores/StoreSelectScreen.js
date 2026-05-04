@@ -1,13 +1,8 @@
 // screens/StoreSelectScreen.js
 import React from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Pressable,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, FlatList, StyleSheet, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 

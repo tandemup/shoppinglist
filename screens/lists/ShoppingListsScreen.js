@@ -93,7 +93,7 @@ function MenuNavegacion2({
 }) {
   const navigation = useNavigation();
 
-  const actions = [
+  const actions1 = [
     {
       key: "new",
       label: "Nueva lista",
@@ -106,6 +106,39 @@ function MenuNavegacion2({
       icon: "list-outline",
       tab: ROUTES.SHOPPING_TAB,
       route: ROUTES.SHOPPING_LISTS,
+    },
+    {
+      key: "archived",
+      label: "Archivadas",
+      icon: "archive-outline",
+      tab: ROUTES.SHOPPING_TAB,
+      route: ROUTES.ARCHIVED_LISTS,
+      badge: archivedCount,
+    },
+    {
+      key: "history",
+      label: "Compras",
+      icon: "receipt-outline",
+      tab: ROUTES.SHOPPING_TAB,
+      route: ROUTES.PURCHASE_HISTORY,
+      badge: historyCount,
+    },
+    {
+      key: "scanned",
+      label: "Escaneos",
+      icon: "barcode-outline",
+      tab: ROUTES.SCANNER_TAB,
+      route: ROUTES.SCANNED_HISTORY,
+      badge: scannedCount,
+    },
+  ];
+
+  const actions = [
+    {
+      key: "new",
+      label: "Nueva lista",
+      icon: "add-outline",
+      onPress: onCreateList,
     },
     {
       key: "archived",

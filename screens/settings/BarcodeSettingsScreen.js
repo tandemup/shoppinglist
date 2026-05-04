@@ -1,15 +1,9 @@
 // screens/settings/BarcodeSettingsScreen.js
 
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Switch,
-  StyleSheet,
-  ScrollView,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, Switch, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   BARCODE_FORMATS,

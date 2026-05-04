@@ -1,7 +1,9 @@
 // screens/scanner/ScannerTabScreen.js
 
 import React, { useCallback, useState } from "react";
-import { View, Text, StyleSheet, Pressable, SafeAreaView } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 
@@ -73,93 +75,57 @@ export default function ScannerTabScreen({ navigation }) {
     navigation.navigate(ROUTES.SCANNED_HISTORY);
   };
 
-  const goToBarcodeSettings = () => {
-    navigation.navigate(ROUTES.BARCODE_SETTINGS);
-  };
-
   const enabledFormatsLabel = enabledBarcodeTypes.join(", ");
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Scanner</Text>
+    <View style={styles.content}>
+      <Text style={styles.title}>Scanner</Text>
 
-        <Text style={styles.subtitle}>
-          Escanea nuevos productos o consulta el historial de códigos
-          escaneados.
-        </Text>
+      <Text style={styles.subtitle}>
+        Escanea nuevos productos o consulta el historial de códigos escaneados.
+      </Text>
 
-        <View style={styles.actions}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.card,
-              pressed && styles.cardPressed,
-            ]}
-            onPress={goToScanner}
-          >
-            <View style={styles.iconBox}>
-              <Ionicons name="barcode-outline" size={28} color="#111827" />
-            </View>
+      <View style={styles.actions}>
+        <Pressable
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          onPress={goToScanner}
+        >
+          <View style={styles.iconBox}>
+            <Ionicons name="barcode-outline" size={28} color="#111827" />
+          </View>
 
-            <View style={styles.cardText}>
-              <Text style={styles.cardTitle}>Escanear nuevo producto</Text>
-              <Text style={styles.cardSubtitle}>
-                Abrir la cámara para leer un código de barras
-              </Text>
-              <Text style={styles.cardMeta} numberOfLines={1}>
-                Formatos activos: {enabledFormatsLabel}
-              </Text>
-            </View>
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>Escanear nuevo producto</Text>
+            <Text style={styles.cardSubtitle}>
+              Abrir la cámara para leer un código de barras
+            </Text>
+            <Text style={styles.cardMeta} numberOfLines={1}>
+              Formatos activos: {enabledFormatsLabel}
+            </Text>
+          </View>
 
-            <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
-          </Pressable>
+          <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+        </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.card,
-              pressed && styles.cardPressed,
-            ]}
-            onPress={goToScannedHistory}
-          >
-            <View style={styles.iconBox}>
-              <Ionicons name="time-outline" size={28} color="#111827" />
-            </View>
+        <Pressable
+          style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+          onPress={goToScannedHistory}
+        >
+          <View style={styles.iconBox}>
+            <Ionicons name="time-outline" size={28} color="#111827" />
+          </View>
 
-            <View style={styles.cardText}>
-              <Text style={styles.cardTitle}>Historial de Escaneos</Text>
-              <Text style={styles.cardSubtitle}>
-                Ver productos y códigos escaneados anteriormente
-              </Text>
-            </View>
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle}>Historial de Escaneos</Text>
+            <Text style={styles.cardSubtitle}>
+              Ver productos y códigos escaneados anteriormente
+            </Text>
+          </View>
 
-            <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.card,
-              pressed && styles.cardPressed,
-            ]}
-            onPress={goToBarcodeSettings}
-          >
-            <View style={styles.iconBox}>
-              <Ionicons name="options-outline" size={28} color="#111827" />
-            </View>
-
-            <View style={styles.cardText}>
-              <Text style={styles.cardTitle}>
-                Configuración del código de barras
-              </Text>
-              <Text style={styles.cardSubtitle}>
-                Selecciona formatos como EAN-13, EAN-8, UPC o QR
-              </Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
-          </Pressable>
-        </View>
+          <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
+        </Pressable>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

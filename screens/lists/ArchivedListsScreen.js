@@ -7,8 +7,9 @@ import {
   StyleSheet,
   FlatList,
   Linking,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import SearchBar from "../../components/features/search/SearchBar";
 import { Ionicons } from "@expo/vector-icons";
 

@@ -1,15 +1,9 @@
 // screens/StoresNearbyScreen.js
 import React from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useStores } from "../../context/StoresContext";
 import { useStoresWithDistance } from "../../hooks/useStoresWithDistance";
@@ -99,7 +93,7 @@ export default function StoresNearbyScreen() {
   ---------------------------------------------- */
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["left", "right"]}>
         <View style={styles.content}>
           <Text style={styles.title}>Tiendas cercanas</Text>
 
@@ -128,7 +122,7 @@ export default function StoresNearbyScreen() {
   ---------------------------------------------- */
   if (!hasLocation) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["left", "right"]}>
         <View style={styles.content}>
           <Text style={styles.title}>Tiendas cercanas</Text>
 
@@ -159,7 +153,7 @@ export default function StoresNearbyScreen() {
      Render
   ---------------------------------------------- */
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right"]}>
       <View style={styles.content}>
         <Text style={styles.title}>Tiendas cercanas</Text>
 

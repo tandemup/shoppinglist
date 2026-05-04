@@ -1,13 +1,8 @@
 // screens/StoresFavoritesScreen.js
 import React from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -86,7 +81,7 @@ export default function StoresFavoritesScreen() {
   const isEmpty = !favoriteStores || favoriteStores.length === 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right"]}>
       <View style={styles.content}>
         <Text style={styles.title}>Tiendas favoritas</Text>
 

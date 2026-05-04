@@ -140,7 +140,7 @@ export default function MenuScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.container} edges={["left", "right"]}>
       <ScrollView
         contentContainerStyle={[
           styles.content,
@@ -170,7 +170,7 @@ export default function MenuScreen({ navigation }) {
           />
 
           <ActionCard
-            icon="barcode-outline"
+            icon="options-outline"
             title="Formatos del scanner"
             subtitle="Selecciona EAN-13, EAN-8, UPC, QR o Code 128"
             onPress={goToBarcodeSettings}

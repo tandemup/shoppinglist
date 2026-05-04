@@ -5,7 +5,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { View, StyleSheet, Pressable, SafeAreaView } from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 

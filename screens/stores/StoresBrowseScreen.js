@@ -1,15 +1,9 @@
 // screens/StoresBrowseScreen.js
 import React, { useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  Pressable,
-  SafeAreaView,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, Pressable } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useStores } from "../../context/StoresContext";
 import { useLocation } from "../../context/LocationContext";
@@ -167,7 +161,7 @@ export default function StoresBrowseScreen() {
     : `${filteredStores.length} tienda${filteredStores.length === 1 ? "" : "s"}`;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right"]}>
       <View style={styles.content}>
         <Text style={styles.title}>Tiendas</Text>
 

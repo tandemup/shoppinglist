@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, SafeAreaView } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ROUTES } from "../../navigation/ROUTES";
 
@@ -36,7 +37,7 @@ export default function StoresHomeScreen() {
   const navigation = useNavigation();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["left", "right", "bottom"]}>
       <View style={styles.content}>
         <Text style={styles.title}>Gestión de tiendas</Text>
 

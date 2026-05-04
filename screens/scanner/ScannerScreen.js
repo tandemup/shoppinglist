@@ -1,6 +1,10 @@
 import React, { useRef } from "react";
 import { StyleSheet } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import BarcodeScannerView from "../../components/features/scanner/BarcodeScannerView";
 import {
