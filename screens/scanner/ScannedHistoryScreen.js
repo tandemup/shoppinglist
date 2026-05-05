@@ -157,7 +157,7 @@ export default function ScannedHistoryScreen({ navigation }) {
             <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
           </View>
         </Pressable>
-
+        {/* 
         {item.barcode ? (
           <View style={styles.barcodeRow}>
             <BarcodeLink
@@ -167,6 +167,7 @@ export default function ScannedHistoryScreen({ navigation }) {
             />
           </View>
         ) : null}
+         */}
       </View>
     );
   };
@@ -316,6 +317,15 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#F3F4F6",
+    marginRight: 14,
+  },
+
+  imageWrapper2: {
+    width: 90,
+    height: 90,
+    borderRadius: 5,
     overflow: "hidden",
     backgroundColor: "#F3F4F6",
     marginRight: 14,

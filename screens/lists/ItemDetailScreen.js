@@ -93,7 +93,7 @@ function Unidades({
   showError,
 }) {
   return (
-    <View style={styles.card00}>
+    <View style={styles.card0}>
       <View style={styles.unitHeader}>
         <Text style={styles.label}>Unidad</Text>
 
@@ -179,7 +179,7 @@ function Ofertas({ quantity, unitPrice, selectedPromo, onSelect, unit }) {
   const hint = selectedOption?.hint;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.card0}>
       {/* HEADER */}
       <View style={styles.ofertasHeader}>
         <Text style={styles.label}>Ofertas</Text>
@@ -588,13 +588,21 @@ const styles = StyleSheet.create({
   card0: {
     backgroundColor: "#fff",
     borderRadius: 16,
+
+    borderColor: "#e5e7eb",
+    gap: 5,
+  },
+
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
     padding: 14,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     gap: 5,
   },
 
-  cardContenedor: {
+  cardContenedor0: {
     backgroundColor: "#abc",
     borderRadius: 16,
     padding: 14,
@@ -602,6 +610,16 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
     gap: 16,
   },
+
+  cardContenedor: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    gap: 16,
+  },
+
   ofertasHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
