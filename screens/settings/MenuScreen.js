@@ -162,12 +162,14 @@ export default function MenuScreen({ navigation }) {
             onPress={goToProductSearchEngines}
           />
 
-          <ActionCard
-            icon="book-outline"
-            title="Motores de libros"
-            subtitle="Configura los motores usados para buscar libros"
-            onPress={goToBookSearchEngines}
-          />
+          {null && (
+            <ActionCard
+              icon="book-outline"
+              title="Motores de libros"
+              subtitle="Configura los motores usados para buscar libros"
+              onPress={goToBookSearchEngines}
+            />
+          )}
 
           <ActionCard
             icon="options-outline"

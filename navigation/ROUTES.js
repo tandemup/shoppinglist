@@ -21,19 +21,19 @@ export const ROUTES = {
   STORE_INFO: "StoreInfo",
 
   // Archive
-  ARCHIVED_LISTS: "ArchivedLists",
-  ARCHIVED_LIST_DETAIL: "ArchivedListDetail",
+  ARCHIVED_LISTS: "Archived Lists",
+  ARCHIVED_LIST_DETAIL: "Archived List Detail",
 
   // History
-  PURCHASE_HISTORY: "PurchaseHistory",
-  PURCHASE_DETAIL: "PurchaseDetail",
-  SCANNED_HISTORY: "ScannedHistory",
+  PURCHASE_HISTORY: "Purchase History",
+  PURCHASE_DETAIL: "Purchase Detail",
+  SCANNED_HISTORY: "Scanned History",
 
   // Scanner
-  SCANNER_HOME: "ScannerHome",
+  SCANNER_HOME: "Scanner Home",
   EDIT_SCANNED_ITEM: "EditScannedItem",
   SHELF_LABEL_SCANNER: "ShelfLabelScanner",
-  SCANNER_SCREEN: "ScannerScreen",
+  SCANNER_SCREEN: "Scanner Screen",
   QUICK_SCANNER_SCREEN: "QuickScannerScreen",
   DETAILED_SCANNER_SCREEN: "DetailedScannerScreen",
   SEARCH_ENGINES: "SearchEngines",
